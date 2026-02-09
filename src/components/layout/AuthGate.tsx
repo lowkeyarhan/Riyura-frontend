@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
-import Navbar from "@/src/components/navbar";
-import MobileNavbar from "@/src/components/MobileNavbar";
-import LoadingDots from "@/src/components/LoadingDots";
-import { supabase } from "@/src/lib/supabase";
+import Navbar from "@/src/components/layout/Navbar";
+import MobileNavbar from "@/src/components/layout/MobileNavbar";
+import LoadingDots from "@/src/components/ui/LoadingDots";
+import { supabase } from "@/src/lib/auth/supabase";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

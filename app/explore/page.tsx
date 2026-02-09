@@ -15,8 +15,8 @@ import {
   Filter,
 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/NotificationContext";
-import { addToWatchlist } from "@/src/lib/database";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { addToWatchlist } from "@/src/lib/db/database";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- Constants ---

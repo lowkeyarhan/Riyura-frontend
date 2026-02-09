@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { decryptApiKey } from "@/src/lib/encryption";
+import { decryptApiKey } from "@/src/lib/utils/encryption";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 

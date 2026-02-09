@@ -4,7 +4,7 @@ import {
   encryptApiKey,
   getKeyPreview,
   isValidGeminiApiKeyFormat,
-} from "@/src/lib/encryption";
+} from "@/src/lib/utils/encryption";
 
 /**
  * Handles Supabase authentication and client initialization

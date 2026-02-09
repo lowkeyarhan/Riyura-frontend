@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion"; // Added
-import LoadingDots from "./LoadingDots";
+import LoadingDots from "@/src/components/ui/LoadingDots";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlay } from "@fortawesome/free-solid-svg-icons";
@@ -81,7 +81,7 @@ export default function Banner({ initialMovies = [] }: BannerProps) {
         setMovies(data.results || []);
         localStorage.setItem(
           cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
+          JSON.stringify({ data, timestamp: Date.now() }),
         );
       } catch (err: any) {
         setError(err?.message || "Something went wrong");

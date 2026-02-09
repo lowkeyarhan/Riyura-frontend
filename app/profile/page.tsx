@@ -21,11 +21,11 @@ import {
   Trash2,
 } from "lucide-react";
 
-import Footer from "@/src/components/footer";
+import Footer from "@/src/components/layout/Footer";
 import { useAuth } from "@/src/hooks/useAuth";
-import { supabase } from "@/src/lib/supabase";
-import { getWatchlist, removeFromWatchHistory } from "@/src/lib/database";
-import { useNotification } from "@/src/lib/NotificationContext";
+import { supabase } from "@/src/lib/auth/supabase";
+import { getWatchlist, removeFromWatchHistory } from "@/src/lib/db/database";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 
 // Cache Configuration
 const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours

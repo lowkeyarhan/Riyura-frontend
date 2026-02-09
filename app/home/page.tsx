@@ -1,7 +1,7 @@
 import React from "react";
-import Banner from "@/src/components/banner";
+import Banner from "@/src/components/media/Banner";
 import HomeClient from "./HomeClient";
-import Footer from "@/src/components/footer";
+import Footer from "@/src/components/layout/Footer";
 
 // Server-side data fetching
 async function getInitialData() {

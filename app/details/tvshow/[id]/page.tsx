@@ -4,15 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
-import Footer from "@/src/components/footer";
-import LoadingDots from "@/src/components/LoadingDots";
+import Footer from "@/src/components/layout/Footer";
+import LoadingDots from "@/src/components/ui/LoadingDots";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/NotificationContext";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import {
   addToWatchlist,
   removeFromWatchlist,
   isInWatchlist,
-} from "@/src/lib/database";
+} from "@/src/lib/db/database";
 
 interface Season {
   id: number;

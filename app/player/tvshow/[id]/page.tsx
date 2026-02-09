@@ -19,9 +19,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
-import { supabase } from "@/src/lib/supabase";
-import { invalidateProfileCache } from "@/src/lib/database";
-import LoadingDots from "@/src/components/LoadingDots";
+import { supabase } from "@/src/lib/auth/supabase";
+import { invalidateProfileCache } from "@/src/lib/db/database";
+import LoadingDots from "@/src/components/ui/LoadingDots";
 
 // --- Constants ---
 const CACHE_DURATION = 15 * 60 * 1000;

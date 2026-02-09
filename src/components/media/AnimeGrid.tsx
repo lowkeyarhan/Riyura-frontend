@@ -170,7 +170,7 @@ export default function Anime({
         setAnimeList(data.results || []);
         localStorage.setItem(
           CACHE_KEY,
-          JSON.stringify({ data, timestamp: Date.now() })
+          JSON.stringify({ data, timestamp: Date.now() }),
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");

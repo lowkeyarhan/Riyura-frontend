@@ -2,10 +2,10 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Movies from "@/src/components/movies";
-import TVShows from "@/src/components/tvshows";
-import Anime from "@/src/components/anime";
-import Pagination from "@/src/components/pagination";
+import MovieGrid from "@/src/components/media/MovieGrid";
+import TVShowGrid from "@/src/components/media/TVShowGrid";
+import AnimeGrid from "@/src/components/media/AnimeGrid";
+import Pagination from "@/src/components/ui/Pagination";
 import { Film, Tv, Sparkles } from "lucide-react";
 
 interface HomeClientProps {
@@ -114,7 +114,7 @@ export default function HomeClient({ initialData }: HomeClientProps) {
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           {activeSection === "movies" && (
-            <Movies
+            <MovieGrid
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}
               onTotalItemsChange={setTotalItems}
@@ -122,7 +122,7 @@ export default function HomeClient({ initialData }: HomeClientProps) {
             />
           )}
           {activeSection === "tvshows" && (
-            <TVShows
+            <TVShowGrid
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}
               onTotalItemsChange={setTotalItems}
@@ -130,7 +130,7 @@ export default function HomeClient({ initialData }: HomeClientProps) {
             />
           )}
           {activeSection === "anime" && (
-            <Anime
+            <AnimeGrid
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}
               onTotalItemsChange={setTotalItems}

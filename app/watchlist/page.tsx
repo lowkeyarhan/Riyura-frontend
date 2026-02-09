@@ -5,8 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Trash2, Play, Film, Tv, Star, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
-import { getWatchlist, removeFromWatchlist } from "@/src/lib/database";
-import { useNotification } from "@/src/lib/NotificationContext";
+import { getWatchlist, removeFromWatchlist } from "@/src/lib/db/database";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 
 // --- Types ---
 type MediaType = "movie" | "tv";

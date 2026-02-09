@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AuthGate from "@/src/components/AuthGate";
-import { NotificationProvider } from "@/src/lib/NotificationContext";
-import Notification from "@/src/components/Notification";
+import AuthGate from "@/src/components/layout/AuthGate";
+import { NotificationProvider } from "@/src/lib/contexts/NotificationContext";
+import Notification from "@/src/components/ui/Notification";
 import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({

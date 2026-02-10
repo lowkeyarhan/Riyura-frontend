@@ -57,8 +57,6 @@ export default function MediaCard({
   onClick,
   onRemove,
 }: MediaCardProps) {
-  // For anime, the type is already determined by the parent component
-  // (either "movie" or "tv"), so we just use it directly
   const typeConfig = TYPE_CONFIG[type];
   const hasRemove = typeof onRemove === "function";
 
@@ -128,8 +126,9 @@ export default function MediaCard({
           {title}
         </h3>
         <div className="flex items-center justify-between mt-1 mb-3 md:mb-0">
-          <span className="text-xs md:text-sm text-gray-400"
-          >{typeConfig.label}</span>
+          <span className="text-xs md:text-sm text-gray-400">
+            {typeConfig.label}
+          </span>
           <span className="text-xs md:text-sm text-gray-400">
             {year || "Unknown Year"}
           </span>

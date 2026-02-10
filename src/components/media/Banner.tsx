@@ -4,10 +4,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, Transition, Variants } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Play, Plus } from "lucide-react";
+import { Play, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import LoadingDots from "@/src/components/ui/LoadingDots";
+import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
 import { BannerItem } from "@/src/dto/banner";
+import { ContinueWatchingOverlayItem } from "@/src/dto/media-ui";
 import { useAuth } from "@/src/hooks/useAuth";
+import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import {
   addToWatchlist,
@@ -16,7 +19,10 @@ import {
 } from "@/src/lib/db/database";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
+const CARD_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w780";
 const AUTO_SLIDE_INTERVAL = 8000;
+const CONTINUE_NON_DESKTOP_MAX_CARDS = 3;
+const CONTINUE_DESKTOP_MAX_CARDS = 5;
 
 interface BannerProps {
   initialItems?: BannerItem[];
@@ -46,6 +52,8 @@ const GENRE_MAP: Record<number, string> = {
 
 const getImageUrl = (path: string) =>
   path ? `${IMAGE_BASE_URL}${path}` : "/placeholder-image.jpg";
+const getCardImageUrl = (path?: string | null) =>
+  path ? `${CARD_IMAGE_BASE_URL}${path}` : "/placeholder-image.jpg";
 
 const truncate = (text: string, maxLength: number) =>
   text?.length > maxLength ? `${text.slice(0, maxLength)}...` : text || "";
@@ -111,6 +119,46 @@ const contentVariants: Variants = {
   exit: { opacity: 0, y: -20 },
 };
 
+interface WatchHistoryApiItem {
+  id: number;
+  tmdb_id: number;
+  media_type: "movie" | "tv";
+  title: string;
+  poster_path?: string | null;
+  duration_sec?: number | null;
+  episode_length?: number | null;
+  season_number?: number | null;
+  episode_number?: number | null;
+}
+
+const mapWatchHistoryItem = (
+  item: WatchHistoryApiItem,
+): ContinueWatchingOverlayItem => {
+  const fallbackLength = item.media_type === "movie" ? 7200 : 2700;
+  const totalLength = Math.max(60, item.episode_length || fallbackLength);
+  const watchedSeconds = Math.max(0, item.duration_sec || 0);
+  const remainingSeconds = Math.max(0, totalLength - watchedSeconds);
+
+  return {
+    id: item.id,
+    tmdbId: item.tmdb_id,
+    title: item.title || "Untitled",
+    image: getCardImageUrl(item.poster_path),
+    progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
+    meta:
+      item.media_type === "movie"
+        ? "Movie"
+        : `S${item.season_number || 1} E${item.episode_number || 1}`,
+    remaining:
+      remainingSeconds === 0
+        ? "Completed"
+        : `${Math.ceil(remainingSeconds / 60)}m remaining`,
+    mediaType: item.media_type,
+    seasonNumber: item.season_number || 1,
+    episodeNumber: item.episode_number || 1,
+  };
+};
+
 export default function Banner({ initialItems = [] }: BannerProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -123,6 +171,11 @@ export default function Banner({ initialItems = [] }: BannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [continueWatching, setContinueWatching] = useState<
+    ContinueWatchingOverlayItem[]
+  >([]);
+  const [continueWatchingLoading, setContinueWatchingLoading] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
 
   const slideTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchStartXRef = useRef<number | null>(null);
@@ -137,14 +190,17 @@ export default function Banner({ initialItems = [] }: BannerProps) {
   }, []);
 
   // Paginate
-  const paginate = useCallback((newDirection: number) => {
-    if (items.length === 0) return;
-    setCurrentSlide(([prevIndex]) => {
-      let nextIndex = (prevIndex + newDirection) % items.length;
-      if (nextIndex < 0) nextIndex = items.length - 1;
-      return [nextIndex, newDirection];
-    });
-  }, [items.length]);
+  const paginate = useCallback(
+    (newDirection: number) => {
+      if (items.length === 0) return;
+      setCurrentSlide(([prevIndex]) => {
+        let nextIndex = (prevIndex + newDirection) % items.length;
+        if (nextIndex < 0) nextIndex = items.length - 1;
+        return [nextIndex, newDirection];
+      });
+    },
+    [items.length],
+  );
 
   // Next Slide
   const nextSlide = useCallback(() => paginate(1), [paginate]);
@@ -159,14 +215,6 @@ export default function Banner({ initialItems = [] }: BannerProps) {
       nextSlide();
     }, AUTO_SLIDE_INTERVAL);
   }, [clearAutoSlide, items.length, nextSlide]);
-
-  // Go to a specific slide
-  const goToSlide = (index: number) => {
-    if (index < 0 || index >= items.length) return;
-    const newDirection = index > currentSlide ? 1 : -1;
-    setCurrentSlide([index, newDirection]);
-    resetInterval();
-  };
 
   // Fetch the banner content
   useEffect(() => {
@@ -247,18 +295,89 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     checkWatchlistStatus();
   }, [user, currentItemId, currentContentType]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchContinueWatching = async () => {
+      if (!user) {
+        setContinueWatching([]);
+        setContinueWatchingLoading(false);
+        return;
+      }
+
+      try {
+        setContinueWatchingLoading(true);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          if (isActive) setContinueWatching([]);
+          return;
+        }
+
+        const response = await fetch("/api/watch-history", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load watch history");
+        }
+
+        const payload = (await response.json()) as {
+          data?: WatchHistoryApiItem[];
+        };
+        const mappedItems = Array.isArray(payload.data)
+          ? payload.data
+              .map(mapWatchHistoryItem)
+              .filter((item) => item.progress <= 95)
+              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+          : [];
+
+        if (isActive) setContinueWatching(mappedItems);
+      } catch {
+        if (isActive) setContinueWatching([]);
+      } finally {
+        if (isActive) setContinueWatchingLoading(false);
+      }
+    };
+
+    fetchContinueWatching();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+
+    const handleViewportChange = () => {
+      setIsDesktopViewport(mediaQuery.matches);
+    };
+
+    handleViewportChange();
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleViewportChange);
+    };
+  }, []);
+
   // Get the item genres
   const itemGenres =
-    currentItem?.genre_ids?.map((id) => GENRE_MAP[id]).filter(Boolean).slice(0, 2) ||
-    [];
+    currentItem?.genre_ids
+      ?.map((id) => GENRE_MAP[id])
+      .filter(Boolean)
+      .slice(0, 2) || [];
 
   // Get the metadata parts
   const metadataParts = currentItem
     ? [
-      getMediaTypeLabel(currentItem.contentType),
-      currentItem.date,
-      ...itemGenres,
-    ].filter((part): part is string => Boolean(part))
+        getMediaTypeLabel(currentItem.contentType),
+        currentItem.date,
+        ...itemGenres,
+      ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
@@ -284,7 +403,11 @@ export default function Banner({ initialItems = [] }: BannerProps) {
 
     try {
       if (isWatchlisted) {
-        await removeFromWatchlist(user.id, currentItem.id, currentItem.contentType);
+        await removeFromWatchlist(
+          user.id,
+          currentItem.id,
+          currentItem.contentType,
+        );
         setIsWatchlisted(false);
         addNotification(`${mediaTitle} removed from watchlist`, "success");
       } else {
@@ -292,7 +415,8 @@ export default function Banner({ initialItems = [] }: BannerProps) {
           tmdb_id: currentItem.id,
           title: mediaTitle,
           media_type: currentItem.contentType,
-          poster_path: currentItem.poster_path || currentItem.backdrop_path || null,
+          poster_path:
+            currentItem.poster_path || currentItem.backdrop_path || null,
           release_date: currentItem.date || null,
           vote: currentItem.vote_average || null,
         });
@@ -320,7 +444,8 @@ export default function Banner({ initialItems = [] }: BannerProps) {
 
   // Handle the touch end event
   const handleTouchEnd = () => {
-    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
+    if (touchStartXRef.current === null || touchEndXRef.current === null)
+      return;
     const distance = touchStartXRef.current - touchEndXRef.current;
     if (distance > minSwipeDistance) {
       nextSlide();
@@ -331,166 +456,230 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     }
   };
 
+  const handleContinueWatchingPlay = (item: ContinueWatchingOverlayItem) => {
+    if (item.mediaType === "movie") {
+      router.push(`/player/movie/${item.tmdbId}`);
+      return;
+    }
+
+    router.push(
+      `/player/tvshow/${item.tmdbId}?season=${item.seasonNumber || 1}&episode=${item.episodeNumber || 1}`,
+    );
+  };
+
+  const continueWatchingVisibleItems = continueWatching.slice(
+    0,
+    isDesktopViewport
+      ? CONTINUE_DESKTOP_MAX_CARDS
+      : CONTINUE_NON_DESKTOP_MAX_CARDS,
+  );
+
   return (
-    <div
-      className="relative w-full h-[88vh] min-h-[560px] md:h-screen bg-black overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {loading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <LoadingDots />
-        </div>
-      )}
-
-      {error && !loading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-red-400">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && items.length === 0 && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-white">
-          No content available
-        </div>
-      )}
-
-      {/* Animate the current item background image */}
-      <AnimatePresence initial={false} custom={direction} mode="sync">
-        {currentItem && (
-          <motion.div
-            key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
-            custom={direction}
-            variants={imageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="absolute inset-y-0 -left-[18%] h-full w-[136%] will-change-transform"
-          >
-            <Image
-              src={getImageUrl(currentItem.backdrop_path)}
-              alt={getDisplayTitle(currentItem)}
-              fill
-              priority
-              className="object-cover object-center"
-              sizes="136vw"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="pointer-events-none absolute inset-0 z-[5] bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
-
-      {/* Content Container */}
-      <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-16 md:px-24 md:pb-24 pointer-events-none">
-        <div className="w-full max-w-2xl">
-          <AnimatePresence mode="wait">
-            {/* Animate the current item content */}
-            {currentItem && (
-              <motion.div
-                key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
-                variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={CONTENT_TRANSITION}
-              >
-                {/* Title */}
-                <h1
-                  className="mb-4 text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-white md:text-6xl lg:text-7xl"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
-                  {getDisplayTitle(currentItem)}
-                </h1>
-
-                {/* Metadata */}
-                <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-white/80">
-                  <span className="inline-flex h-7 items-center justify-center rounded-full border border-white/20 bg-white/10 px-2 text-xs font-semibold">
-                    HD+
-                  </span>
-
-                  {metadataParts.map((part, index) => (
-                    <React.Fragment key={`${part}-${index}`}>
-                      <span className="text-sm md:text-[1.02rem]">{part}</span>
-                      {index < metadataParts.length - 1 && (
-                        <span className="text-white/50">•</span>
-                      )}
-                    </React.Fragment>
-                  ))}
-
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-white/70 px-1 text-[10px] font-bold leading-none">
-                    {currentItem.adult ? "A" : "U/A"}
-                  </span>
-                </div>
-
-                {/* Overview */}
-                <p
-                  className="max-w-xl text-base leading-relaxed text-white/70 md:text-[1.1rem]"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
-                  {truncate(currentItem.overview, 140)}
-                </p>
-
-                {/* Buttons */}
-                <div className="pointer-events-auto mt-7 flex items-center gap-3">
-                  {/* Play Button */}
-                  <button
-                    onClick={handlePlay}
-                    className="w-fit rounded-full bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90"
-                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Play className="h-5 w-5 fill-black" />
-                      <span className="text-2xl leading-none">Play</span>
-                    </span>
-                  </button>
-
-                  {/* Toggle the watchlist */}
-                  <button
-                    onClick={toggleWatchlist}
-                    disabled={watchlistLoading}
-                    aria-label={
-                      isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
-                    }
-                    className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
-                      ? "bg-white/35 text-white"
-                      : "bg-white/20 text-white hover:bg-white/30"
-                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
-                  >
-                    <Plus className="h-8 w-8" strokeWidth={1.5} />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Carousel Indicators */}
-        {items.length > 1 && (
-          <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center justify-center gap-2">
-            {items.map((_, index) => (
-              <motion.button
-                key={index}
-                onClick={() => goToSlide(index)}
-                layout
-                initial={false}
-                animate={{
-                  width: index === currentSlide ? 32 : 8,
-                  backgroundColor:
-                    index === currentSlide ? "#ffffff" : "rgba(255,255,255,0.5)",
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                }}
-                className="h-2 rounded-full"
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+    <section className="relative w-full bg-black pb-8 md:pb-10">
+      <div
+        className="relative w-full h-[88vh] min-h-[560px] md:h-screen bg-black overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {loading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <LoadingDots />
           </div>
         )}
+
+        {error && !loading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-red-400">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && items.length === 0 && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-white">
+            No content available
+          </div>
+        )}
+
+        {/* Animate the current item background image */}
+        <AnimatePresence initial={false} custom={direction} mode="sync">
+          {currentItem && (
+            <motion.div
+              key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
+              custom={direction}
+              variants={imageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="absolute inset-y-0 -left-[18%] h-full w-[136%] will-change-transform"
+            >
+              <Image
+                src={getImageUrl(currentItem.backdrop_path)}
+                alt={getDisplayTitle(currentItem)}
+                fill
+                priority
+                className="object-cover object-center"
+                sizes="136vw"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="pointer-events-none absolute inset-0 z-[5] bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
+
+        {/* Content Container */}
+        <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-16 md:px-24 md:pb-24 pointer-events-none">
+          <div className="w-full max-w-2xl">
+            <AnimatePresence mode="wait">
+              {/* Animate the current item content */}
+              {currentItem && (
+                <motion.div
+                  key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
+                  variants={contentVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={CONTENT_TRANSITION}
+                >
+                  {/* Title */}
+                  <h1
+                    className="mb-4 text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-white md:text-6xl lg:text-7xl"
+                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                  >
+                    {getDisplayTitle(currentItem)}
+                  </h1>
+
+                  {/* Metadata */}
+                  <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-white/80">
+                    <span className="inline-flex h-7 items-center justify-center rounded-full border border-white/20 bg-white/10 px-2 text-xs font-semibold">
+                      HD+
+                    </span>
+
+                    {metadataParts.map((part, index) => (
+                      <React.Fragment key={`${part}-${index}`}>
+                        <span className="text-sm md:text-[1.02rem]">
+                          {part}
+                        </span>
+                        {index < metadataParts.length - 1 && (
+                          <span className="text-white/50">•</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-white/70 px-1 text-[10px] font-bold leading-none">
+                      {currentItem.adult ? "A" : "U/A"}
+                    </span>
+                  </div>
+
+                  {/* Overview */}
+                  <p
+                    className="max-w-xl text-base leading-relaxed text-white/70 md:text-[1.1rem]"
+                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                  >
+                    {truncate(currentItem.overview, 140)}
+                  </p>
+
+                  {/* Buttons */}
+                  <div className="pointer-events-auto mt-7 flex items-center gap-3">
+                    {/* Play Button */}
+                    <button
+                      onClick={handlePlay}
+                      className="w-fit rounded-full bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90"
+                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Play className="h-5 w-5 fill-black" />
+                        <span className="text-2xl leading-none">Play</span>
+                      </span>
+                    </button>
+
+                    {/* Toggle the watchlist */}
+                    <button
+                      onClick={toggleWatchlist}
+                      disabled={watchlistLoading}
+                      aria-label={
+                        isWatchlisted
+                          ? "Remove from watchlist"
+                          : "Add to watchlist"
+                      }
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${
+                        isWatchlisted
+                          ? "bg-white/35 text-white"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                    >
+                      <Plus className="h-8 w-8" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Side Navigation */}
+          {items.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  prevSlide();
+                  resetInterval();
+                }}
+                aria-label="Previous banner"
+                className="pointer-events-auto absolute left-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:left-8 md:top-1/2 md:h-14 md:w-14"
+              >
+                <ChevronLeft
+                  className="h-5 w-5 md:h-7 md:w-7"
+                  strokeWidth={2}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  nextSlide();
+                  resetInterval();
+                }}
+                aria-label="Next banner"
+                className="pointer-events-auto absolute right-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:right-8 md:top-1/2 md:h-14 md:w-14"
+              >
+                <ChevronRight
+                  className="h-5 w-5 md:h-7 md:w-7"
+                  strokeWidth={2}
+                />
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Continue Watching */}
+      {continueWatchingVisibleItems.length > 0 && (
+        <div className="relative z-20 px-6 md:px-24">
+          {/* Continue Watching Title */}
+          <div className="border-t border-white/20 pt-5">
+            <h2
+              className="mb-4 text-sm font-semibold tracking-[0.18em] text-white/90"
+              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            >
+              CONTINUE WATCHING
+            </h2>
+
+            {continueWatchingLoading ? (
+              <div className="flex items-center py-5">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+              </div>
+            ) : (
+              <div className="grid grid-flow-col auto-cols-[calc((100%_-_0.75rem)/1.5)] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:overflow-visible md:gap-5 lg:grid-cols-5">
+                {continueWatchingVisibleItems.map((item) => (
+                  <ContinueWatchingCard
+                    key={item.id}
+                    item={item}
+                    onClick={handleContinueWatchingPlay}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

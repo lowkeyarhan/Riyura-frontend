@@ -12,3 +12,17 @@ export interface MediaGridItem {
   overview: string;
   media_type?: string;
 }
+
+// Used by `src/components/media/Banner.tsx` continue watching overlay cards.
+export interface ContinueWatchingOverlayItem {
+  id: number;
+  tmdbId: number;
+  title: string;
+  image: string;
+  progress: number;
+  meta: string;
+  remaining: string;
+  mediaType: "movie" | "tv";
+  seasonNumber?: number;
+  episodeNumber?: number;
+}

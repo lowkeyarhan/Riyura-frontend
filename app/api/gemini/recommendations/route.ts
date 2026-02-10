@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { decryptApiKey } from "@/src/lib/utils/encryption";
 import {
   GeminiRecommendationItem,
-  ProcessedRecommendation,
+  GeminiRecommendationResponse,
 } from "@/src/dto/gemini";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
@@ -66,7 +66,7 @@ Return ONLY the JSON array with exactly 12 items (4 movies, 4 tv shows, 4 anime)
  */
 async function fetchTmdbData(
   item: GeminiRecommendationItem,
-): Promise<ProcessedRecommendation | null> {
+): Promise<GeminiRecommendationResponse | null> {
   try {
     // TMDB classifies Anime as TV
     const searchType = item.type === "anime" ? "tv" : item.type;
@@ -233,7 +233,7 @@ export async function GET(req: Request) {
     );
 
     // 6. TMDB Enrichment (Sequential to avoid ECONNRESET)
-    const validResults: ProcessedRecommendation[] = [];
+    const validResults: GeminiRecommendationResponse[] = [];
 
     for (const rec of geminiRecommendations) {
       const data = await fetchTmdbData(rec);

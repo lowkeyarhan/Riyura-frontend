@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Notification, NotificationContextType } from "@/src/dto/notification";
+import { NotificationItem, NotificationContextType } from "@/src/dto/notification";
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined
@@ -10,7 +10,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const addNotification = (message: string, type: "success" | "error") => {
     const id = Date.now().toString();

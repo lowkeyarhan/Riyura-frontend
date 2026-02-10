@@ -12,14 +12,14 @@ async function getInitialData() {
       fetch(`${baseUrl}/api/movies`, { next: { revalidate: 3600 } }),
       fetch(`${baseUrl}/api/trending-tv`, { next: { revalidate: 3600 } }),
       fetch(`${baseUrl}/api/trending-anime`, { next: { revalidate: 3600 } }),
-      fetch(`${baseUrl}/api/trending`, { next: { revalidate: 3600 } }),
+      fetch(`${baseUrl}/api/banner`, { cache: "no-store" }),
     ]);
 
     const [movies, tvShows, anime, bannerData] = await Promise.all([
       moviesRes.ok ? moviesRes.json() : { results: [] },
       tvRes.ok ? tvRes.json() : { results: [] },
       animeRes.ok ? animeRes.json() : { results: [] },
-      bannerRes.ok ? bannerRes.json() : { results: [] },
+      bannerRes.ok ? bannerRes.json() : { items: [] },
     ]);
 
     return { movies, tvShows, anime, bannerData };
@@ -29,7 +29,7 @@ async function getInitialData() {
       movies: { results: [] },
       tvShows: { results: [] },
       anime: { results: [] },
-      bannerData: { results: [] },
+      bannerData: { items: [] },
     };
   }
 }
@@ -39,7 +39,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Banner initialMovies={initialData.bannerData.results} />
+      <Banner initialItems={initialData.bannerData.items} />
       <HomeClient initialData={initialData} />
       <Footer />
     </div>

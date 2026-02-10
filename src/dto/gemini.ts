@@ -8,8 +8,8 @@ export interface GeminiRecommendationItem {
   genre: string;
 }
 
-// Used by `app/api/gemini/recommendations/route.ts` for processed recommendations
-export interface ProcessedRecommendation {
+// Used by `app/api/gemini/recommendations/route.ts` for processed recommendations response
+export interface GeminiRecommendationResponse {
   tmdb_id: number;
   title: string;
   media_type: "movie" | "tv";

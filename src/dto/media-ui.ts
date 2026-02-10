@@ -12,14 +12,3 @@ export interface MediaGridItem {
   overview: string;
   media_type?: string;
 }
-
-// Used by `src/components/media/Banner.tsx`.
-export interface BannerMovie {
-  id: number;
-  title?: string;
-  name?: string;
-  original_name?: string;
-  overview: string;
-  backdrop_path: string;
-  genre_ids?: number[];
-}

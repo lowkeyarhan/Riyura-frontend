@@ -4,7 +4,7 @@
 export type MediaType = "movie" | "tv";
 
 // Used by `src/lib/db/database.ts` for adding items to watchlist
-export interface WatchlistPayload {
+export interface WatchlistRequest {
   tmdb_id: number;
   title: string;
   media_type: MediaType;
@@ -16,7 +16,7 @@ export interface WatchlistPayload {
 }
 
 // Used by `src/lib/db/database.ts` for adding items to watch history
-export interface WatchHistoryPayload {
+export interface WatchHistoryRequest {
   tmdb_id: number;
   title: string;
   media_type: MediaType;
@@ -26,7 +26,7 @@ export interface WatchHistoryPayload {
 }
 
 // Used by `src/lib/db/database.ts` return types for watchlist queries
-export interface WatchlistItem {
+export interface WatchlistDbItem {
   id: number;
   user_id: string;
   tmdb_id: number;
@@ -41,7 +41,7 @@ export interface WatchlistItem {
 }
 
 // Used by `src/lib/db/database.ts` return types for watch history queries
-export interface WatchHistoryItem {
+export interface WatchHistoryDbItem {
   id: number;
   user_id: string;
   tmdb_id: number;

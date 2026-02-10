@@ -33,8 +33,3 @@ export interface PaginationProps {
   itemsPerPage: number;
   onPageChange: (page: number) => void;
 }
-
-// Used by `src/components/media/Banner.tsx`
-export interface BannerProps {
-  initialMovies?: any[];
-}

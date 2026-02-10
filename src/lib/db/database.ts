@@ -1,10 +1,10 @@
 import { supabase } from "@/src/lib/auth/supabase";
 import {
   MediaType,
-  WatchHistoryItem,
-  WatchlistItem,
-  WatchlistPayload,
-  WatchHistoryPayload,
+  WatchHistoryDbItem,
+  WatchlistDbItem,
+  WatchlistRequest,
+  WatchHistoryRequest,
 } from "@/src/dto/media";
 
 // Profile Functions ----
@@ -75,7 +75,7 @@ export const invalidateProfileCache = (userId: string) => {
 };
 
 // Add a movie or TV show to watchlist
-export async function addToWatchlist(userId: string, item: WatchlistPayload) {
+export async function addToWatchlist(userId: string, item: WatchlistRequest) {
   console.log("📌 [addToWatchlist] Adding item:", {
     userId,
     tmdb_id: item.tmdb_id,
@@ -105,7 +105,7 @@ export async function addToWatchlist(userId: string, item: WatchlistPayload) {
 
   console.log("✅ [addToWatchlist] Successfully added:", data);
   invalidateProfileCache(userId);
-  return data as WatchlistItem;
+  return data as WatchlistDbItem;
 }
 
 // Remove from watchlist
@@ -137,7 +137,7 @@ export async function removeFromWatchlist(
 }
 
 // Get user's watchlist
-export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
+export async function getWatchlist(userId: string): Promise<WatchlistDbItem[]> {
   console.log("📋 [getWatchlist] Fetching watchlist for user:", userId);
 
   const { data, error } = await supabase
@@ -183,7 +183,7 @@ export async function isInWatchlist(
 export async function getWatchlistByType(
   userId: string,
   mediaType: MediaType,
-): Promise<WatchlistItem[]> {
+): Promise<WatchlistDbItem[]> {
   console.log(
     `🎬 [getWatchlistByType] Fetching ${mediaType} watchlist for user:`,
     userId,
@@ -211,7 +211,7 @@ export async function getWatchlistByType(
 // Add to watch history
 export async function addToWatchHistory(
   userId: string,
-  item: WatchHistoryPayload,
+  item: WatchHistoryRequest,
 ) {
   const { data, error } = await supabase
     .from("watch_history")
@@ -225,13 +225,13 @@ export async function addToWatchHistory(
   if (error) throw error;
 
   invalidateProfileCache(userId);
-  return data as WatchHistoryItem;
+  return data as WatchHistoryDbItem;
 }
 
 // Get watch history
 export async function getWatchHistory(
   userId: string,
-): Promise<WatchHistoryItem[]> {
+): Promise<WatchHistoryDbItem[]> {
   const { data, error } = await supabase
     .from("watch_history")
     .select("*")
@@ -246,7 +246,7 @@ export async function getWatchHistory(
 export async function getRecentlyWatched(
   userId: string,
   limit = 10,
-): Promise<WatchHistoryItem[]> {
+): Promise<WatchHistoryDbItem[]> {
   const { data, error } = await supabase
     .from("watch_history")
     .select("*")

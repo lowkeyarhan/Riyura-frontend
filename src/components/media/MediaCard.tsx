@@ -57,6 +57,8 @@ export default function MediaCard({
   onClick,
   onRemove,
 }: MediaCardProps) {
+  // For anime, the type is already determined by the parent component
+  // (either "movie" or "tv"), so we just use it directly
   const typeConfig = TYPE_CONFIG[type];
   const hasRemove = typeof onRemove === "function";
 
@@ -83,22 +85,6 @@ export default function MediaCard({
 
         {/* Gradient Overlay */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
-
-        {/* Type Badge
-        <span className="absolute top-2 left-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-slate-200 shadow-md">
-          {typeConfig.icon}
-          {typeConfig.label}
-        </span> */}
-
-        {/* Rating Badge
-        {typeof rating === "number" && (
-          <div className="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-[#0f1115]/90 border border-white/10 flex items-center gap-1 shadow-sm z-10">
-            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs text-white font-bold">
-              {rating.toFixed(1)}
-            </span>
-          </div>
-        )} */}
 
         {/* Hover Action Overlay (Desktop) */}
         <div className="hidden md:flex absolute inset-0 bg-[#0f1115]/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center gap-4 z-20">
@@ -147,13 +133,13 @@ export default function MediaCard({
           <span className="text-xs md:text-sm text-gray-400">
             {year || "Unknown Year"}
           </span>
-          {type === "tv" && (seasons || episodes) && (
+          {/* {type === "tv" && (seasons || episodes) && (
             <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">
               {seasons ? `${seasons}S` : ""}
               {seasons && episodes ? " • " : ""}
               {episodes ? `${episodes}Ep` : ""}
             </span>
-          )}
+          )} */}
         </div>
 
         {/* Mobile Actions (Visible only on mobile) */}

@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import MediaGrid from "@/src/components/media/MediaGrid";
 import Pagination from "@/src/components/ui/Pagination";
 import { Film, Tv, Sparkles } from "lucide-react";
-import { HomeInitialData } from "@/src/dto/home";
+import { HomeInitialDataResponse } from "@/src/dto/home";
 
 interface HomeClientProps {
-  initialData: HomeInitialData;
+  initialData: HomeInitialDataResponse;
 }
 
 export default function HomeClient({ initialData }: HomeClientProps) {

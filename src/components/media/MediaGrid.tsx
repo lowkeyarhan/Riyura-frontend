@@ -108,11 +108,27 @@ export default function MediaGrid({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedItems = items.slice(startIndex, startIndex + itemsPerPage);
 
-  const cardType = useMemo(() => {
+  const getCardType = (item: MediaGridItem): "movie" | "tv" | "anime" => {
     if (mediaType === "movies") return "movie";
     if (mediaType === "tvshows") return "tv";
+
+    // For anime, determine the actual type based on TMDB data
+    if (mediaType === "anime") {
+      // Use media_type from TMDB if available
+      if (item.media_type === "movie") return "movie";
+      if (item.media_type === "tv") return "tv";
+
+      // Fallback: check date fields
+      // first_air_date indicates a TV show, release_date indicates a movie
+      if (item.first_air_date) return "tv";
+      if (item.release_date && !item.first_air_date) return "movie";
+
+      // Default to TV for anime (most anime are TV shows)
+      return "tv";
+    }
+
     return "anime";
-  }, [mediaType]);
+  };
 
   const getDetailsPath = (item: MediaGridItem) => {
     if (mediaType === "anime") {
@@ -172,7 +188,7 @@ export default function MediaGrid({
                   posterUrl={posterUrl}
                   year={Number.isNaN(year as number) ? undefined : year}
                   rating={item.vote_average}
-                  type={cardType}
+                  type={getCardType(item)}
                   onClick={() => router.push(getDetailsPath(item))}
                 />
               );

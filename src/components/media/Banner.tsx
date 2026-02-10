@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Transition, Variants } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Play, Plus } from "lucide-react";
@@ -16,7 +16,7 @@ import {
 } from "@/src/lib/db/database";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
-const AUTO_SLIDE_INTERVAL = 5000;
+const AUTO_SLIDE_INTERVAL = 8000;
 
 interface BannerProps {
   initialItems?: BannerItem[];
@@ -56,12 +56,68 @@ const getDisplayTitle = (item?: BannerItem) =>
 const getMediaTypeLabel = (contentType: BannerItem["contentType"]) =>
   contentType === "movie" ? "Movie" : "TV Show";
 
+// Image Transition
+const IMAGE_TRANSITION: Transition = {
+  duration: 2.1,
+  ease: [0.4, 0, 0.2, 1] as const,
+};
+const IMAGE_FADE_EASE: [number, number, number, number] = [0.42, 0, 0.58, 1];
+
+// Content Transition
+const CONTENT_TRANSITION: Transition = {
+  duration: 0.8,
+  ease: "easeOut" as const,
+  delay: 0.2,
+};
+
+// Image Variants
+const imageVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "10%" : "-10%",
+    opacity: 0,
+    zIndex: 2,
+  }),
+  center: {
+    x: "0%",
+    opacity: 1,
+    zIndex: 2,
+    transition: {
+      x: IMAGE_TRANSITION,
+      opacity: {
+        duration: 1.6,
+        delay: 0.2,
+        ease: IMAGE_FADE_EASE,
+      },
+    },
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? "-10%" : "10%",
+    opacity: 0,
+    zIndex: 1,
+    transition: {
+      x: IMAGE_TRANSITION,
+      opacity: {
+        duration: 1.6,
+        ease: IMAGE_FADE_EASE,
+      },
+    },
+  }),
+};
+
+// Content Variants
+const contentVariants: Variants = {
+  enter: { opacity: 0, y: 20 },
+  center: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
 export default function Banner({ initialItems = [] }: BannerProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { addNotification } = useNotification();
 
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [[currentSlide, direction], setCurrentSlide] = useState([0, 0]);
+
   const [items, setItems] = useState<BannerItem[]>(initialItems);
   const [loading, setLoading] = useState(initialItems.length === 0);
   const [error, setError] = useState<string | null>(null);
@@ -80,30 +136,39 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     }
   }, []);
 
-  const nextSlide = useCallback(() => {
+  // Paginate
+  const paginate = useCallback((newDirection: number) => {
     if (items.length === 0) return;
-    setCurrentSlide((prev) => (prev + 1) % items.length);
+    setCurrentSlide(([prevIndex]) => {
+      let nextIndex = (prevIndex + newDirection) % items.length;
+      if (nextIndex < 0) nextIndex = items.length - 1;
+      return [nextIndex, newDirection];
+    });
   }, [items.length]);
 
-  const prevSlide = useCallback(() => {
-    if (items.length === 0) return;
-    setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-  }, [items.length]);
+  // Next Slide
+  const nextSlide = useCallback(() => paginate(1), [paginate]);
+  // Previous Slide
+  const prevSlide = useCallback(() => paginate(-1), [paginate]);
 
+  // Reset the auto slide interval
   const resetInterval = useCallback(() => {
     clearAutoSlide();
     if (items.length <= 1) return;
     slideTimerRef.current = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % items.length);
+      nextSlide();
     }, AUTO_SLIDE_INTERVAL);
-  }, [clearAutoSlide, items.length]);
+  }, [clearAutoSlide, items.length, nextSlide]);
 
+  // Go to a specific slide
   const goToSlide = (index: number) => {
     if (index < 0 || index >= items.length) return;
-    setCurrentSlide(index);
+    const newDirection = index > currentSlide ? 1 : -1;
+    setCurrentSlide([index, newDirection]);
     resetInterval();
   };
 
+  // Fetch the banner content
   useEffect(() => {
     if (initialItems.length > 0) {
       setItems(initialItems);
@@ -116,7 +181,6 @@ export default function Banner({ initialItems = [] }: BannerProps) {
       try {
         setLoading(true);
         setError(null);
-
         const cacheKey = "banner:trending-content:v3";
         const cached = localStorage.getItem(cacheKey);
 
@@ -148,16 +212,19 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     fetchBannerContent();
   }, [initialItems]);
 
+  // Reset the auto slide interval when the items change
   useEffect(() => {
     if (items.length === 0) return;
     resetInterval();
     return clearAutoSlide;
   }, [items.length, resetInterval, clearAutoSlide]);
 
+  // Get the current item
   const currentItem = items[currentSlide];
   const currentItemId = currentItem?.id;
   const currentContentType = currentItem?.contentType;
 
+  // Check the watchlist status
   useEffect(() => {
     const checkWatchlistStatus = async () => {
       if (!user || !currentItemId || !currentContentType) {
@@ -180,10 +247,12 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     checkWatchlistStatus();
   }, [user, currentItemId, currentContentType]);
 
+  // Get the item genres
   const itemGenres =
     currentItem?.genre_ids?.map((id) => GENRE_MAP[id]).filter(Boolean).slice(0, 2) ||
     [];
 
+  // Get the metadata parts
   const metadataParts = currentItem
     ? [
       getMediaTypeLabel(currentItem.contentType),
@@ -192,20 +261,19 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     ].filter((part): part is string => Boolean(part))
     : [];
 
+  // Handle the play button click
   const handlePlay = () => {
     if (!currentItem) return;
-
     if (currentItem.contentType === "movie") {
       router.push(`/player/movie/${currentItem.id}`);
       return;
     }
-
     router.push(`/player/tvshow/${currentItem.id}?season=1&episode=1`);
   };
 
+  // Toggle the watchlist
   const toggleWatchlist = async () => {
     if (!currentItem) return;
-
     if (!user) {
       router.push("/auth");
       return;
@@ -231,7 +299,6 @@ export default function Banner({ initialItems = [] }: BannerProps) {
         setIsWatchlisted(true);
         addNotification(`${mediaTitle} added to watchlist`, "success");
       }
-
       sessionStorage.removeItem(`watchlist_${user.id}`);
     } catch {
       addNotification("Failed to update watchlist", "error");
@@ -240,28 +307,25 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     }
   };
 
+  // Handle the touch start event
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     touchEndXRef.current = null;
     touchStartXRef.current = event.targetTouches[0]?.clientX ?? null;
   };
 
+  // Handle the touch move event
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
     touchEndXRef.current = event.targetTouches[0]?.clientX ?? null;
   };
 
+  // Handle the touch end event
   const handleTouchEnd = () => {
     if (touchStartXRef.current === null || touchEndXRef.current === null) return;
-
     const distance = touchStartXRef.current - touchEndXRef.current;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
+    if (distance > minSwipeDistance) {
       nextSlide();
       resetInterval();
-    }
-
-    if (isRightSwipe) {
+    } else if (distance < -minSwipeDistance) {
       prevSlide();
       resetInterval();
     }
@@ -292,15 +356,17 @@ export default function Banner({ initialItems = [] }: BannerProps) {
         </div>
       )}
 
-      <AnimatePresence mode="popLayout">
+      {/* Animate the current item background image */}
+      <AnimatePresence initial={false} custom={direction} mode="sync">
         {currentItem && (
           <motion.div
-            key={currentItem.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-            className="absolute inset-0 h-full w-full"
+            key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
+            custom={direction}
+            variants={imageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="absolute inset-y-0 -left-[18%] h-full w-[136%] will-change-transform"
           >
             <Image
               src={getImageUrl(currentItem.backdrop_path)}
@@ -308,25 +374,28 @@ export default function Banner({ initialItems = [] }: BannerProps) {
               fill
               priority
               className="object-cover object-center"
-              sizes="100vw"
+              sizes="136vw"
             />
-            {/* <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/95 via-black/75 to-black/55" /> */}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="pointer-events-none absolute inset-0 z-[5] bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
 
+      {/* Content Container */}
       <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-16 md:px-24 md:pb-24 pointer-events-none">
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait">
+            {/* Animate the current item content */}
             {currentItem && (
               <motion.div
-                key={currentItem.id}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={CONTENT_TRANSITION}
               >
+                {/* Title */}
                 <h1
                   className="mb-4 text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-white md:text-6xl lg:text-7xl"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
@@ -334,6 +403,7 @@ export default function Banner({ initialItems = [] }: BannerProps) {
                   {getDisplayTitle(currentItem)}
                 </h1>
 
+                {/* Metadata */}
                 <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-white/80">
                   <span className="inline-flex h-7 items-center justify-center rounded-full border border-white/20 bg-white/10 px-2 text-xs font-semibold">
                     HD+
@@ -353,6 +423,7 @@ export default function Banner({ initialItems = [] }: BannerProps) {
                   </span>
                 </div>
 
+                {/* Overview */}
                 <p
                   className="max-w-xl text-base leading-relaxed text-white/70 md:text-[1.1rem]"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
@@ -360,7 +431,9 @@ export default function Banner({ initialItems = [] }: BannerProps) {
                   {truncate(currentItem.overview, 140)}
                 </p>
 
+                {/* Buttons */}
                 <div className="pointer-events-auto mt-7 flex items-center gap-3">
+                  {/* Play Button */}
                   <button
                     onClick={handlePlay}
                     className="w-fit rounded-full bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90"
@@ -372,6 +445,7 @@ export default function Banner({ initialItems = [] }: BannerProps) {
                     </span>
                   </button>
 
+                  {/* Toggle the watchlist */}
                   <button
                     onClick={toggleWatchlist}
                     disabled={watchlistLoading}
@@ -391,6 +465,7 @@ export default function Banner({ initialItems = [] }: BannerProps) {
           </AnimatePresence>
         </div>
 
+        {/* Carousel Indicators */}
         {items.length > 1 && (
           <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center justify-center gap-2">
             {items.map((_, index) => (
@@ -404,7 +479,11 @@ export default function Banner({ initialItems = [] }: BannerProps) {
                   backgroundColor:
                     index === currentSlide ? "#ffffff" : "rgba(255,255,255,0.5)",
                 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30,
+                }}
                 className="h-2 rounded-full"
                 aria-label={`Go to slide ${index + 1}`}
               />

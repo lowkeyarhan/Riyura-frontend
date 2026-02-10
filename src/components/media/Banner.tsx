@@ -28,6 +28,8 @@ interface BannerProps {
   initialItems?: BannerItem[];
 }
 
+const EMPTY_BANNER_ITEMS: BannerItem[] = [];
+
 const GENRE_MAP: Record<number, string> = {
   28: "Action",
   12: "Adventure",
@@ -159,15 +161,16 @@ const mapWatchHistoryItem = (
   };
 };
 
-export default function Banner({ initialItems = [] }: BannerProps) {
+export default function Banner({ initialItems }: BannerProps) {
+  const safeInitialItems = initialItems ?? EMPTY_BANNER_ITEMS;
   const router = useRouter();
   const { user } = useAuth();
   const { addNotification } = useNotification();
 
   const [[currentSlide, direction], setCurrentSlide] = useState([0, 0]);
 
-  const [items, setItems] = useState<BannerItem[]>(initialItems);
-  const [loading, setLoading] = useState(initialItems.length === 0);
+  const [items, setItems] = useState<BannerItem[]>(safeInitialItems);
+  const [loading, setLoading] = useState(safeInitialItems.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
@@ -218,8 +221,8 @@ export default function Banner({ initialItems = [] }: BannerProps) {
 
   // Fetch the banner content
   useEffect(() => {
-    if (initialItems.length > 0) {
-      setItems(initialItems);
+    if (safeInitialItems.length > 0) {
+      setItems(safeInitialItems);
       setLoading(false);
       setError(null);
       return;
@@ -258,7 +261,7 @@ export default function Banner({ initialItems = [] }: BannerProps) {
     };
 
     fetchBannerContent();
-  }, [initialItems]);
+  }, [safeInitialItems]);
 
   // Reset the auto slide interval when the items change
   useEffect(() => {
@@ -526,7 +529,7 @@ export default function Banner({ initialItems = [] }: BannerProps) {
         <div className="pointer-events-none absolute inset-0 z-[5] bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
 
         {/* Content Container */}
-        <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-16 md:px-24 md:pb-24 pointer-events-none">
+        <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-16 md:px-20 md:pb-24 pointer-events-none">
           <div className="w-full max-w-2xl">
             <AnimatePresence mode="wait">
               {/* Animate the current item content */}
@@ -652,15 +655,21 @@ export default function Banner({ initialItems = [] }: BannerProps) {
 
       {/* Continue Watching */}
       {continueWatchingVisibleItems.length > 0 && (
-        <div className="relative z-20 px-6 md:px-24">
+        <div className="relative z-20 px-6 md:px-20">
           {/* Continue Watching Title */}
           <div className="border-t border-white/20 pt-5">
             <h2
-              className="mb-4 text-sm font-semibold tracking-[0.18em] text-white/90"
+              className="text-2xl md:text-3xl font-bold text-white tracking-tight"
               style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
             >
-              CONTINUE WATCHING
+              Continue Watching
             </h2>
+            <p
+              className="mt-2 mb-5 md:mb-6 text-sm md:text-base text-white/60"
+              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            >
+              Pick up where you left off
+            </p>
 
             {continueWatchingLoading ? (
               <div className="flex items-center py-5">

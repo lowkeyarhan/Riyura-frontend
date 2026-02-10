@@ -36,7 +36,7 @@ export default function ContinueWatchingCard({
       </div>
 
       {/* Progress Bar below image */}
-      <div className="w-full mb-2 mt-4 flex items-center justify-center">
+      <div className="w-full mb-2 mt-2 flex items-center justify-center">
         <div className="w-full h-1 rounded-full bg-white/20 overflow-hidden">
           <div
             className="h-full bg-red-500 rounded-full transition-all duration-300"

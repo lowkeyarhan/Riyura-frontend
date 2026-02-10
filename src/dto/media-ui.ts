@@ -1,11 +1,10 @@
 // DTOs used by frontend media UI components.
-
-// Used by `src/components/media/MediaGrid.tsx` and legacy grid components.
+// Used by home media grid components and API routes.
 export interface MediaGridItem {
   id: number;
   title?: string;
   name?: string;
-  poster_path: string;
+  poster_path: string | null;
   vote_average: number;
   release_date?: string;
   first_air_date?: string;

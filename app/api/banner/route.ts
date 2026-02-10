@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { BannerItem, BannerResponse } from "@/src/dto/banner";
 import {
   TMDBListResponse,
@@ -61,11 +63,11 @@ export async function GET() {
     const [moviesResponse, tvResponse] = await Promise.all([
       fetch(`${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}`, {
         headers: { accept: "application/json" },
-        next: { revalidate: 3600 },
+        cache: "no-store",
       }),
       fetch(`${TMDB_BASE_URL}/trending/tv/week?api_key=${TMDB_API_KEY}`, {
         headers: { accept: "application/json" },
-        next: { revalidate: 3600 },
+        cache: "no-store",
       }),
     ]);
 

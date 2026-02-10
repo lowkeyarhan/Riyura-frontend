@@ -132,13 +132,6 @@ export default function MediaCard({
           <span className="text-xs md:text-sm text-gray-400">
             {year || "Unknown Year"}
           </span>
-          {/* {type === "tv" && (seasons || episodes) && (
-            <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-              {seasons ? `${seasons}S` : ""}
-              {seasons && episodes ? " • " : ""}
-              {episodes ? `${episodes}Ep` : ""}
-            </span>
-          )} */}
         </div>
 
         {/* Mobile Actions (Visible only on mobile) */}

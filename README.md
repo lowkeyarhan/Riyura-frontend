@@ -28,18 +28,15 @@ Riyura 2.0 is a modernised version of the original Riyura project. It focuses on
 ## High‑Level Architecture
 
 - **Next.js App Router**
-
   - `app/` directory for route segments like `home`, `explore`, `profile`, `watchlist`, `player`, etc.
   - Server components for static/SSR pieces, client components for interactive pages.
 
 - **Supabase**
-
   - `src/lib/supabase.ts` — browser Supabase client (anon key, persisted session).
   - `models/*.sql` — Postgres schema definition and RLS policies (applied via Supabase SQL editor / migrations).
   - Auth providers: **Email/password** (with confirmation link) + **Google OAuth**.
 
 - **TMDB‑style API layer**
-
   - API routes under `app/api/*` (e.g. `trending`, `movies`, `tvshow`, `explore`) act as a thin proxy between the frontend and the external movie API.
   - These routes normalize and return a consistent `MediaItem` shape to the client.
 
@@ -55,13 +52,11 @@ Riyura 2.0 is a modernised version of the original Riyura project. It focuses on
 
 - Handled in `app/auth/page.tsx`.
 - **Sign‑up**:
-
   - Calls `supabase.auth.signUp({ email, password, options: { emailRedirectTo, data: { full_name, display_name } } })`.
   - Supabase sends a **confirmation link** by email (no OTP in the current setup).
   - When the user clicks the link, Supabase redirects to `/auth/callback` with a verified session.
 
 - **Sign‑in**:
-
   - Calls `supabase.auth.signInWithPassword({ email, password })`.
   - On success, the user is redirected to `/home`.
 
@@ -79,12 +74,10 @@ Riyura 2.0 is a modernised version of the original Riyura project. It focuses on
 ### 3. Supabase Profiles Table & RLS
 
 - Defined in `models/profiles.sql`:
-
   - `id UUID PRIMARY KEY REFERENCES auth.users(id)` (1:1 with Supabase `auth.users`).
   - `display_name`, `email`, `photo_url`, `onboarded`, `last_login`, `created_at`.
 
 - Row Level Security:
-
   - `auth.uid() = id` for **SELECT**, **INSERT** and **UPDATE**.
   - Guarantees that each user can only see and mutate their own profile row.
 
@@ -101,7 +94,6 @@ Riyura 2.0 is a modernised version of the original Riyura project. It focuses on
 Defined under `models/watchlist.sql` and `models/watchHistory.sql` (schema summarized):
 
 - **watchlist**
-
   - `id SERIAL PRIMARY KEY`
   - `user_id UUID REFERENCES auth.users(id)`
   - `tmdb_id INT`, `title TEXT`, `media_type TEXT`, `poster_path TEXT`, `release_date DATE`, `vote NUMERIC`, plus optional season/episode counts.
@@ -116,18 +108,15 @@ Defined under `models/watchlist.sql` and `models/watchHistory.sql` (schema summa
 ### Helper Functions (`src/lib/database.ts`)
 
 - `ensureUserProfile(user)`
-
   - Checks if profile exists for `user.uid`.
   - If not, inserts a profile (unless a trigger already did it).
   - Updates `last_login` on each sign‑in.
 
 - `addToWatchlist(userId, item)`
-
   - Inserts a row into `watchlist` with the current `userId` and media metadata.
   - On success, invalidates relevant profile caches.
 
 - `getWatchlistByUser(userId, filters?)`
-
   - Returns the user’s watchlist, optionally filtered by media type.
 
 - `recordWatchHistory(userId, item)`
@@ -142,7 +131,7 @@ Defined under `models/watchlist.sql` and `models/watchHistory.sql` (schema summa
 Key API endpoints live in `app/api/*` and proxy the external movie API:
 
 - `app/api/trending/route.ts` — trending content.
-- `app/api/movies/route.ts` — movie lists.
+- `app/api/trending-tv/route.ts` — TV lists.
 - `app/api/tvshow/[id]/route.ts` — TV show details.
 - `app/api/explore/route.ts` — discover content with genre + media‑type filters.
 
@@ -172,7 +161,6 @@ The app uses lightweight client‑side caching for frequently visited views to a
 #### Profile Page Caching
 
 - Uses `sessionStorage` with **user‑specific keys** and a TTL:
-
   - Example keys: `profile_watchlist_<userId>`, `profile_watch_history_<userId>`, `profile_stats_<userId>`.
   - On first load, fetches data from Supabase and writes `{ data, expiresAt }` into storage.
   - On subsequent loads within the TTL window, reads from storage and skips the network.
@@ -199,22 +187,18 @@ The app uses lightweight client‑side caching for frequently visited views to a
 ## Performance & UX Optimizations
 
 - **Responsive, mobile‑first layouts**
-
   - Tailwind breakpoints (`sm`, `md`, `lg`, `xl`) used heavily in `app/*` and `src/components/*`.
   - Mobile‑specific nav (`MobileNavbar`) and control bar layouts.
 
 - **Optimized images**
-
   - Next.js `Image` component with `sizes` and responsive layout.
   - Uses TMDB‑style `w500` poster URLs for cards.
 
 - **Framer Motion animations**
-
   - Used to animate tabs, hero sections and subtle hover or layout transitions.
   - Improves perceived performance and polish without heavy custom CSS animations.
 
 - **Minimal over‑fetching**
-
   - Caching with `sessionStorage` and RLS‑safe Supabase queries.
   - Dedicated helpers for watchlist / history so each route fetches only what it needs.
 
@@ -237,7 +221,6 @@ The app uses lightweight client‑side caching for frequently visited views to a
 ## Folder Structure (High‑Level)
 
 - `app/`
-
   - `auth/` — sign‑in/sign‑up UI and callback route.
   - `home/` — main logged‑in landing page.
   - `explore/` — discover view with genres, media‑type filters, infinite scroll.

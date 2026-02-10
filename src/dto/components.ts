@@ -1,6 +1,6 @@
 // DTOs for reusable UI component props
 
-// Used by `src/components/media/MediaGrid.tsx`
+// Legacy media grid props (kept for compatibility with older UI flows)
 export type MediaType = "movies" | "tvshows" | "anime";
 
 export interface MediaGridProps {

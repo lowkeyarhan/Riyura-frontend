@@ -1,22 +1,8 @@
 import { NextResponse } from "next/server";
-import { MediaGridItem } from "@/src/dto/media-ui";
+import { MediaGridItem } from "@/src/dto/ui/card";
+import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
 export const dynamic = "force-dynamic";
-
-interface TMDBMovie {
-  id: number;
-  title?: string;
-  name?: string;
-  overview: string;
-  poster_path: string | null;
-  vote_average: number;
-  release_date?: string;
-  first_air_date?: string;
-}
-
-interface TMDBResponse {
-  results: TMDBMovie[];
-}
 
 export async function GET() {
   const apiKey = process.env.TMDB_API_KEY;
@@ -44,7 +30,7 @@ export async function GET() {
       );
     }
 
-    const data = (await response.json()) as TMDBResponse;
+    const data = (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
 
     // Map to MediaGridItem and sanitize
     const items: MediaGridItem[] = Array.isArray(data?.results)

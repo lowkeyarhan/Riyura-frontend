@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-import { BannerItem, BannerResponse } from "@/src/dto/banner";
+import { BannerItem, BannerResponse } from "@/src/dto/ui/card";
 import {
   TMDBListResponse,
   TMDBTrendingMovie,

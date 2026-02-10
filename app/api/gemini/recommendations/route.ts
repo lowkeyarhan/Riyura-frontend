@@ -4,7 +4,7 @@ import { decryptApiKey } from "@/src/lib/utils/encryption";
 import {
   GeminiRecommendationItem,
   GeminiRecommendationResponse,
-} from "@/src/dto/gemini";
+} from "@/src/dto/ui/profile";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 

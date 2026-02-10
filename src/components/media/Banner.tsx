@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 import { Play, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import LoadingDots from "@/src/components/ui/LoadingDots";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
-import { BannerItem } from "@/src/dto/banner";
-import { ContinueWatchingOverlayItem } from "@/src/dto/media-ui";
+import { BannerItem, ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
+import { WatchHistoryItem } from "@/src/dto/ui/profile";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
@@ -121,20 +121,8 @@ const contentVariants: Variants = {
   exit: { opacity: 0, y: -20 },
 };
 
-interface WatchHistoryApiItem {
-  id: number;
-  tmdb_id: number;
-  media_type: "movie" | "tv";
-  title: string;
-  poster_path?: string | null;
-  duration_sec?: number | null;
-  episode_length?: number | null;
-  season_number?: number | null;
-  episode_number?: number | null;
-}
-
 const mapWatchHistoryItem = (
-  item: WatchHistoryApiItem,
+  item: WatchHistoryItem,
 ): ContinueWatchingOverlayItem => {
   const fallbackLength = item.media_type === "movie" ? 7200 : 2700;
   const totalLength = Math.max(60, item.episode_length || fallbackLength);
@@ -201,6 +189,15 @@ export default function Banner({ initialItems }: BannerProps) {
         if (nextIndex < 0) nextIndex = items.length - 1;
         return [nextIndex, newDirection];
       });
+    },
+    [items.length],
+  );
+
+  const goToSlide = useCallback(
+    (index: number) => {
+      if (items.length === 0) return;
+      const nextIndex = Math.max(0, Math.min(items.length - 1, index));
+      setCurrentSlide(([prevIndex]) => [nextIndex, nextIndex - prevIndex]);
     },
     [items.length],
   );
@@ -328,7 +325,7 @@ export default function Banner({ initialItems }: BannerProps) {
         }
 
         const payload = (await response.json()) as {
-          data?: WatchHistoryApiItem[];
+          data?: WatchHistoryItem[];
         };
         const mappedItems = Array.isArray(payload.data)
           ? payload.data
@@ -544,7 +541,7 @@ export default function Banner({ initialItems }: BannerProps) {
                 >
                   {/* Title */}
                   <h1
-                    className="mb-4 text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-white md:text-6xl lg:text-7xl"
+                    className="mb-4 text-6xl md:text-7xl lg:text-8xl font-extrabold uppercase leading-[0.95] tracking-tight text-white"
                     style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                   >
                     {getDisplayTitle(currentItem)}
@@ -574,7 +571,7 @@ export default function Banner({ initialItems }: BannerProps) {
 
                   {/* Overview */}
                   <p
-                    className="max-w-xl text-base leading-relaxed text-white/70 md:text-[1.1rem]"
+                    className="max-w-3xl text-base leading-relaxed text-white/70 md:text-[1.1rem]"
                     style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                   >
                     {truncate(currentItem.overview, 140)}
@@ -627,12 +624,9 @@ export default function Banner({ initialItems }: BannerProps) {
                   resetInterval();
                 }}
                 aria-label="Previous banner"
-                className="pointer-events-auto absolute left-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:left-8 md:top-1/2 md:h-14 md:w-14"
+                className="pointer-events-auto absolute left-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:hidden"
               >
-                <ChevronLeft
-                  className="h-5 w-5 md:h-7 md:w-7"
-                  strokeWidth={2}
-                />
+                <ChevronLeft className="h-5 w-5" strokeWidth={2} />
               </button>
               <button
                 type="button"
@@ -641,7 +635,7 @@ export default function Banner({ initialItems }: BannerProps) {
                   resetInterval();
                 }}
                 aria-label="Next banner"
-                className="pointer-events-auto absolute right-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:right-8 md:top-1/2 md:h-14 md:w-14"
+                className="pointer-events-auto md:hidden absolute right-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:right-8 md:top-1/2 md:h-14 md:w-14"
               >
                 <ChevronRight
                   className="h-5 w-5 md:h-7 md:w-7"
@@ -651,6 +645,33 @@ export default function Banner({ initialItems }: BannerProps) {
             </>
           )}
         </div>
+
+        {/* Slide Dots (kept inside viewport) */}
+        {items.length > 1 && (
+          <div className="pointer-events-auto absolute inset-x-0 bottom-10 z-20 flex items-center justify-center gap-2 px-6 md:px-20">
+            {items.map((_, index) => (
+              <motion.button
+                key={index}
+                type="button"
+                onClick={() => {
+                  goToSlide(index);
+                  resetInterval();
+                }}
+                // Use Framer Motion layout prop for smooth width transition
+                layout
+                initial={false}
+                animate={{
+                  width: index === currentSlide ? 32 : 8,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className={`h-2 rounded-full ${
+                  index === currentSlide ? "bg-white" : "bg-white/50"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Continue Watching */}

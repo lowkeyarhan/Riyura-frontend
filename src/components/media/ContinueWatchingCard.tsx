@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Play } from "lucide-react";
-import { ContinueWatchingOverlayItem } from "@/src/dto/media-ui";
+import { ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
 
 interface ContinueWatchingCardProps {
   item: ContinueWatchingOverlayItem;

@@ -1,23 +1,8 @@
 import { NextResponse } from "next/server";
-import { MediaGridItem } from "@/src/dto/media-ui";
+import { MediaGridItem } from "@/src/dto/ui/card";
+import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
 export const dynamic = "force-dynamic";
-
-interface TMDBAnime {
-  id: number;
-  title?: string;
-  name?: string;
-  overview: string;
-  poster_path: string | null;
-  vote_average: number;
-  release_date?: string;
-  first_air_date?: string;
-  media_type?: string;
-}
-
-interface TMDBResponse {
-  results: TMDBAnime[];
-}
 
 export async function GET() {
   const apiKey = process.env.TMDB_API_KEY;
@@ -55,8 +40,10 @@ export async function GET() {
       );
     }
 
-    const tvData = (await tvResponse.json()) as TMDBResponse;
-    const movieData = (await movieResponse.json()) as TMDBResponse;
+    const tvData =
+      (await tvResponse.json()) as TMDBListResponse<TMDBBaseListItem>;
+    const movieData =
+      (await movieResponse.json()) as TMDBListResponse<TMDBBaseListItem>;
 
     // Combine results with media_type
     const tvResults = Array.isArray(tvData?.results)
@@ -80,7 +67,7 @@ export async function GET() {
       release_date: anime.release_date,
       first_air_date: anime.first_air_date,
       overview: anime.overview || "",
-      media_type: anime.media_type || "tv",
+      media_type: (anime.media_type || "tv") as "movie" | "tv",
     }));
 
     return NextResponse.json({ results: items });

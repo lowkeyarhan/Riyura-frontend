@@ -7,7 +7,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { getWatchlist, removeFromWatchlist } from "@/src/lib/db/database";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import MediaCard from "@/src/components/media/MediaCard";
-import { WatchlistPageItem } from "@/src/dto/watchlist";
+import { WatchlistPageItem } from "@/src/dto/ui/profile";
 
 // --- Constants ---
 const FONT_FAMILY = "Be Vietnam Pro, sans-serif";
@@ -22,10 +22,11 @@ const TABS = [
 const FilterButton = ({ active, onClick, children }: any) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${active
-      ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] scale-105"
-      : "bg-[#151821] text-gray-400 border border-white/10 hover:border-white/20 hover:text-white hover:bg-white/5"
-      }`}
+    className={`px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${
+      active
+        ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] scale-105"
+        : "bg-[#151821] text-gray-400 border border-white/10 hover:border-white/20 hover:text-white hover:bg-white/5"
+    }`}
     style={{ fontFamily: "Montserrat, sans-serif" }}
   >
     {children}
@@ -107,7 +108,7 @@ export default function WatchlistPage() {
   const removeItem = async (
     e: React.MouseEvent,
     id: number,
-    type: "movie" | "tv"
+    type: "movie" | "tv",
   ) => {
     e.stopPropagation(); // Prevent card click
     if (!user) return;
@@ -217,8 +218,9 @@ export default function WatchlistPage() {
             <p className="text-gray-400 text-lg max-w-md px-4">
               {items.length === 0
                 ? "Go explore trending titles and bookmark the ones that catch your eye."
-                : `You haven't added any ${filter === "movie" ? "movies" : "TV shows"
-                } to your list yet.`}
+                : `You haven't added any ${
+                    filter === "movie" ? "movies" : "TV shows"
+                  } to your list yet.`}
             </p>
           </div>
         ) : (
@@ -235,11 +237,14 @@ export default function WatchlistPage() {
                   type={item.type}
                   seasons={item.seasons}
                   episodes={item.episodes}
-                  onRemove={(e) => removeItem(e, item.id, item.type)}
+                  onRemove={(e: React.MouseEvent) =>
+                    removeItem(e, item.id, item.type)
+                  }
                   onClick={() => {
                     router.push(
-                      `/details/${item.type === "movie" ? "movie" : "tvshow"}/${item.id
-                      }`
+                      `/details/${item.type === "movie" ? "movie" : "tvshow"}/${
+                        item.id
+                      }`,
                     );
                   }}
                 />

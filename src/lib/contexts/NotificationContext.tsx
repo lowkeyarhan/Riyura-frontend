@@ -1,10 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { NotificationItem, NotificationContextType } from "@/src/dto/notification";
+import {
+  NotificationItem,
+  NotificationContextType,
+} from "@/src/dto/ui/profile";
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({

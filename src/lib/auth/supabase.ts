@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 // Only validate in production/runtime, not during build
 if (typeof window !== "undefined" && (!supabaseUrl || !supabaseAnonKey)) {
   console.error(
-    "Missing Supabase environment variables. Please check your .env.local file."
+    "Missing Supabase environment variables. Please check your .env.local file.",
   );
 }
 
@@ -19,5 +19,5 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
-  }
+  },
 );

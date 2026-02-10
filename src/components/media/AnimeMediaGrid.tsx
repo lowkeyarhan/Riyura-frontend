@@ -2,7 +2,7 @@
 
 import React from "react";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaGridItem } from "@/src/dto/media-ui";
+import { MediaGridItem } from "@/src/dto/ui/card";
 
 interface AnimeMediaGridProps {
   trending: MediaGridItem[];

@@ -2,19 +2,13 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import MovieGrid from "@/src/components/media/MovieGrid";
-import TVShowGrid from "@/src/components/media/TVShowGrid";
-import AnimeGrid from "@/src/components/media/AnimeGrid";
+import MediaGrid from "@/src/components/media/MediaGrid";
 import Pagination from "@/src/components/ui/Pagination";
 import { Film, Tv, Sparkles } from "lucide-react";
+import { HomeInitialData } from "@/src/dto/home";
 
 interface HomeClientProps {
-  initialData: {
-    movies: { results: any[] };
-    tvShows: { results: any[] };
-    anime: { results: any[] };
-    bannerData: { results: any[] };
-  };
+  initialData: HomeInitialData;
 }
 
 export default function HomeClient({ initialData }: HomeClientProps) {
@@ -56,10 +50,9 @@ export default function HomeClient({ initialData }: HomeClientProps) {
                 onClick={() => handleSectionChange(tab.id as any)}
                 className={`
                   relative flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all duration-300 z-10
-                  ${
-                    isActive
-                      ? "text-white shadow-sm"
-                      : "text-gray-500 hover:text-gray-300"
+                  ${isActive
+                    ? "text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-300"
                   }
                 `}
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
@@ -67,11 +60,10 @@ export default function HomeClient({ initialData }: HomeClientProps) {
                 {/* Icon */}
                 <tab.icon
                   size={16}
-                  className={`transition-colors duration-300 ${
-                    isActive
-                      ? "text-white"
-                      : "text-gray-500 group-hover:text-gray-300"
-                  }`}
+                  className={`transition-colors duration-300 ${isActive
+                    ? "text-white"
+                    : "text-gray-500 group-hover:text-gray-300"
+                    }`}
                 />
 
                 {/* Icon (Hidden on very small screens if needed, currently visible) */}
@@ -113,30 +105,19 @@ export default function HomeClient({ initialData }: HomeClientProps) {
           exit={{ opacity: 0, y: -15, filter: "blur(5px)" }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          {activeSection === "movies" && (
-            <MovieGrid
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              onTotalItemsChange={setTotalItems}
-              initialMovies={initialData.movies.results}
-            />
-          )}
-          {activeSection === "tvshows" && (
-            <TVShowGrid
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              onTotalItemsChange={setTotalItems}
-              initialTVShows={initialData.tvShows.results}
-            />
-          )}
-          {activeSection === "anime" && (
-            <AnimeGrid
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              onTotalItemsChange={setTotalItems}
-              initialAnime={initialData.anime.results}
-            />
-          )}
+          <MediaGrid
+            mediaType={activeSection}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onTotalItemsChange={setTotalItems}
+            initialItems={
+              activeSection === "movies"
+                ? initialData.movies.results
+                : activeSection === "tvshows"
+                  ? initialData.tvShows.results
+                  : initialData.anime.results
+            }
+          />
         </motion.div>
       </AnimatePresence>
 

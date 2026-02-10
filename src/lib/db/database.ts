@@ -1,62 +1,11 @@
 import { supabase } from "@/src/lib/auth/supabase";
-
-type MediaType = "movie" | "tv";
-
-export interface Profile {
-  id: string;
-  display_name: string | null;
-  email: string;
-  photo_url: string | null;
-  onboarded: boolean;
-  last_login: string | null;
-  created_at: string;
-}
-
-export interface WatchlistItem {
-  id: number;
-  user_id: string;
-  tmdb_id: number;
-  title: string;
-  media_type: MediaType;
-  poster_path: string | null;
-  release_date: string | null;
-  vote: number | null;
-  number_of_seasons: number | null;
-  number_of_episodes: number | null;
-  added_at: string;
-}
-
-export interface WatchHistoryItem {
-  id: number;
-  user_id: string;
-  tmdb_id: number;
-  title: string;
-  media_type: MediaType;
-  poster_path: string | null;
-  release_date: string | null;
-  duration_sec: number | null;
-  watched_at: string;
-}
-
-type WatchlistPayload = {
-  tmdb_id: number;
-  title: string;
-  media_type: MediaType;
-  poster_path: string | null;
-  release_date: string | null;
-  vote: number | null;
-  number_of_seasons?: number | null;
-  number_of_episodes?: number | null;
-};
-
-type WatchHistoryPayload = {
-  tmdb_id: number;
-  title: string;
-  media_type: MediaType;
-  poster_path: string | null;
-  release_date: string | null;
-  duration_sec: number | null;
-};
+import {
+  MediaType,
+  WatchHistoryItem,
+  WatchlistItem,
+  WatchlistPayload,
+  WatchHistoryPayload,
+} from "@/src/dto/media";
 
 // Profile Functions ----
 export async function ensureUserProfile(user: {
@@ -66,7 +15,7 @@ export async function ensureUserProfile(user: {
   photoURL: string | null;
 }) {
   const now = new Date().toISOString();
-  
+
   // First check if profile exists
   const { data, error } = await supabase
     .from("profiles")
@@ -163,7 +112,7 @@ export async function addToWatchlist(userId: string, item: WatchlistPayload) {
 export async function removeFromWatchlist(
   userId: string,
   tmdbId: number,
-  mediaType: MediaType
+  mediaType: MediaType,
 ) {
   console.log("🗑️ [removeFromWatchlist] Removing item:", {
     userId,
@@ -210,7 +159,7 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
 export async function isInWatchlist(
   userId: string,
   tmdbId: number,
-  mediaType: MediaType
+  mediaType: MediaType,
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from("watchlist")
@@ -233,11 +182,11 @@ export async function isInWatchlist(
 // Get watchlist by type
 export async function getWatchlistByType(
   userId: string,
-  mediaType: MediaType
+  mediaType: MediaType,
 ): Promise<WatchlistItem[]> {
   console.log(
     `🎬 [getWatchlistByType] Fetching ${mediaType} watchlist for user:`,
-    userId
+    userId,
   );
 
   const { data, error } = await supabase
@@ -254,7 +203,7 @@ export async function getWatchlistByType(
 
   console.log(
     `✅ [getWatchlistByType] Found ${mediaType} items:`,
-    data?.length || 0
+    data?.length || 0,
   );
   return data || [];
 }
@@ -262,7 +211,7 @@ export async function getWatchlistByType(
 // Add to watch history
 export async function addToWatchHistory(
   userId: string,
-  item: WatchHistoryPayload
+  item: WatchHistoryPayload,
 ) {
   const { data, error } = await supabase
     .from("watch_history")
@@ -281,7 +230,7 @@ export async function addToWatchHistory(
 
 // Get watch history
 export async function getWatchHistory(
-  userId: string
+  userId: string,
 ): Promise<WatchHistoryItem[]> {
   const { data, error } = await supabase
     .from("watch_history")
@@ -296,7 +245,7 @@ export async function getWatchHistory(
 // Get recently watched (last N items)
 export async function getRecentlyWatched(
   userId: string,
-  limit = 10
+  limit = 10,
 ): Promise<WatchHistoryItem[]> {
   const { data, error } = await supabase
     .from("watch_history")
@@ -325,7 +274,7 @@ export async function markUserAsOnboarded(userId: string) {
 // Remove from watch history
 export async function removeFromWatchHistory(
   userId: string,
-  historyId: number
+  historyId: number,
 ) {
   const { error } = await supabase
     .from("watch_history")

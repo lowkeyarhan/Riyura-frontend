@@ -1,21 +1,5 @@
 import { NextResponse } from "next/server";
-
-interface Movie {
-  id: number;
-  title?: string;
-  name?: string;
-  original_name?: string;
-  overview: string;
-  backdrop_path: string;
-  poster_path: string;
-  genre_ids?: number[];
-  vote_average: number;
-  release_date: string;
-}
-
-interface TMDBResponse {
-  results: Movie[];
-}
+import { TMDBListResponse, TMDBTrendingMovie } from "@/src/dto/tmdb/lists";
 
 export async function GET() {
   const apiKey = process.env.TMDB_API_KEY;
@@ -23,7 +7,7 @@ export async function GET() {
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing TMDB_API_KEY in environment variables" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -39,11 +23,11 @@ export async function GET() {
       const errorText = await response.text();
       return NextResponse.json(
         { error: `TMDB API error (${response.status}): ${errorText}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
-    const data = (await response.json()) as TMDBResponse;
+    const data = (await response.json()) as TMDBListResponse<TMDBTrendingMovie>;
 
     const cleanedMovies = Array.isArray(data?.results)
       ? data.results.map((movie) => ({
@@ -64,7 +48,7 @@ export async function GET() {
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Something went wrong fetching movies" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

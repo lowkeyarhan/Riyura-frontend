@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
+import { TMDBCreditsResponse } from "@/src/dto/tmdb/common";
+import {
+  TMDBMovieDetails,
+  TMDBSimilarMovie,
+  TMDBSimilarResponse,
+} from "@/src/dto/tmdb/details";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing TMDB_API_KEY in environment variables" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -24,28 +30,29 @@ export async function GET(
       await Promise.all([
         fetch(
           `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`,
-          { next: { revalidate: 3600 } }
+          { next: { revalidate: 3600 } },
         ),
         fetch(
           `https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${apiKey}&language=en-US`,
-          { next: { revalidate: 3600 } }
+          { next: { revalidate: 3600 } },
         ),
         fetch(
           `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}&language=en-US&page=1`,
-          { next: { revalidate: 3600 } }
+          { next: { revalidate: 3600 } },
         ),
       ]);
 
     if (!detailsResponse.ok) {
       return NextResponse.json(
         { error: "Failed to fetch movie details" },
-        { status: detailsResponse.status }
+        { status: detailsResponse.status },
       );
     }
 
-    const details = await detailsResponse.json();
-    const credits = await creditsResponse.json();
-    const similar = await similarResponse.json();
+    const details = (await detailsResponse.json()) as TMDBMovieDetails;
+    const credits = (await creditsResponse.json()) as TMDBCreditsResponse;
+    const similar =
+      (await similarResponse.json()) as TMDBSimilarResponse<TMDBSimilarMovie>;
 
     // Combine all data
     const movieData = {
@@ -60,7 +67,7 @@ export async function GET(
     console.error("Error fetching movie data:", error);
     return NextResponse.json(
       { error: "Failed to fetch movie data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

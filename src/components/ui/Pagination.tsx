@@ -1,13 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-interface PaginationProps {
-  currentPage: number;
-  totalItems: number;
-  itemsPerPage: number;
-  onPageChange: (page: number) => void;
-}
+import { PaginationProps } from "@/src/dto/components";
 
 export default function Pagination({
   currentPage,
@@ -60,11 +54,10 @@ export default function Pagination({
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 ${
-          currentPage === 1
+        className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 ${currentPage === 1
             ? "bg-gray-800 text-gray-600 cursor-not-allowed"
             : "bg-gray-800 text-white hover:bg-red-500 hover:scale-110"
-        }`}
+          }`}
         aria-label="Previous page"
       >
         <ChevronLeft className="w-6 h-6" />
@@ -79,11 +72,10 @@ export default function Pagination({
           ) : (
             <button
               onClick={() => onPageChange(page as number)}
-              className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 font-semibold text-lg ${
-                currentPage === page
+              className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 font-semibold text-lg ${currentPage === page
                   ? "bg-red-500 text-white scale-110"
                   : "bg-gray-800 text-white hover:bg-gray-700 hover:scale-105"
-              }`}
+                }`}
               style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
             >
               {page}
@@ -95,11 +87,10 @@ export default function Pagination({
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 ${
-          currentPage === totalPages
+        className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 ${currentPage === totalPages
             ? "bg-gray-800 text-gray-600 cursor-not-allowed"
             : "bg-gray-800 text-white hover:bg-red-500 hover:scale-110"
-        }`}
+          }`}
         aria-label="Next page"
       >
         <ChevronRight className="w-6 h-6" />

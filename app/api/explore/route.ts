@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { TMDBDiscoverItem, TMDBListResponse } from "@/src/dto/tmdb/lists";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
@@ -61,7 +62,13 @@ export async function GET(request: Request) {
 
       if (!movieRes.ok || !tvRes.ok) throw new Error("TMDB Fetch Failed");
 
-      const [movies, tv] = await Promise.all([movieRes.json(), tvRes.json()]);
+      const [movies, tv] = (await Promise.all([
+        movieRes.json(),
+        tvRes.json(),
+      ])) as [
+        TMDBListResponse<TMDBDiscoverItem>,
+        TMDBListResponse<TMDBDiscoverItem>,
+      ];
       const combined = [];
       const maxLen = Math.max(movies.results.length, tv.results.length);
 
@@ -72,27 +79,32 @@ export async function GET(request: Request) {
           combined.push({ ...tv.results[i], media_type: "tv" });
       }
 
+      const maxTotalPages = Math.max(
+        movies.total_pages || 0,
+        tv.total_pages || 0,
+      );
+
       return NextResponse.json({
         results: combined.slice(0, 20), // Limit to 20 items per page
         page: parseInt(page),
-        total_pages: Math.max(movies.total_pages, tv.total_pages),
+        total_pages: maxTotalPages,
       });
     }
 
     // 5. Scenario B: Fetch Single Type (Movie OR TV)
     const response = await fetch(
-      `${BASE_URL}/discover/${mediaType}?${apiParams}`
+      `${BASE_URL}/discover/${mediaType}?${apiParams}`,
     );
 
     if (!response.ok) throw new Error("TMDB Fetch Failed");
 
-    const data = await response.json();
+    const data = (await response.json()) as TMDBListResponse<TMDBDiscoverItem>;
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("API Error:", error);
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

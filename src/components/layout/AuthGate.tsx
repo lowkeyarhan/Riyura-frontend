@@ -16,8 +16,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   const isPublic = Boolean(
     pathname === "/" ||
-      pathname?.startsWith("/landing") ||
-      pathname?.startsWith("/auth")
+    pathname?.startsWith("/landing") ||
+    pathname?.startsWith("/auth")
   );
 
   useEffect(() => {

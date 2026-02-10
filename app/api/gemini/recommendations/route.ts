@@ -1,30 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { decryptApiKey } from "@/src/lib/utils/encryption";
+import {
+  GeminiRecommendationItem,
+  ProcessedRecommendation,
+} from "@/src/dto/gemini";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
-
-// --- Interfaces ---
-
-interface GeminiItem {
-  title: string;
-  type: "movie" | "tv" | "anime";
-  reason: string;
-  genre: string;
-}
-
-interface ProcessedRecommendation {
-  tmdb_id: number;
-  title: string;
-  media_type: "movie" | "tv";
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
-  release_date: string | null;
-  number_of_seasons: number | null;
-  reason: string;
-  genre: string;
-}
 
 // --- Helper Functions ---
 
@@ -83,13 +65,13 @@ Return ONLY the JSON array with exactly 12 items (4 movies, 4 tv shows, 4 anime)
  * Search TMDB for a specific title and format the result
  */
 async function fetchTmdbData(
-  item: GeminiItem
+  item: GeminiRecommendationItem,
 ): Promise<ProcessedRecommendation | null> {
   try {
     // TMDB classifies Anime as TV
     const searchType = item.type === "anime" ? "tv" : item.type;
     const url = `https://api.themoviedb.org/3/search/${searchType}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
-      item.title
+      item.title,
     )}`;
 
     const res = await fetch(url);
@@ -105,7 +87,7 @@ async function fetchTmdbData(
     let seasons = null;
     if (searchType === "tv") {
       const detailsRes = await fetch(
-        `https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}`
+        `https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}`,
       );
       if (detailsRes.ok) {
         const details = await detailsRes.json();
@@ -140,13 +122,13 @@ export async function GET(req: Request) {
     if (!authHeader)
       return NextResponse.json(
         { error: "Missing Authorization header" },
-        { status: 401 }
+        { status: 401 },
       );
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -179,7 +161,7 @@ export async function GET(req: Request) {
     if (keyRes.error || !keyRes.data) {
       return NextResponse.json(
         { error: "Gemini API key not found in settings." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -189,19 +171,19 @@ export async function GET(req: Request) {
       geminiApiKey = decryptApiKey(
         keyRes.data.encrypted_key,
         keyRes.data.iv,
-        keyRes.data.auth_tag
+        keyRes.data.auth_tag,
       );
     } catch (e) {
       return NextResponse.json(
         { error: "Failed to decrypt API key." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // 4. Call Gemini AI
     const prompt = buildGeminiPrompt(
       historyRes.data || [],
-      watchlistRes.data || []
+      watchlistRes.data || [],
     );
     console.log("🤖 [Gemini] Calling AI Model...");
 
@@ -219,7 +201,7 @@ export async function GET(req: Request) {
             maxOutputTokens: 2048,
           },
         }),
-      }
+      },
     );
 
     // Clear key from memory immediately
@@ -229,7 +211,7 @@ export async function GET(req: Request) {
       console.error(`❌ [Gemini] API Error: ${geminiRes.status}`);
       return NextResponse.json(
         { error: "AI Service Unavailable" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -242,10 +224,12 @@ export async function GET(req: Request) {
     const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error("Invalid JSON format from AI");
 
-    const geminiRecommendations: GeminiItem[] = JSON.parse(jsonMatch[0]);
+    const geminiRecommendations: GeminiRecommendationItem[] = JSON.parse(
+      jsonMatch[0],
+    );
 
     console.log(
-      `🎬 [Gemini] Received ${geminiRecommendations.length} recommendations. Fetching TMDB details...`
+      `🎬 [Gemini] Received ${geminiRecommendations.length} recommendations. Fetching TMDB details...`,
     );
 
     // 6. TMDB Enrichment (Sequential to avoid ECONNRESET)
@@ -267,7 +251,7 @@ export async function GET(req: Request) {
     console.error("🔥 [Critical Error]", error.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

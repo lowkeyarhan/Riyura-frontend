@@ -1,18 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-
-interface Notification {
-  id: string;
-  message: string;
-  type: "success" | "error";
-}
-
-interface NotificationContextType {
-  notifications: Notification[];
-  addNotification: (message: string, type: "success" | "error") => void;
-  removeNotification: (id: string) => void;
-}
+import { Notification, NotificationContextType } from "@/src/dto/notification";
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined

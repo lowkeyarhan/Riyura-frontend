@@ -11,7 +11,7 @@ const getEnvKey = (): Buffer => {
   const key = process.env.ENCRYPTION_KEY;
   if (!key || key.length !== 64) {
     throw new Error(
-      "❌ Invalid ENCRYPTION_KEY: Must be a 64-character hex string."
+      "❌ Invalid ENCRYPTION_KEY: Must be a 64-character hex string.",
     );
   }
   return Buffer.from(key, "hex");
@@ -54,7 +54,7 @@ export const encryptApiKey = (text: string) => {
 export const decryptApiKey = (
   encrypted: string,
   iv: string,
-  authTag: string
+  authTag: string,
 ) => {
   const key = getEnvKey();
   const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, "base64"));

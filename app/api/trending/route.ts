@@ -1,22 +1,5 @@
 import { NextResponse } from "next/server";
-
-interface Movie {
-  id: number;
-  title?: string; // For movies
-  name?: string; // For TV shows
-  original_name?: string; // Original name in native language
-  overview: string; // Movie description
-  backdrop_path: string; // Background image path
-  poster_path: string; // Poster image path
-  genre_ids?: number[]; // Array of genre IDs (e.g., [28, 12] for Action, Adventure)
-  vote_average: number; // Rating score
-  release_date: string; // Release date
-}
-
-// Define what TMDB API returns
-interface TMDBResponse {
-  results: Movie[];
-}
+import { TMDBListResponse, TMDBTrendingMovie } from "@/src/dto/tmdb/lists";
 
 export async function GET() {
   console.log("🎬 Trending movies API called");
@@ -25,7 +8,7 @@ export async function GET() {
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing TMDB_API_KEY in environment variables" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -43,12 +26,12 @@ export async function GET() {
       const errorText = await response.text();
       return NextResponse.json(
         { error: `TMDB API error (${response.status}): ${errorText}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
     // STEP 4: Parse the JSON response from TMDB
-    const data = (await response.json()) as TMDBResponse;
+    const data = (await response.json()) as TMDBListResponse<TMDBTrendingMovie>;
 
     const cleanedMovies = Array.isArray(data?.results)
       ? data.results.slice(0, 6).map((movie) => ({
@@ -72,7 +55,7 @@ export async function GET() {
     // STEP 7: Handle any unexpected errors
     return NextResponse.json(
       { error: error?.message || "Something went wrong fetching movies" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

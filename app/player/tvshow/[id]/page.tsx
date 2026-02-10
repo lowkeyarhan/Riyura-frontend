@@ -22,6 +22,11 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
 import { invalidateProfileCache } from "@/src/lib/db/database";
 import LoadingDots from "@/src/components/ui/LoadingDots";
+import {
+  TMDBEpisode,
+  TMDBSeasonSummary,
+  TMDBTVShowDetailsResponse,
+} from "@/src/dto/tmdb/details";
 
 // --- Constants ---
 const CACHE_DURATION = 15 * 60 * 1000;
@@ -73,33 +78,29 @@ const ServerRow = ({
     onClick={onClick}
     className={`
       flex items-center justify-between w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-      ${
-        isActive
-          ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-          : "bg-[#29292930] border-white/5 hover:bg-[#1a1d29] hover:border-white/10"
+      ${isActive
+        ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
+        : "bg-[#29292930] border-white/5 hover:bg-[#1a1d29] hover:border-white/10"
       }
     `}
   >
     <div className="flex items-center gap-3">
       <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-          isActive ? "text-orange-600" : " text-gray-500 group-hover:text-white"
-        }`}
+        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isActive ? "text-orange-600" : " text-gray-500 group-hover:text-white"
+          }`}
       >
         <Wifi size={14} />
       </div>
       <span
-        className={`text-sm font-bold ${
-          isActive ? "text-white" : "text-gray-300 group-hover:text-white"
-        }`}
+        className={`text-sm font-bold ${isActive ? "text-white" : "text-gray-300 group-hover:text-white"
+          }`}
       >
         {name}
       </span>
     </div>
     <span
-      className={`text-[10px] font-bold uppercase tracking-wider ${
-        isActive ? "text-orange-500" : "text-gray-600"
-      }`}
+      className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-orange-500" : "text-gray-600"
+        }`}
     >
       {quality}
     </span>
@@ -119,8 +120,8 @@ export default function TVShowPlayer() {
   const { user } = useAuth();
   const tvShowId = params.id as string;
 
-  const [tvShow, setTvShow] = useState<any>(null);
-  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [tvShow, setTvShow] = useState<TMDBTVShowDetailsResponse | null>(null);
+  const [episodes, setEpisodes] = useState<TMDBEpisode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [selectedEpisode, setSelectedEpisode] = useState(1);
@@ -343,7 +344,7 @@ export default function TVShowPlayer() {
   }, [user?.id, tvShowId]); // Only re-run if user ID or show ID changes
 
   const validSeasons = (tvShow?.seasons || []).filter(
-    (s: any) => s.season_number !== 0 && s.episode_count > 0
+    (s: TMDBSeasonSummary) => s.season_number !== 0 && s.episode_count > 0
   );
   const filteredEpisodes = episodes.filter(
     (ep) =>
@@ -484,21 +485,19 @@ export default function TVShowPlayer() {
               <div className="flex rounded-lg p-0.5 border border-white/5">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-md transition ${
-                    viewMode === "grid"
+                  className={`p-1.5 rounded-md transition ${viewMode === "grid"
                       ? "bg-white/10 text-white shadow-sm"
                       : "text-gray-500 hover:text-gray-300"
-                  }`}
+                    }`}
                 >
                   <LayoutGrid size={14} />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-md transition ${
-                    viewMode === "list"
+                  className={`p-1.5 rounded-md transition ${viewMode === "list"
                       ? "bg-white/10 text-white shadow-sm"
                       : "text-gray-500 hover:text-gray-300"
-                  }`}
+                    }`}
                 >
                   <List size={14} />
                 </button>
@@ -518,10 +517,9 @@ export default function TVShowPlayer() {
                       onClick={() => setSelectedSeason(season.season_number)}
                       className={`
                         w-40 md:w-full flex items-center gap-3 p-2 rounded-lg border border-white/5 transition-all group text-left relative overflow-hidden flex-shrink-0
-                        ${
-                          isActive
-                            ? "bg-white/5 border border-orange-500/30"
-                            : "hover:bg-white/5 border border-transparent"
+                        ${isActive
+                          ? "bg-white/5 border border-orange-500/30"
+                          : "hover:bg-white/5 border border-transparent"
                         }
                       `}
                     >
@@ -534,20 +532,18 @@ export default function TVShowPlayer() {
                           src={getImageUrl(season.poster_path, 200)}
                           alt={`S${season.season_number}`}
                           fill
-                          className={`object-cover ${
-                            isActive
+                          className={`object-cover ${isActive
                               ? "opacity-100"
                               : "opacity-70 group-hover:opacity-100"
-                          }`}
+                            }`}
                         />
                       </div>
                       <div>
                         <span
-                          className={`text-xs font-bold block ${
-                            isActive
+                          className={`text-xs font-bold block ${isActive
                               ? "text-white"
                               : "text-gray-400 group-hover:text-white"
-                          }`}
+                            }`}
                         >
                           Season {season.season_number}
                         </span>
@@ -574,11 +570,10 @@ export default function TVShowPlayer() {
                           setSelectedEpisode(ep.episode_number);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className={`group relative rounded-lg overflow-hidden cursor-pointer border transition-all ${
-                          isSelected
+                        className={`group relative rounded-lg overflow-hidden cursor-pointer border transition-all ${isSelected
                             ? "border-orange-500/50 shadow-lg ring-1 ring-orange-500/20"
                             : "border-white/5 hover:border-white/20 hover:bg-[#1a1d29]"
-                        }`}
+                          }`}
                       >
                         {/* Thumbnail */}
                         <div className="relative aspect-video bg-black">
@@ -601,11 +596,10 @@ export default function TVShowPlayer() {
                         {/* Info */}
                         <div className="p-2.5 bg-[#0f1115]">
                           <h4
-                            className={`text-xs font-bold line-clamp-1 mb-1 ${
-                              isSelected
+                            className={`text-xs font-bold line-clamp-1 mb-1 ${isSelected
                                 ? "text-orange-400"
                                 : "text-gray-200 group-hover:text-white"
-                            }`}
+                              }`}
                           >
                             {ep.name}
                           </h4>
@@ -633,11 +627,10 @@ export default function TVShowPlayer() {
                           setSelectedEpisode(ep.episode_number);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className={`flex gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
-                          isSelected
+                        className={`flex gap-3 p-2 rounded-lg border cursor-pointer transition-all ${isSelected
                             ? "bg-white/5 border-orange-500/30"
                             : "hover:bg-white/5 border-white/5"
-                        }`}
+                          }`}
                       >
                         {/* Thumbnail */}
                         <div className="relative w-28 h-16 rounded bg-black flex-shrink-0 overflow-hidden border border-white/5">
@@ -657,11 +650,10 @@ export default function TVShowPlayer() {
                         <div className="flex flex-col justify-center min-w-0 py-0.5">
                           <div className="flex items-center gap-2 mb-0.5">
                             <span
-                              className={`text-[10px] font-bold px-1.5 py-px rounded ${
-                                isSelected
+                              className={`text-[10px] font-bold px-1.5 py-px rounded ${isSelected
                                   ? "bg-orange-500 text-black"
                                   : "bg-white/10 text-gray-300"
-                              }`}
+                                }`}
                             >
                               E{ep.episode_number}
                             </span>
@@ -670,11 +662,10 @@ export default function TVShowPlayer() {
                             </span>
                           </div>
                           <span
-                            className={`text-sm font-bold truncate ${
-                              isSelected
+                            className={`text-sm font-bold truncate ${isSelected
                                 ? "text-orange-400"
                                 : "text-gray-200 group-hover:text-white"
-                            }`}
+                              }`}
                           >
                             {ep.name}
                           </span>

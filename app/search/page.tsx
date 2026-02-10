@@ -4,32 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search, X, Film, Tv } from "lucide-react";
-
-// Types
-interface SearchResult {
-  id: number;
-  title?: string;
-  name?: string;
-  media_type: string;
-  poster_path: string;
-  first_air_date?: string;
-  release_date?: string | null;
-  vote_average: number;
-  overview?: string;
-}
-
-interface TrendingItem {
-  id: number;
-  title?: string;
-  name?: string;
-  poster_path: string;
-  backdrop_path?: string;
-  vote_average: number;
-  media_type?: string;
-  overview?: string;
-  release_date?: string | null;
-  first_air_date?: string | null;
-}
+import {
+  TMDBSearchResult,
+  TMDBTrendingMovie,
+  TMDBTrendingTV,
+} from "@/src/dto/tmdb/lists";
 
 // Constants
 const TABS = [
@@ -160,13 +139,13 @@ export default function SearchPage() {
 
   // State management
   const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<TMDBSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isTrendingLoading, setIsTrendingLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [lastQuery, setLastQuery] = useState("");
-  const [trendingMovies, setTrendingMovies] = useState<TrendingItem[]>([]);
-  const [trendingTV, setTrendingTV] = useState<TrendingItem[]>([]);
+  const [trendingMovies, setTrendingMovies] = useState<TMDBTrendingMovie[]>([]);
+  const [trendingTV, setTrendingTV] = useState<TMDBTrendingTV[]>([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [placeholderOpacity, setPlaceholderOpacity] = useState(1);
 
@@ -251,7 +230,7 @@ export default function SearchPage() {
       const data = await response.json();
 
       const filtered = (data?.results || []).filter(
-        (item: SearchResult) =>
+        (item: TMDBSearchResult) =>
           item.media_type === "movie" || item.media_type === "tv"
       );
       setResults(filtered);
@@ -286,7 +265,7 @@ export default function SearchPage() {
     });
   };
 
-  const navigateToDetails = (item: SearchResult) => {
+  const navigateToDetails = (item: TMDBSearchResult) => {
     const path =
       item.media_type === "movie"
         ? `/details/movie/${item.id}`
@@ -361,9 +340,8 @@ export default function SearchPage() {
               />
               {!searchQuery && (
                 <span
-                  className={`absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none transition-opacity duration-500 ${
-                    placeholderOpacity === 1 ? "opacity-100" : "opacity-0"
-                  }`}
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none transition-opacity duration-500 ${placeholderOpacity === 1 ? "opacity-100" : "opacity-0"
+                    }`}
                   style={FONT_STYLE}
                 >
                   {PLACEHOLDER_TEXTS[placeholderIndex]}
@@ -414,85 +392,84 @@ export default function SearchPage() {
               <div className="grid grid-cols-2 gap-3 sm:gap-7 sm:grid-cols-2 xl:grid-cols-3">
                 {isTrendingLoading
                   ? // Render Skeletons
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <TrendingSkeleton key={`skeleton-${i}`} />
-                    ))
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <TrendingSkeleton key={`skeleton-${i}`} />
+                  ))
                   : // Render Actual Content
-                    trendingHighlights.map((item) => {
-                      const isMovie = item.mediaCategory === "movie";
-                      const href = isMovie
-                        ? `/details/movie/${item.id}`
-                        : `/details/tvshow/${item.id}`;
-                      const Icon = isMovie ? Film : Tv;
-                      const releaseDate =
-                        item.release_date || item.first_air_date;
-                      const cardOverview =
-                        item.overview ||
-                        (isMovie
-                          ? "Experience the cinematic moment everyone is talking about."
-                          : "Binge the series that is dominating conversations right now.");
+                  trendingHighlights.map((item) => {
+                    const isMovie = item.mediaCategory === "movie";
+                    const href = isMovie
+                      ? `/details/movie/${item.id}`
+                      : `/details/tvshow/${item.id}`;
+                    const Icon = isMovie ? Film : Tv;
+                    const releaseDate =
+                      item.release_date || item.first_air_date;
+                    const cardOverview =
+                      item.overview ||
+                      (isMovie
+                        ? "Experience the cinematic moment everyone is talking about."
+                        : "Binge the series that is dominating conversations right now.");
 
-                      return (
-                        <div
-                          key={`${item.id}-${item.mediaCategory}`}
-                          onClick={() => router.push(href)}
-                          className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#161a39] via-[#10172c] to-[#070b18] p-3 md:p-6 cursor-pointer transition-all duration-500 hover:shadow-[0_30px_60px_-18px_rgba(7,11,24,0.9)] aspect-[2/3] md:aspect-auto"
-                        >
-                          {item.backdrop_path || item.poster_path ? (
-                            <Image
-                              src={`https://image.tmdb.org/t/p/w780${
-                                item.backdrop_path || item.poster_path
+                    return (
+                      <div
+                        key={`${item.id}-${item.mediaCategory}`}
+                        onClick={() => router.push(href)}
+                        className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#161a39] via-[#10172c] to-[#070b18] p-3 md:p-6 cursor-pointer transition-all duration-500 hover:shadow-[0_30px_60px_-18px_rgba(7,11,24,0.9)] aspect-[2/3] md:aspect-auto"
+                      >
+                        {item.backdrop_path || item.poster_path ? (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/w780${item.backdrop_path || item.poster_path
                               }`}
-                              alt={item.title || item.name || ""}
-                              fill
-                              className="object-cover opacity-40 group-hover:opacity-55 transition-opacity duration-500"
-                              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-700/20 to-purple-700/10" />
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-transparent to-black/70" />
+                            alt={item.title || item.name || ""}
+                            fill
+                            className="object-cover opacity-40 group-hover:opacity-55 transition-opacity duration-500"
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-indigo-700/20 to-purple-700/10" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-transparent to-black/70" />
 
-                          <div className="relative z-10 flex flex-col gap-2 md:gap-6 md:h-full justify-between min-h-0 overflow-hidden">
-                            <div className="flex items-center justify-between">
-                              <span className="inline-flex items-center gap-1 md:gap-2 rounded-full bg-white/10 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.32em] text-slate-200">
-                                <Icon className="w-3 h-3 md:w-4 md:h-4" />
-                                {isMovie ? "Movie" : "TV"}
+                        <div className="relative z-10 flex flex-col gap-2 md:gap-6 md:h-full justify-between min-h-0 overflow-hidden">
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1 md:gap-2 rounded-full bg-white/10 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.32em] text-slate-200">
+                              <Icon className="w-3 h-3 md:w-4 md:h-4" />
+                              {isMovie ? "Movie" : "TV"}
+                            </span>
+                            {(item.vote_average ?? 0) > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 md:px-2.5 md:py-1 text-[10px] md:text-xs font-semibold text-amber-300">
+                                <StarIcon />
+                                {(item.vote_average ?? 0).toFixed(1)}
                               </span>
-                              {item.vote_average > 0 && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 md:px-2.5 md:py-1 text-[10px] md:text-xs font-semibold text-amber-300">
-                                  <StarIcon />
-                                  {item.vote_average.toFixed(1)}
-                                </span>
-                              )}
-                            </div>
+                            )}
+                          </div>
 
-                            <div className="flex-1 overflow-hidden">
-                              <h3 className="text-sm md:text-2xl font-semibold text-white leading-tight line-clamp-1">
-                                {item.title || item.name}
-                              </h3>
-                              <p className="mt-1 md:mt-3 text-xs md:text-sm text-slate-300/80 leading-relaxed line-clamp-2 md:line-clamp-3">
-                                {cardOverview}
-                              </p>
-                            </div>
+                          <div className="flex-1 overflow-hidden">
+                            <h3 className="text-sm md:text-2xl font-semibold text-white leading-tight line-clamp-1">
+                              {item.title || item.name}
+                            </h3>
+                            <p className="mt-1 md:mt-3 text-xs md:text-sm text-slate-300/80 leading-relaxed line-clamp-2 md:line-clamp-3">
+                              {cardOverview}
+                            </p>
+                          </div>
 
-                            <div className="flex items-center justify-between text-[10px] md:text-xs text-slate-300">
-                              <div className="flex items-center gap-1 md:gap-2">
-                                <span className="text-slate-400">Premiere</span>
-                                <div className="flex items-center gap-1 text-slate-200">
-                                  <CalendarIcon />
-                                  <span>{formatDate(releaseDate)}</span>
-                                </div>
+                          <div className="flex items-center justify-between text-[10px] md:text-xs text-slate-300">
+                            <div className="flex items-center gap-1 md:gap-2">
+                              <span className="text-slate-400">Premiere</span>
+                              <div className="flex items-center gap-1 text-slate-200">
+                                <CalendarIcon />
+                                <span>{formatDate(releaseDate)}</span>
                               </div>
-                              <div className="flex items-center gap-1 md:gap-2 uppercase tracking-[0.2em] md:tracking-[0.3em] text-pink-300">
-                                <PlayIcon />
-                                <span>Watch</span>
-                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 md:gap-2 uppercase tracking-[0.2em] md:tracking-[0.3em] text-pink-300">
+                              <PlayIcon />
+                              <span>Watch</span>
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    );
+                  })}
               </div>
             </section>
           )}
@@ -504,11 +481,10 @@ export default function SearchPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-7 py-2 rounded-full text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${
-                  activeTab === tab.key
-                    ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_24px_rgba(255,80,0,0.35)]"
-                    : "bg-[#1a2332]/80 text-gray-400 border border-white/10 hover:border-cyan-500/50 hover:text-white hover:bg-[#1a2332]"
-                }`}
+                className={`px-7 py-2 rounded-full text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === tab.key
+                  ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_24px_rgba(255,80,0,0.35)]"
+                  : "bg-[#1a2332]/80 text-gray-400 border border-white/10 hover:border-cyan-500/50 hover:text-white hover:bg-[#1a2332]"
+                  }`}
                 style={{ fontFamily: "Montserrat, sans-serif" }}
               >
                 {tab.label}
@@ -615,11 +591,11 @@ export default function SearchPage() {
                           {formatDate(item.release_date || item.first_air_date)}
                         </span>
                       </div>
-                      {item.vote_average > 0 && (
+                      {(item.vote_average ?? 0) > 0 && (
                         <div className="flex items-center gap-1 text-yellow-400">
                           <StarIcon />
                           <span className="font-semibold" style={FONT_STYLE}>
-                            {item.vote_average.toFixed(1)}
+                            {(item.vote_average ?? 0).toFixed(1)}
                           </span>
                         </div>
                       )}

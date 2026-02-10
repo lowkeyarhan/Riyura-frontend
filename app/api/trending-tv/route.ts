@@ -1,21 +1,5 @@
 import { NextResponse } from "next/server";
-
-// Define what a single TV show looks like
-interface TVShow {
-  id: number;
-  name: string;
-  original_name?: string;
-  overview: string;
-  backdrop_path: string;
-  poster_path: string;
-  genre_ids?: number[];
-  vote_average: number;
-  first_air_date: string;
-}
-
-interface TMDBResponse {
-  results: TVShow[];
-}
+import { TMDBListResponse, TMDBTrendingTV } from "@/src/dto/tmdb/lists";
 
 export async function GET() {
   console.log("📺 Trending TV shows API called");
@@ -48,7 +32,7 @@ export async function GET() {
     }
 
     // Parse the JSON response from TMDB
-    const data = (await response.json()) as TMDBResponse;
+    const data = (await response.json()) as TMDBListResponse<TMDBTrendingTV>;
     const allResults = Array.isArray(data?.results) ? data.results : [];
 
     const cleanedTVShows = allResults.map((show) => ({

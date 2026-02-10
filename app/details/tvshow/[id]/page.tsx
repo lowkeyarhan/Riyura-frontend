@@ -13,52 +13,7 @@ import {
   removeFromWatchlist,
   isInWatchlist,
 } from "@/src/lib/db/database";
-
-interface Season {
-  id: number;
-  name: string;
-  overview: string;
-  poster_path: string;
-  season_number: number;
-  episode_count: number;
-  air_date: string;
-}
-
-interface TVShow {
-  id: number;
-  name: string;
-  backdrop_path: string;
-  poster_path: string;
-  first_air_date: string;
-  last_air_date?: string;
-  vote_average: number;
-  number_of_seasons: number;
-  number_of_episodes: number;
-  episode_run_time: number[];
-  tagline: string;
-  overview: string;
-  genres: { id: number; name: string }[];
-  production_companies: { id: number; name: string; logo_path: string }[];
-  networks: { id: number; name: string; logo_path: string }[];
-  created_by?: { id: number; name: string; profile_path: string }[];
-  seasons: Season[];
-  credits: {
-    cast: {
-      id: number;
-      name: string;
-      character: string;
-      profile_path: string;
-    }[];
-  };
-  similar: {
-    results: {
-      id: number;
-      name: string;
-      poster_path: string;
-      vote_average: number;
-    }[];
-  };
-}
+import { TMDBTVShowDetailsResponse } from "@/src/dto/tmdb/details";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
@@ -110,7 +65,7 @@ export default function TVShowDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [tvShow, setTVShow] = useState<TVShow | null>(null);
+  const [tvShow, setTVShow] = useState<TMDBTVShowDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -349,11 +304,10 @@ export default function TVShowDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${
-                    isWatchlisted
-                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
+                  className={`p-3 rounded-full transition ${isWatchlisted
+                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                    }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"
@@ -613,7 +567,7 @@ export default function TVShowDetails() {
         )}
 
         {/* Similar TV Shows Section */}
-        {tvShow.similar?.results?.length > 0 && (
+        {tvShow.similar?.results?.length ? (
           <div className="mb-12">
             <h2
               className="text-2xl md:text-4xl font-semibold mb-6 md:mb-8 text-white"
@@ -631,8 +585,12 @@ export default function TVShowDetails() {
                 >
                   <div className="relative aspect-[2/3]">
                     <Image
-                      src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
-                      alt={similar.name}
+                      src={
+                        similar.poster_path
+                          ? `https://image.tmdb.org/t/p/w500${similar.poster_path}`
+                          : "/placeholder.jpg"
+                      }
+                      alt={similar.name || "Similar show"}
                       fill
                       sizes="(max-width: 768px) 140px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
@@ -653,7 +611,7 @@ export default function TVShowDetails() {
                         className="font-semibold text-sm"
                         style={{ fontFamily: FONT }}
                       >
-                        {similar.vote_average.toFixed(1)}
+                        {(similar.vote_average ?? 0).toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -661,7 +619,7 @@ export default function TVShowDetails() {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
       <Footer />
     </div>

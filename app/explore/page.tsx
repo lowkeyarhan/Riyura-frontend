@@ -18,6 +18,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { addToWatchlist } from "@/src/lib/db/database";
 import { motion, AnimatePresence } from "framer-motion";
+import { TMDBDiscoverItem } from "@/src/dto/tmdb/lists";
 
 // --- Constants ---
 const GENRES = [
@@ -47,27 +48,15 @@ const MEDIA_TYPES = [
   { label: "TV Series", value: "tv", icon: Tv },
 ];
 
-// --- Types ---
-interface MediaItem {
-  id: number;
-  title: string;
-  name?: string;
-  poster_path: string;
-  vote_average: number;
-  release_date?: string;
-  first_air_date?: string;
-  media_type?: "movie" | "tv";
-}
-
 // --- Sub-Components ---
 const MovieCard = ({
   item,
   user,
   onAddToWatchlist,
 }: {
-  item: MediaItem;
+  item: TMDBDiscoverItem;
   user: any;
-  onAddToWatchlist: (item: MediaItem) => void;
+  onAddToWatchlist: (item: TMDBDiscoverItem) => void;
 }) => {
   const router = useRouter();
   const title = item.title || item.name || "Unknown";
@@ -137,7 +126,7 @@ export default function ExplorePage() {
   const { addNotification } = useNotification();
   const [selectedGenres, setSelectedGenres] = useState<string[]>(["Action"]);
   const [mediaType, setMediaType] = useState("all");
-  const [items, setItems] = useState<MediaItem[]>([]);
+  const [items, setItems] = useState<TMDBDiscoverItem[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -145,7 +134,7 @@ export default function ExplorePage() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // --- Logic Handlers (Unchanged) ---
-  const handleAddToWatchlist = async (item: MediaItem) => {
+  const handleAddToWatchlist = async (item: TMDBDiscoverItem) => {
     if (!user) {
       console.error("User not authenticated");
       return;
@@ -155,9 +144,9 @@ export default function ExplorePage() {
         tmdb_id: item.id,
         title: item.title || item.name || "Unknown",
         media_type: (item.media_type || "movie") as "movie" | "tv",
-        poster_path: item.poster_path,
+        poster_path: item.poster_path ?? null,
         release_date: item.release_date || item.first_air_date || null,
-        vote: item.vote_average,
+        vote: item.vote_average ?? null,
       };
       await addToWatchlist(user.id, watchlistItem);
       addNotification(`${watchlistItem.title} added to watchlist`, "success");
@@ -290,11 +279,10 @@ export default function ExplorePage() {
                   <button
                     key={type.value}
                     onClick={() => handleTypeChange(type.value)}
-                    className={`relative cursor-pointer flex items-center justify-center gap-2 px-3 sm:px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-xs sm:text-sm font-bold transition-colors z-10 flex-1 md:flex-initial ${
-                      isActive
-                        ? "text-white"
-                        : "text-gray-500 hover:text-gray-300"
-                    }`}
+                    className={`relative cursor-pointer flex items-center justify-center gap-2 px-3 sm:px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-xs sm:text-sm font-bold transition-colors z-10 flex-1 md:flex-initial ${isActive
+                      ? "text-white"
+                      : "text-gray-500 hover:text-gray-300"
+                      }`}
                   >
                     {isActive && (
                       <motion.div
@@ -333,11 +321,10 @@ export default function ExplorePage() {
                     <button
                       key={genre}
                       onClick={() => handleGenreToggle(genre)}
-                      className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer transition-all border touch-manipulation ${
-                        isSelected
-                          ? "bg-white text-black border-white"
-                          : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
-                      }`}
+                      className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer transition-all border touch-manipulation ${isSelected
+                        ? "bg-white text-black border-white"
+                        : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
+                        }`}
                     >
                       {genre}
                     </button>

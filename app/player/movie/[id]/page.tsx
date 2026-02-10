@@ -17,6 +17,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
 import { invalidateProfileCache } from "@/src/lib/db/database";
 import LoadingDots from "@/src/components/ui/LoadingDots";
+import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
 
 // --- Constants ---
 const CACHE_DURATION = 15 * 60 * 1000;
@@ -68,10 +69,9 @@ const ServerRow = ({
     onClick={onClick}
     className={`
       flex items-center justify-between w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-      ${
-        isActive
-          ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-          : "bg-[#29292930] border-white/5 hover:bg-[#29292950] hover:border-white/10"
+      ${isActive
+        ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
+        : "bg-[#29292930] border-white/5 hover:bg-[#29292950] hover:border-white/10"
       }
     `}
   >
@@ -79,29 +79,26 @@ const ServerRow = ({
       <div
         className={`
         w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-        ${
-          isActive
+        ${isActive
             ? "bg-orange-600 text-white"
             : "bg-[#29292930] text-gray-500 group-hover:text-white"
-        }
+          }
       `}
       >
         <Wifi size={14} />
       </div>
       <div className="text-left">
         <h4
-          className={`text-sm font-bold ${
-            isActive ? "text-white" : "text-gray-300 group-hover:text-white"
-          }`}
+          className={`text-sm font-bold ${isActive ? "text-white" : "text-gray-300 group-hover:text-white"
+            }`}
         >
           {name}
         </h4>
       </div>
     </div>
     <span
-      className={`text-[10px] font-bold uppercase tracking-wider ${
-        isActive ? "text-orange-500" : "text-gray-600"
-      }`}
+      className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-orange-500" : "text-gray-600"
+        }`}
     >
       {quality}
     </span>
@@ -121,7 +118,7 @@ export default function MoviePlayer() {
   const { user } = useAuth();
   const movieId = params.id as string;
 
-  const [movie, setMovie] = useState<any>(null);
+  const [movie, setMovie] = useState<TMDBMovieDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeServerIndex, setActiveServerIndex] = useState(0);
 
@@ -374,11 +371,11 @@ export default function MoviePlayer() {
             <div className="mt-4 pt-4 border-t border-white/5 flex justify-between text-xs">
               <div className="text-gray-500">
                 <span className="block font-bold text-gray-400">Budget</span>
-                {formatMoney(movie?.budget)}
+                {formatMoney(movie?.budget ?? 0)}
               </div>
               <div className="text-right text-gray-500">
                 <span className="block font-bold text-gray-400">Revenue</span>
-                {formatMoney(movie?.revenue)}
+                {formatMoney(movie?.revenue ?? 0)}
               </div>
             </div>
           </div>

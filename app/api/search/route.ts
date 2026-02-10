@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { TMDBListResponse, TMDBSearchResult } from "@/src/dto/tmdb/lists";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!TMDB_API_KEY) {
       return NextResponse.json(
         { results: [], error: "Missing TMDB_API_KEY" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -23,27 +24,29 @@ export async function GET(request: NextRequest) {
       type === "movie"
         ? "search/movie"
         : type === "tv"
-        ? "search/tv"
-        : "search/multi";
+          ? "search/tv"
+          : "search/multi";
 
     const url = `https://api.themoviedb.org/3/${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
-      q
+      q,
     )}&include_adult=false&page=1`;
 
     const res = await fetch(url, { next: { revalidate: 60 } });
-    const data = await res.json();
+    const data = (await res.json()) as TMDBListResponse<TMDBSearchResult>;
 
     if (!res.ok) {
       return NextResponse.json(
         { results: [], error: data?.status_message || "TMDB error" },
-        { status: res.status }
+        { status: res.status },
       );
     }
 
-    let results: any[] = Array.isArray(data?.results) ? data.results : [];
+    let results: TMDBSearchResult[] = Array.isArray(data?.results)
+      ? data.results
+      : [];
     if (endpoint === "search/multi") {
       results = results.filter(
-        (r) => r.media_type === "movie" || r.media_type === "tv"
+        (r) => r.media_type === "movie" || r.media_type === "tv",
       );
     }
 
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
     console.error("/api/search error", e);
     return NextResponse.json(
       { results: [], error: "Unexpected error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

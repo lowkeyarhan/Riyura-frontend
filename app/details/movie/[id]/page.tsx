@@ -13,38 +13,7 @@ import {
   removeFromWatchlist,
   isInWatchlist,
 } from "@/src/lib/db/database";
-
-interface Movie {
-  id: number;
-  title: string;
-  backdrop_path: string;
-  poster_path: string;
-  release_date: string;
-  vote_average: number;
-  runtime: number;
-  tagline: string;
-  overview: string;
-  budget: number;
-  revenue: number;
-  genres: { id: number; name: string }[];
-  production_companies: { id: number; name: string; logo_path: string }[];
-  credits: {
-    cast: {
-      id: number;
-      name: string;
-      character: string;
-      profile_path: string;
-    }[];
-  };
-  similar: {
-    results: {
-      id: number;
-      title: string;
-      poster_path: string;
-      vote_average: number;
-    }[];
-  };
-}
+import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
@@ -73,7 +42,7 @@ export default function MovieDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [movie, setMovie] = useState<Movie | null>(null);
+  const [movie, setMovie] = useState<TMDBMovieDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -291,11 +260,10 @@ export default function MovieDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${
-                    isWatchlisted
-                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
+                  className={`p-3 rounded-full transition ${isWatchlisted
+                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                    }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"
@@ -453,7 +421,7 @@ export default function MovieDetails() {
           </div>
         </section>
 
-        {movie.similar?.results?.length > 0 && (
+        {movie.similar?.results?.length ? (
           <section>
             <h2
               className="text-2xl md:text-4xl font-semibold mb-6 md:mb-8 text-white"
@@ -471,8 +439,12 @@ export default function MovieDetails() {
                 >
                   <div className="relative aspect-[2/3]">
                     <Image
-                      src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
-                      alt={similar.title}
+                      src={
+                        similar.poster_path
+                          ? `https://image.tmdb.org/t/p/w500${similar.poster_path}`
+                          : "/placeholder.jpg"
+                      }
+                      alt={similar.title || "Similar movie"}
                       fill
                       sizes="(max-width: 768px) 140px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
@@ -493,7 +465,7 @@ export default function MovieDetails() {
                         className="font-semibold text-sm"
                         style={{ fontFamily: FONT }}
                       >
-                        {similar.vote_average.toFixed(1)}
+                        {(similar.vote_average ?? 0).toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -501,7 +473,7 @@ export default function MovieDetails() {
               ))}
             </div>
           </section>
-        )}
+        ) : null}
       </div>
       <Footer />
     </div>

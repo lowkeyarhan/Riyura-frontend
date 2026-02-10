@@ -5,16 +5,8 @@ import LoadingDots from "@/src/components/ui/LoadingDots";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlay } from "@fortawesome/free-solid-svg-icons";
-
-interface Movie {
-  id: number;
-  title?: string;
-  name?: string;
-  original_name?: string;
-  overview: string;
-  backdrop_path: string;
-  genre_ids?: number[];
-}
+import { BannerMovie } from "@/src/dto/media-ui";
+import { BannerProps } from "@/src/dto/components";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 const AUTO_SLIDE_INTERVAL = 5000;
@@ -41,13 +33,9 @@ const GENRE_MAP: { [key: number]: string } = {
   37: "Western",
 };
 
-interface BannerProps {
-  initialMovies?: Movie[];
-}
-
 export default function Banner({ initialMovies = [] }: BannerProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [movies, setMovies] = useState<Movie[]>(initialMovies);
+  const [movies, setMovies] = useState<BannerMovie[]>(initialMovies);
   const [loading, setLoading] = useState(initialMovies.length === 0);
   const [error, setError] = useState<string | null>(null);
 

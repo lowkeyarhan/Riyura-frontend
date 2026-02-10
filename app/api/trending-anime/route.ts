@@ -1,25 +1,5 @@
 import { NextResponse } from "next/server";
-
-// Define what a single anime looks like
-interface Anime {
-  id: number;
-  name?: string;
-  title?: string;
-  original_name?: string;
-  overview: string;
-  backdrop_path: string;
-  poster_path: string;
-  genre_ids?: number[];
-  vote_average: number;
-  first_air_date?: string;
-  release_date?: string;
-  media_type?: string;
-}
-
-// Define what TMDB API returns
-interface TMDBResponse {
-  results: Anime[];
-}
+import { TMDBListResponse, TMDBTrendingAnime } from "@/src/dto/tmdb/lists";
 
 export async function GET() {
   console.log("🎌 Trending anime API called");
@@ -28,7 +8,7 @@ export async function GET() {
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing TMDB_API_KEY in environment variables" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -41,14 +21,14 @@ export async function GET() {
         {
           headers: { accept: "application/json" },
           next: { revalidate: 3600 },
-        }
+        },
       ),
       fetch(
         `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
         {
           headers: { accept: "application/json" },
           next: { revalidate: 3600 },
-        }
+        },
       ),
     ]);
 
@@ -58,8 +38,10 @@ export async function GET() {
     }
 
     // Parse the JSON responses from TMDB
-    const tvData = (await tvResponse.json()) as TMDBResponse;
-    const movieData = (await movieResponse.json()) as TMDBResponse;
+    const tvData =
+      (await tvResponse.json()) as TMDBListResponse<TMDBTrendingAnime>;
+    const movieData =
+      (await movieResponse.json()) as TMDBListResponse<TMDBTrendingAnime>;
 
     // Get the results and add media_type
     const tvResults = Array.isArray(tvData?.results)
@@ -71,7 +53,7 @@ export async function GET() {
 
     // Combine and sort by popularity
     const allResults = [...tvResults, ...movieResults].sort(
-      (a, b) => b.vote_average - a.vote_average
+      (a, b) => b.vote_average - a.vote_average,
     );
 
     // Clean up the data - only send what we need
@@ -96,7 +78,7 @@ export async function GET() {
     // Handle any unexpected errors
     return NextResponse.json(
       { error: error?.message || "Something went wrong fetching anime" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -27,6 +27,7 @@ import { supabase } from "@/src/lib/auth/supabase";
 import { getWatchlist, removeFromWatchHistory } from "@/src/lib/db/database";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { ContinueWatchingListSkeleton } from "@/src/components/skeletons/ContinueWatchingSkeleton";
+import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
@@ -69,7 +70,7 @@ const isCacheValid = (timestamp: number, duration: number) => {
 
 const getCachedData = (
   cacheKey: string,
-  duration: number = DEFAULT_CACHE_DURATION
+  duration: number = DEFAULT_CACHE_DURATION,
 ) => {
   try {
     const cached = localStorage.getItem(cacheKey);
@@ -101,7 +102,7 @@ const setCachedData = (cacheKey: string, data: any) => {
       JSON.stringify({
         data,
         timestamp: Date.now(),
-      })
+      }),
     );
     console.log(`💾 [Cache] Saved to cache: ${cacheKey}`);
   } catch (error) {
@@ -111,7 +112,7 @@ const setCachedData = (cacheKey: string, data: any) => {
 
 const clearUserCache = (userId: string) => {
   const keys = Object.values(CACHE_KEYS).map((type) =>
-    getCacheKey(userId, type)
+    getCacheKey(userId, type),
   );
   keys.forEach((key) => {
     localStorage.removeItem(key);
@@ -125,7 +126,7 @@ const formatWatchHistory = (data: any[]) => {
     const totalLength = item.episode_length || 7200;
     const progress = Math.min(
       100,
-      Math.round((item.duration_sec / totalLength) * 100)
+      Math.round((item.duration_sec / totalLength) * 100),
     );
     const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
 
@@ -141,8 +142,8 @@ const formatWatchHistory = (data: any[]) => {
         item.media_type === "movie"
           ? "Movie"
           : item.episode_name
-          ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
-          : `S${item.season_number} E${item.episode_number}`,
+            ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
+            : `S${item.season_number} E${item.episode_number}`,
       year: item.release_date
         ? new Date(item.release_date).getFullYear()
         : null,
@@ -158,11 +159,13 @@ const formatWatchHistory = (data: any[]) => {
 const calculateStats = (data: any[]) => {
   const moviesCount = data.filter((i: any) => i.media_type === "movie").length;
   const seriesCount = new Set(
-    data.filter((i: any) => i.media_type !== "movie").map((i: any) => i.tmdb_id)
+    data
+      .filter((i: any) => i.media_type !== "movie")
+      .map((i: any) => i.tmdb_id),
   ).size;
   const totalSeconds = data.reduce(
     (acc: number, item: any) => acc + (item.duration_sec || 0),
-    0
+    0,
   );
   const hoursCount = Math.round(totalSeconds / 3600);
 
@@ -506,71 +509,6 @@ const RecommendationCard = ({
   );
 };
 
-const ProfileSkeleton = () => (
-  <div className="relative min-h-screen bg-black text-white font-sans overflow-hidden">
-    <div className="relative z-10 w-full h-full pt-24 pb-24 px-4 md:pt-32 md:pb-16 md:px-16 lg:px-16">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
-        {/* Left Column Skeleton */}
-        <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-fit">
-          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-4 md:p-6 relative overflow-hidden shadow-2xl animate-pulse">
-            <div className="flex flex-col items-center text-center mt-4">
-              <div className="w-24 h-24 md:w-28 md:h-28 mb-5 rounded-full bg-white/10" />
-              <div className="h-6 md:h-8 w-32 bg-white/10 rounded-lg mb-2" />
-              <div className="h-4 w-48 bg-white/5 rounded-lg mb-6 md:mb-8" />
-              <div className="flex gap-2 md:gap-3 w-full mb-6 md:mb-8">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 flex-1 rounded-2xl bg-white/5" />
-                ))}
-              </div>
-              <div className="w-full h-12 rounded-xl bg-white/5" />
-            </div>
-          </div>
-          <div className="space-y-3 mt-6 mb-2">
-            <div className="h-4 w-24 bg-white/5 rounded mb-4" />
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="w-full h-20 bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
-              />
-            ))}
-          </div>
-        </div>
-        {/* Right Column Skeleton */}
-        <div className="lg:col-span-8 space-y-8 md:space-y-10 overflow-hidden pr-2">
-          <div className="flex flex-col items-start gap-3 animate-pulse">
-            <div className="h-8 md:h-12 w-48 md:w-64 bg-white/10 rounded-xl" />
-            <div className="h-4 md:h-5 w-32 md:w-48 bg-white/5 rounded-lg" />
-          </div>
-          {[1, 2, 3].map((section) => (
-            <div key={section} className="space-y-4 md:space-y-5">
-              <div className="h-6 md:h-8 w-32 md:w-48 bg-white/10 rounded-lg animate-pulse" />
-              <div
-                className={`grid grid-cols-2 ${
-                  section === 1 ? "" : "sm:grid-cols-3 lg:grid-cols-4"
-                } gap-3 md:gap-5`}
-              >
-                {section === 1
-                  ? [1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="w-full h-32 md:h-40 bg-[#1518215f] border border-white/5 rounded-2xl animate-pulse"
-                      />
-                    ))
-                  : [1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
-                      />
-                    ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
 // --- Main Page Component ---
 export default function ProfilePage() {
   const { user, loading, firstName, avatarUrl } = useAuth();
@@ -764,7 +702,7 @@ export default function ProfilePage() {
           const cacheKey = getCacheKey(user.id, CACHE_KEYS.RECOMMENDATIONS);
           const cached = getCachedData(
             cacheKey,
-            RECOMMENDATIONS_CACHE_DURATION
+            RECOMMENDATIONS_CACHE_DURATION,
           );
 
           if (cached) {
@@ -772,7 +710,7 @@ export default function ProfilePage() {
             setIsLoadingRecommendations(false);
             recommendationsFetchingRef.current = false;
             console.log(
-              `✅ [Recommendations] Loaded ${cached.length} from cache`
+              `✅ [Recommendations] Loaded ${cached.length} from cache`,
             );
             return;
           }
@@ -800,12 +738,12 @@ export default function ProfilePage() {
             console.log(
               `✅ [Recommendations] Fetched ${
                 data.recommendations?.length || 0
-              } recommendations`
+              } recommendations`,
             );
           } else {
             const error = await res.json();
             setRecommendationsError(
-              error.error || "Failed to load recommendations"
+              error.error || "Failed to load recommendations",
             );
             console.error(`❌ [Recommendations] Error:`, error.error);
           }
@@ -818,7 +756,7 @@ export default function ProfilePage() {
         recommendationsFetchingRef.current = false;
       }
     },
-    [user, hasApiKey]
+    [user, hasApiKey],
   );
 
   // Initial Load (Cache Only)
@@ -834,7 +772,7 @@ export default function ProfilePage() {
         setRecommendations(cached);
       } else {
         console.log(
-          `ℹ️ [Recommendations] No cache found. Waiting for manual refresh or API key.`
+          `ℹ️ [Recommendations] No cache found. Waiting for manual refresh or API key.`,
         );
       }
     };
@@ -854,7 +792,7 @@ export default function ProfilePage() {
     try {
       setIsSavingApiKey(true);
       console.log(
-        `🔐 [API Key] Attempting to save API key for user: ${user.id}`
+        `🔐 [API Key] Attempting to save API key for user: ${user.id}`,
       );
 
       const {
@@ -888,7 +826,7 @@ export default function ProfilePage() {
 
           // Trigger initial recommendation fetch
           console.log(
-            `🚀 [Recommendations] Triggering initial fetch after API key save`
+            `🚀 [Recommendations] Triggering initial fetch after API key save`,
           );
           fetchRecommendations(true);
         } else {
@@ -912,7 +850,7 @@ export default function ProfilePage() {
     try {
       setIsSavingApiKey(true);
       console.log(
-        `🗑️  [API Key] Attempting to delete API key for user: ${user.id}`
+        `🗑️  [API Key] Attempting to delete API key for user: ${user.id}`,
       );
 
       const {
@@ -985,11 +923,11 @@ export default function ProfilePage() {
         router.push(
           `/player/tvshow/${item.tmdbId}${
             params.toString() ? `?${params.toString()}` : ""
-          }`
+          }`,
         );
       }
     },
-    [router]
+    [router],
   );
 
   const handleDeleteHistory = async (e: React.MouseEvent, itemId: number) => {
@@ -1006,7 +944,7 @@ export default function ProfilePage() {
       const historyKey = getCacheKey(user.id, CACHE_KEYS.WATCH_HISTORY);
       const cachedHistory = getCachedData(historyKey) || [];
       const updatedHistory = cachedHistory.filter(
-        (item: any) => item.id !== itemId
+        (item: any) => item.id !== itemId,
       );
       setCachedData(historyKey, updatedHistory);
 
@@ -1112,7 +1050,7 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <SettingsLink key={link.label} item={link} />
-                )
+                ),
               )}
             </div>
           </div>
@@ -1266,7 +1204,7 @@ export default function ProfilePage() {
                           router.push(
                             item.media_type === "movie"
                               ? `/details/movie/${item.tmdb_id}`
-                              : `/details/tvshow/${item.tmdb_id}`
+                              : `/details/tvshow/${item.tmdb_id}`,
                           )
                         }
                       />
@@ -1331,8 +1269,8 @@ export default function ProfilePage() {
                             {recommendationsError
                               ? "ERROR"
                               : !hasApiKey
-                              ? "NO API KEY"
-                              : "LOADING"}
+                                ? "NO API KEY"
+                                : "LOADING"}
                           </div>
                           <div className="absolute top-2 left-2">
                             <span className="bg-white/10 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-lg animate-pulse">
@@ -1355,7 +1293,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               ) : recommendations.length === 0 ? (
@@ -1389,7 +1327,7 @@ export default function ProfilePage() {
                             router.push(
                               item.media_type === "movie"
                                 ? `/details/movie/${item.tmdb_id}`
-                                : `/details/tvshow/${item.tmdb_id}`
+                                : `/details/tvshow/${item.tmdb_id}`,
                             )
                           }
                         />
@@ -1421,7 +1359,7 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <SettingsLink key={link.label} item={link} />
-                  )
+                  ),
                 )}
               </div>
 

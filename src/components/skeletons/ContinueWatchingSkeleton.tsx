@@ -24,14 +24,37 @@ export function ContinueWatchingSkeleton() {
 
 export function ContinueWatchingListSkeleton() {
   return (
-    <div className="flex items-center gap-3 p-2 md:gap-5 md:p-4 bg-[#1518215f] border border-white/5 rounded-2xl mb-3">
+    <div className="group relative flex items-center gap-3 p-2 md:gap-5 md:p-4 rounded-2xl">
       <div className="relative w-28 md:w-40 aspect-[3/2] md:aspect-video rounded-lg overflow-hidden flex-shrink-0">
         <Skeleton height="100%" className="w-full h-full" />
+        {/* Play button overlay area */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Skeleton circle width={32} height={32} className="md:w-10 md:h-10" />
+        </div>
+        {/* Progress bar at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-1">
+          <Skeleton height={4} className="w-1/3" />
+        </div>
       </div>
-      <div className="flex-1 py-1">
-        <Skeleton width="60%" height={24} className="mb-2" />
-        <Skeleton width="40%" height={16} className="mb-2" />
-        <Skeleton width="30%" height={12} />
+      <div className="flex-1 min-w-0 py-1 pr-6 sm:pr-0">
+        {/* Title */}
+        <Skeleton width="70%" height={20} className="mb-2" />
+        {/* Type badge and year */}
+        <div className="flex items-center gap-2 mb-2">
+          <Skeleton width={60} height={16} className="rounded" />
+          <Skeleton width={8} height={8} circle />
+          <Skeleton width={40} height={12} />
+        </div>
+        {/* Progress info */}
+        <div className="flex items-center gap-2 text-xs">
+          <Skeleton width={80} height={10} />
+          <Skeleton width={4} height={4} circle />
+          <Skeleton width={60} height={10} />
+        </div>
+      </div>
+      {/* Delete button */}
+      <div className="absolute top-2 right-2 sm:static">
+        <Skeleton circle width={32} height={32} className="md:w-10 md:h-10" />
       </div>
     </div>
   );

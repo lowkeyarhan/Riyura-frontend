@@ -5,7 +5,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { MediaCardSkeleton } from "./MediaCardSkeleton";
 
-export default function ExploreSkeleton() {
+export default function AnimeExploreSkeleton() {
   return (
     <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
       <div className="min-h-screen bg-black pt-20 md:pt-28 px-4 sm:px-6 md:px-16 lg:px-16 pb-20 font-sans">
@@ -41,54 +41,13 @@ export default function ExploreSkeleton() {
           </div>
         </div>
 
-        {/* Now Playing Section */}
+        {/* Trending Now Section - Only section for Anime */}
         <section className="mt-10 md:mt-12">
           <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} className="mb-2" />
-            <Skeleton width={300} height={18} />
-          </div>
-          <div className="flex gap-4 md:gap-5 overflow-x-auto pb-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="min-w-[285px] sm:min-w-[330px] lg:min-w-[360px] aspect-[16/9] rounded-xl">
-                <Skeleton height="100%" containerClassName="h-full block" />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Trending Now Section */}
-        <section className="mt-12 md:mt-16">
-          <div className="mb-5 md:mb-6">
             <Skeleton width={180} height={32} />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <MediaCardSkeleton key={i} />
-            ))}
-          </div>
-        </section>
-
-        {/* Most Popular Section */}
-        <section className="mt-12 md:mt-16">
-          <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <MediaCardSkeleton key={i} />
-            ))}
-          </div>
-        </section>
-
-        {/* Coming Soon Section */}
-        <section className="mt-12 md:mt-16">
-          <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: 18 }).map((_, i) => (
               <MediaCardSkeleton key={i} />
             ))}
           </div>

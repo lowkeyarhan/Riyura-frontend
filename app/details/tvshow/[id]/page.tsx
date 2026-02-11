@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
-import LoadingDots from "@/src/components/ui/LoadingDots";
+import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import {
@@ -183,14 +183,7 @@ export default function TVShowDetails() {
   };
 
   if (loading) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: BG_COLOR }}
-      >
-        <LoadingDots />
-      </div>
-    );
+    return <DetailsSkeleton />;
   }
 
   if (error || !tvShow) {

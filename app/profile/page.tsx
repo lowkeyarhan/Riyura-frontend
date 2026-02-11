@@ -26,6 +26,9 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
 import { getWatchlist, removeFromWatchHistory } from "@/src/lib/db/database";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { ContinueWatchingListSkeleton } from "@/src/components/skeletons/ContinueWatchingSkeleton";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 // Cache Configuration
 const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -1148,9 +1151,13 @@ export default function ProfilePage() {
               </div>
               <motion.div layout className="flex flex-col">
                 {isLoadingHistory ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  </div>
+                  <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
+                    <div className="space-y-3">
+                      {[1, 2].map((i) => (
+                        <ContinueWatchingListSkeleton key={i} />
+                      ))}
+                    </div>
+                  </SkeletonTheme>
                 ) : continueWatching.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />

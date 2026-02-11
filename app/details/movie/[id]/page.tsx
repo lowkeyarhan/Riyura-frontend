@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
-import LoadingDots from "@/src/components/ui/LoadingDots";
+import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import {
@@ -74,7 +74,7 @@ export default function MovieDetails() {
         const data = await response.json();
         sessionStorage.setItem(
           cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
+          JSON.stringify({ data, timestamp: Date.now() }),
         );
         console.log(`✅ Movie built and cached`);
 
@@ -143,14 +143,7 @@ export default function MovieDetails() {
   };
 
   if (loading) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: BG_COLOR }}
-      >
-        <LoadingDots />
-      </div>
-    );
+    return <DetailsSkeleton />;
   }
 
   if (error || !movie) {
@@ -260,10 +253,11 @@ export default function MovieDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${isWatchlisted
-                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                  className={`p-3 rounded-full transition ${
+                    isWatchlisted
+                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"

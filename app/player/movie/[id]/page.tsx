@@ -16,7 +16,7 @@ import {
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
 import { invalidateProfileCache } from "@/src/lib/db/database";
-import LoadingDots from "@/src/components/ui/LoadingDots";
+import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
 
 // --- Constants ---
@@ -69,9 +69,10 @@ const ServerRow = ({
     onClick={onClick}
     className={`
       flex items-center justify-between w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-      ${isActive
-        ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-        : "bg-[#29292930] border-white/5 hover:bg-[#29292950] hover:border-white/10"
+      ${
+        isActive
+          ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
+          : "bg-[#29292930] border-white/5 hover:bg-[#29292950] hover:border-white/10"
       }
     `}
   >
@@ -79,26 +80,29 @@ const ServerRow = ({
       <div
         className={`
         w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-        ${isActive
+        ${
+          isActive
             ? "bg-orange-600 text-white"
             : "bg-[#29292930] text-gray-500 group-hover:text-white"
-          }
+        }
       `}
       >
         <Wifi size={14} />
       </div>
       <div className="text-left">
         <h4
-          className={`text-sm font-bold ${isActive ? "text-white" : "text-gray-300 group-hover:text-white"
-            }`}
+          className={`text-sm font-bold ${
+            isActive ? "text-white" : "text-gray-300 group-hover:text-white"
+          }`}
         >
           {name}
         </h4>
       </div>
     </div>
     <span
-      className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-orange-500" : "text-gray-600"
-        }`}
+      className={`text-[10px] font-bold uppercase tracking-wider ${
+        isActive ? "text-orange-500" : "text-gray-600"
+      }`}
     >
       {quality}
     </span>
@@ -164,7 +168,7 @@ export default function MoviePlayer() {
         const data = await response.json();
         sessionStorage.setItem(
           cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
+          JSON.stringify({ data, timestamp: Date.now() }),
         );
         setMovie(data);
       } catch (err) {
@@ -208,13 +212,13 @@ export default function MoviePlayer() {
         watchDuration.current < MIN_WATCH_DURATION
       ) {
         console.log(
-          `⚠️ [Watch Timer] Save skipped. Duration: ${watchDuration.current}s (Min: ${MIN_WATCH_DURATION}s)`
+          `⚠️ [Watch Timer] Save skipped. Duration: ${watchDuration.current}s (Min: ${MIN_WATCH_DURATION}s)`,
         );
         return;
       }
 
       console.log(
-        `💾 [Watch Timer] Saving history. Duration: ${watchDuration.current}s`
+        `💾 [Watch Timer] Saving history. Duration: ${watchDuration.current}s`,
       );
 
       hasSavedWatch.current = true;
@@ -273,12 +277,7 @@ export default function MoviePlayer() {
   const formatMoney = (a: number) =>
     a ? `$${(a / 1000000).toFixed(1)}M` : "N/A";
 
-  if (loading)
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <LoadingDots />
-      </div>
-    );
+  if (loading) return <PlayerSkeleton />;
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-sans flex flex-col">

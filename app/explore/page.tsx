@@ -19,6 +19,9 @@ import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { addToWatchlist } from "@/src/lib/db/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { TMDBDiscoverItem } from "@/src/dto/tmdb/lists";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 // --- Constants ---
 const GENRES = [
@@ -364,16 +367,13 @@ export default function ExplorePage() {
           ))}
 
           {/* --- REVERTED SKELETON ANIMATION (Original Style) --- */}
-          {loading &&
-            Array.from({ length: 12 }).map((_, i) => (
-              <div key={`skeleton-${i}`} className="animate-pulse space-y-3">
-                <div className="aspect-[2/3] rounded-xl bg-white/5 border border-white/5" />
-                <div className="space-y-2 px-1">
-                  <div className="h-4 bg-white/10 rounded w-3/4" />
-                  <div className="h-3 bg-white/5 rounded w-1/4" />
-                </div>
-              </div>
-            ))}
+          {loading && (
+            <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <MediaCardSkeleton key={`skeleton-${i}`} />
+              ))}
+            </SkeletonTheme>
+          )}
         </div>
 
         {/* --- Infinite Scroll Trigger --- */}

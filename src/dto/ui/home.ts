@@ -5,6 +5,13 @@ import {
   BannerResponse,
 } from "./card";
 
+export interface PaginationDTO {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+}
+
 export interface HomeDashboardDTO {
   heroBanner: BannerCardDTO[];
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
@@ -16,14 +17,17 @@ const NAV_LINKS = [
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
   const { user, loading, firstName, avatarUrl } = useAuth();
 
   const handleProfileClick = () => {
-    if (user) {
-      router.push("/profile");
-    } else {
-      router.push("/auth");
-    }
+    startTransition(() => {
+      if (user) {
+        router.push("/profile");
+      } else {
+        router.push("/auth");
+      }
+    });
   };
 
   return (
@@ -33,7 +37,6 @@ export default function Navbar() {
         {/* LOGO */}
         <Link
           href="/home"
-          prefetch={true}
           className="group flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0"
         >
           <motion.div transition={{ duration: 0.7, ease: "easeInOut" }}>
@@ -56,7 +59,6 @@ export default function Navbar() {
               <Link
                 key={link.path}
                 href={link.path}
-                prefetch={true}
                 className="relative py-1 cursor-pointer"
                 style={{ fontFamily: "Montserrat, sans-serif" }}
               >
@@ -115,7 +117,7 @@ export default function Navbar() {
                         e.currentTarget.parentElement!.classList.add(
                           "bg-gradient-to-br",
                           "from-blue-500",
-                          "to-cyan-500"
+                          "to-cyan-500",
                         );
                         e.currentTarget.parentElement!.innerHTML = `<span class='text-xs font-bold'>${(firstName ||
                           "?")[0].toUpperCase()}</span>`;

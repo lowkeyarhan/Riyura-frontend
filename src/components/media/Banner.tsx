@@ -5,18 +5,20 @@ import { motion, AnimatePresence, Transition, Variants } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Play, Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import LoadingDots from "@/src/components/ui/LoadingDots";
+import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
 import { BannerItem, ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
 import { WatchHistoryItem } from "@/src/dto/ui/profile";
 import { useAuth } from "@/src/hooks/useAuth";
-import { supabase } from "@/src/lib/auth/supabase";
+import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
+import { SkeletonTheme } from "react-loading-skeleton";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import {
   addToWatchlist,
   isInWatchlist,
   removeFromWatchlist,
 } from "@/src/lib/db/database";
+import { supabase } from "@/src/lib/auth/supabase";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 const CARD_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w780";
@@ -482,11 +484,7 @@ export default function Banner({ initialItems }: BannerProps) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {loading && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <LoadingDots />
-          </div>
-        )}
+        {loading && <BannerSkeleton />}
 
         {error && !loading && (
           <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-red-400">
@@ -675,41 +673,47 @@ export default function Banner({ initialItems }: BannerProps) {
       </div>
 
       {/* Continue Watching */}
-      {continueWatchingVisibleItems.length > 0 && (
-        <div className="relative z-20 px-6 md:px-20">
-          {/* Continue Watching Title */}
-          <div className="border-t border-white/20 pt-5">
-            <h2
-              className="text-2xl md:text-3xl font-bold text-white tracking-tight"
-              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-            >
-              Continue Watching
-            </h2>
-            <p
-              className="mt-2 mb-5 md:mb-6 text-sm md:text-base text-white/60"
-              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-            >
-              Pick up where you left off
-            </p>
+      {!loading &&
+        (continueWatchingLoading ||
+          continueWatchingVisibleItems.length > 0) && (
+          <div className="relative z-20 px-6 md:px-20">
+            {/* Continue Watching Title */}
+            <div className="border-t border-white/20 pt-5">
+              <h2
+                className="text-2xl md:text-3xl font-bold text-white tracking-tight"
+                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+              >
+                Continue Watching
+              </h2>
+              <p
+                className="mt-2 mb-5 md:mb-6 text-sm md:text-base text-white/60"
+                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+              >
+                Pick up where you left off
+              </p>
 
-            {continueWatchingLoading ? (
-              <div className="flex items-center py-5">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/25 border-t-white" />
-              </div>
-            ) : (
-              <div className="grid grid-flow-col auto-cols-[calc((100%_-_0.75rem)/1.5)] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:overflow-visible md:gap-5 lg:grid-cols-5">
-                {continueWatchingVisibleItems.map((item) => (
-                  <ContinueWatchingCard
-                    key={item.id}
-                    item={item}
-                    onClick={handleContinueWatchingPlay}
-                  />
-                ))}
-              </div>
-            )}
+              {continueWatchingLoading ? (
+                <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
+                  <div className="grid grid-flow-col auto-cols-[calc((100%_-_0.75rem)/1.5)] gap-3 overflow-x-auto pb-2 md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:gap-5 lg:grid-cols-5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <ContinueWatchingSkeleton key={i} />
+                    ))}
+                  </div>
+                </SkeletonTheme>
+              ) : (
+                <div className="grid grid-flow-col auto-cols-[calc((100%_-_0.75rem)/1.5)] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:overflow-visible md:gap-5 lg:grid-cols-5">
+                  {continueWatchingVisibleItems.map((item) => (
+                    <ContinueWatchingCard
+                      key={item.id}
+                      item={item}
+                      onClick={handleContinueWatchingPlay}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </section>
   );
 }

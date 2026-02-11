@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,6 +29,7 @@ export default function MobileNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
   const { user, firstName, avatarUrl, signOut } = useAuth();
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -48,19 +49,22 @@ export default function MobileNavbar() {
   }, [isOpen]);
 
   const handleProfileClick = () => {
-    if (user) {
-      router.push("/profile");
-      setIsOpen(false);
-    } else {
-      router.push("/auth");
-      setIsOpen(false);
-    }
+    setIsOpen(false);
+    startTransition(() => {
+      if (user) {
+        router.push("/profile");
+      } else {
+        router.push("/auth");
+      }
+    });
   };
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/auth");
     setIsOpen(false);
+    startTransition(() => {
+      router.push("/auth");
+    });
   };
 
   return (
@@ -223,8 +227,10 @@ export default function MobileNavbar() {
                   ) : (
                     <button
                       onClick={() => {
-                        router.push("/auth");
                         setIsOpen(false);
+                        startTransition(() => {
+                          router.push("/auth");
+                        });
                       }}
                       className="w-full py-3.5 rounded-xl bg-white text-black font-bold text-sm shadow-lg hover:scale-[1.02] transition-transform"
                     >

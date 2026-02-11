@@ -7,6 +7,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { getWatchlist, removeFromWatchlist } from "@/src/lib/db/database";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import MediaCard from "@/src/components/media/MediaCard";
+import WatchlistSkeleton from "@/src/components/skeletons/WatchlistSkeleton";
 import { WatchlistPageItem } from "@/src/dto/ui/profile";
 
 // --- Constants ---
@@ -138,6 +139,10 @@ export default function WatchlistPage() {
   }, [user, authLoading, loading, router]);
 
   // --- Render ---
+  if (loading) {
+    return <WatchlistSkeleton />;
+  }
+
   return (
     <div className="relative min-h-screen bg-black font-sans">
       {/* --- BACKGROUND LAYERS --- */}

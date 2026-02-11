@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import Navbar from "@/src/components/layout/Navbar";
 import MobileNavbar from "@/src/components/layout/MobileNavbar";
-import LoadingDots from "@/src/components/ui/LoadingDots";
 import { supabase } from "@/src/lib/auth/supabase";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
@@ -17,7 +16,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const isPublic = Boolean(
     pathname === "/" ||
     pathname?.startsWith("/landing") ||
-    pathname?.startsWith("/auth")
+    pathname?.startsWith("/auth"),
   );
 
   useEffect(() => {
@@ -58,31 +57,29 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, onboarded, isPublic, router]);
 
+  const shouldShowNavbar = !isPublic && pathname !== "/onboarding";
+
   if (loading) {
     return (
-      <div
-        className="min-h-screen grid place-items-center"
-        style={{ backgroundColor: "rgb(7, 9, 16)" }}
-      >
-        <div className="flex flex-col items-center">
-          <LoadingDots />
-        </div>
-      </div>
+      <>
+        {shouldShowNavbar && (
+          <>
+            <div className="hidden md:block">
+              <Navbar />
+            </div>
+            <div className="block md:hidden">
+              <MobileNavbar />
+            </div>
+          </>
+        )}
+        {children}
+      </>
     );
   }
 
   if (!user && !isPublic) {
-    return (
-      <div
-        className="min-h-screen grid place-items-center"
-        style={{ backgroundColor: "rgb(7, 9, 16)" }}
-      >
-        <div className="text-white/70 animate-pulse">Redirecting…</div>
-      </div>
-    );
+    return null;
   }
-
-  const shouldShowNavbar = !isPublic && pathname !== "/onboarding";
 
   return shouldShowNavbar ? (
     <>

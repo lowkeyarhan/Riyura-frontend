@@ -2,8 +2,19 @@
 
 import React from "react";
 import Image from "next/image";
-import { Play, Sparkles, Star, Trash2 } from "lucide-react";
-import { MediaCardProps, MediaCardType } from "@/src/dto/components";
+import { Play, Sparkles, Trash2 } from "lucide-react";
+import type { MouseEvent } from "react";
+import type { MediaCardDTO } from "@/src/dto/ui/card";
+
+type MediaCardProps = Pick<MediaCardDTO, "title" | "posterUrl"> & {
+  rating?: MediaCardDTO["rating"];
+  year?: number | MediaCardDTO["year"];
+  type: MediaCardDTO["mediaType"];
+  seasons?: number;
+  episodes?: number;
+  onClick: () => void;
+  onRemove?: (e: MouseEvent<HTMLButtonElement>) => void;
+};
 
 const MovieIcon = () => (
   <svg
@@ -38,7 +49,7 @@ const TVIcon = () => (
 );
 
 const TYPE_CONFIG: Record<
-  MediaCardType,
+  MediaCardDTO["mediaType"],
   { label: string; icon: React.ReactNode }
 > = {
   movie: { label: "Movie", icon: <MovieIcon /> },
@@ -50,10 +61,7 @@ export default function MediaCard({
   title,
   posterUrl,
   year,
-  rating,
   type,
-  seasons,
-  episodes,
   onClick,
   onRemove,
 }: MediaCardProps) {
@@ -74,7 +82,7 @@ export default function MediaCard({
       {/* Image Container */}
       <div className="relative aspect-[2/3] overflow-hidden bg-[#0f1115]">
         <Image
-          src={posterUrl}
+          src={posterUrl ?? "/placeholder-image.jpg"}
           alt={title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"

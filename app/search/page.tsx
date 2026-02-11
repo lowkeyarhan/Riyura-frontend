@@ -9,6 +9,9 @@ import {
   TMDBTrendingMovie,
   TMDBTrendingTV,
 } from "@/src/dto/tmdb/lists";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 // Constants
 const TABS = [
@@ -495,15 +498,13 @@ export default function SearchPage() {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="relative w-16 h-16 mb-4">
-              <div className="absolute inset-0 border-4 border-purple-500/30 rounded-full" />
-              <div className="absolute inset-0 border-4 border-transparent border-t-purple-500 rounded-full animate-spin" />
+          <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-7">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <MediaCardSkeleton key={i} />
+              ))}
             </div>
-            <p className="text-gray-400 text-lg" style={FONT_STYLE}>
-              Searching...
-            </p>
-          </div>
+          </SkeletonTheme>
         )}
 
         {/* Empty State */}

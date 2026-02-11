@@ -21,7 +21,7 @@ import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
 import { invalidateProfileCache } from "@/src/lib/db/database";
-import LoadingDots from "@/src/components/ui/LoadingDots";
+import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import {
   TMDBEpisode,
   TMDBSeasonSummary,
@@ -358,11 +358,7 @@ export default function TVShowPlayer() {
     a ? `$${(a / 1000000).toFixed(1)}M` : "N/A";
 
   if (loading)
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <LoadingDots />
-      </div>
-    );
+    return <PlayerSkeleton />;
 
   return (
     <div className="w-full bg-black text-white font-sans">

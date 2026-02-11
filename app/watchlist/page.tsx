@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutGrid } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
-import { getWatchlist, removeFromWatchlist } from "@/src/lib/db/database";
+import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import MediaCard from "@/src/components/media/MediaCard";
 import WatchlistSkeleton from "@/src/components/skeletons/WatchlistSkeleton";
@@ -53,39 +53,23 @@ export default function WatchlistPage() {
         return;
       }
 
-      const cacheKey = `watchlist_${user.id}`;
-      const cached = sessionStorage.getItem(cacheKey);
-
-      if (cached) {
-        try {
-          setItems(JSON.parse(cached));
-          setLoading(false);
-          return;
-        } catch {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
-
       try {
-        const watchlistData = await getWatchlist(user.id);
-        const formatted: WatchlistPageItem[] = watchlistData.map((item) => ({
-          id: item.tmdb_id,
-          dbId: item.id,
-          type: item.media_type,
-          title: item.title,
-          poster: item.poster_path
-            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-            : "/placeholder.jpg",
-          year: item.release_date
-            ? new Date(item.release_date).getFullYear()
-            : undefined,
-          rating: item.vote || undefined,
-          seasons: item.number_of_seasons || undefined,
-          episodes: item.number_of_episodes || undefined,
-        }));
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        sessionStorage.setItem(cacheKey, JSON.stringify(formatted));
-        setItems(formatted);
+        if (session) {
+          const res = await fetch("/api/watchlist", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+
+          if (res.ok) {
+            const { data } = await res.json();
+            setItems(data || []);
+          } else {
+            throw new Error("Failed to fetch watchlist");
+          }
+        }
       } catch (err) {
         console.error("Error loading watchlist:", err);
         addNotification("Failed to load watchlist", "error");
@@ -118,10 +102,26 @@ export default function WatchlistPage() {
     const previousItems = [...items];
     const updated = items.filter((i) => i.id !== id);
     setItems(updated);
-    sessionStorage.setItem(`watchlist_${user.id}`, JSON.stringify(updated));
 
     try {
-      await removeFromWatchlist(user.id, id, type);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error("No session found");
+        return;
+      }
+
+      const res = await fetch(`/api/watchlist?tmdbId=${id}&mediaType=${type}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to remove from watchlist");
+
       addNotification("Removed from watchlist", "success");
     } catch (err) {
       // Revert on fail
@@ -134,7 +134,6 @@ export default function WatchlistPage() {
   // Auth Redirect
   useEffect(() => {
     if (!authLoading && !loading && !user) {
-      router.push("/auth");
     }
   }, [user, authLoading, loading, router]);
 

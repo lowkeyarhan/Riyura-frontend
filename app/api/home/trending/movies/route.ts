@@ -4,7 +4,11 @@ import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const limit = searchParams.get("limit");
+  const maxItems = limit ? parseInt(limit) : 12;
+
   const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
@@ -36,7 +40,7 @@ export async function GET() {
     const items: MediaGridItem[] = Array.isArray(data?.results)
       ? data.results
           .filter((movie) => movie.poster_path) // Only items with posters
-          .slice(0, 12) // Limit to 12 items
+          .slice(0, maxItems) // Limit items
           .map((movie) => ({
             id: movie.id,
             title: movie.title,

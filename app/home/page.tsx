@@ -154,8 +154,8 @@ export default function HomePage() {
         upcomingMovies,
         upcomingTV,
       ] = await Promise.all([
-        fetchMedia("/api/home/now-playing/movies", controller.signal),
-        fetchMedia("/api/home/now-playing/tv", controller.signal),
+        fetchMedia("/api/home/now-playing/movies?limit=6", controller.signal),
+        fetchMedia("/api/home/now-playing/tv?limit=6", controller.signal),
         fetchMedia("/api/home/trending/movies", controller.signal),
         fetchMedia("/api/home/trending/tv", controller.signal),
         fetchMedia("/api/home/trending/anime", controller.signal),
@@ -201,8 +201,8 @@ export default function HomePage() {
 
   const nowPlayingItems =
     selectedMediaType === "movie"
-      ? homeData.nowPlaying.movie.results.slice(0, 6)
-      : homeData.nowPlaying.tv.results.slice(0, 6);
+      ? homeData.nowPlaying.movie.results
+      : homeData.nowPlaying.tv.results;
 
   const trendingItems =
     selectedMediaType === "movie"

@@ -4,7 +4,11 @@ import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const limit = searchParams.get("limit");
+  const maxItems = limit ? parseInt(limit) : 12;
+
   const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
@@ -58,17 +62,19 @@ export async function GET() {
       .sort((a, b) => b.vote_average - a.vote_average)
       .filter((item) => item.poster_path); // Only items with posters
 
-    const items: MediaGridItem[] = allResults.slice(0, 12).map((anime) => ({
-      id: anime.id,
-      title: anime.title,
-      name: anime.name,
-      poster_path: anime.poster_path,
-      vote_average: Number(anime.vote_average || 0),
-      release_date: anime.release_date,
-      first_air_date: anime.first_air_date,
-      overview: anime.overview || "",
-      media_type: (anime.media_type || "tv") as "movie" | "tv",
-    }));
+    const items: MediaGridItem[] = allResults
+      .slice(0, maxItems)
+      .map((anime) => ({
+        id: anime.id,
+        title: anime.title,
+        name: anime.name,
+        poster_path: anime.poster_path,
+        vote_average: Number(anime.vote_average || 0),
+        release_date: anime.release_date,
+        first_air_date: anime.first_air_date,
+        overview: anime.overview || "",
+        media_type: (anime.media_type || "tv") as "movie" | "tv",
+      }));
 
     return NextResponse.json({ results: items });
   } catch (error: any) {

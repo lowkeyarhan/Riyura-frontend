@@ -8,11 +8,7 @@ import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import {
-  addToWatchlist,
-  removeFromWatchlist,
-  isInWatchlist,
-} from "@/src/lib/db/database";
+import { supabase } from "@/src/lib/auth/supabase";
 import { TMDBTVShowDetailsResponse } from "@/src/dto/tmdb/details";
 
 const BG_COLOR = "rgb(7, 9, 16)";
@@ -72,34 +68,12 @@ export default function TVShowDetails() {
   useEffect(() => {
     const fetchTVShowDetails = async () => {
       try {
-        const cacheKey = `tvshow_details_${params.id}`;
-        const cached = sessionStorage.getItem(cacheKey);
-
-        if (cached) {
-          try {
-            const { data, timestamp } = JSON.parse(cached);
-            if (Date.now() - timestamp < CACHE_TTL) {
-              console.log(`✅ TV show loaded from cache`);
-              setTVShow(data);
-              setLoading(false);
-              return;
-            }
-            sessionStorage.removeItem(cacheKey);
-          } catch {
-            sessionStorage.removeItem(cacheKey);
-          }
-        }
-
-        console.log(`📺 Building TV show details for ID ${params.id}...`);
+        console.log(`📺 Fetching TV show details for ID ${params.id}...`);
         const response = await fetch(`/api/tvshow/${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch TV show details");
 
         const data = await response.json();
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
-        );
-        console.log(`✅ TV show built and cached`);
+        console.log(`✅ TV show fetched successfully`);
 
         setTVShow(data);
         setError(null);
@@ -120,8 +94,22 @@ export default function TVShowDetails() {
     const checkWatchlistStatus = async () => {
       if (user && tvShow) {
         try {
-          const inWatchlist = await isInWatchlist(user.id, tvShow.id, "tv");
-          setIsWatchlisted(inWatchlist);
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session) {
+            const res = await fetch(
+              `/api/watchlist/check?tmdbId=${tvShow.id}&mediaType=tv`,
+              {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              },
+            );
+            const data = await res.json();
+            setIsWatchlisted(data.inWatchlist);
+          }
         } catch (err) {
           console.error("Error checking watchlist status:", err);
         }
@@ -152,32 +140,59 @@ export default function TVShowDetails() {
     if (!tvShow) return;
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error("No session found");
+        return;
+      }
+
       if (isWatchlisted) {
-        await removeFromWatchlist(user.id, tvShow.id, "tv");
+        const res = await fetch(
+          `/api/watchlist?tmdbId=${tvShow.id}&mediaType=tv`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          },
+        );
+        if (!res.ok) throw new Error("Failed to remove from watchlist");
+
         setIsWatchlisted(false);
         console.log("✅ Removed from watchlist");
       } else {
-        await addToWatchlist(user.id, {
-          tmdb_id: tvShow.id,
-          title: tvShow.name,
-          media_type: "tv",
-          poster_path: tvShow.poster_path,
-          release_date: tvShow.first_air_date,
-          vote: tvShow.vote_average,
-          number_of_seasons: tvShow.number_of_seasons,
-          number_of_episodes: tvShow.number_of_episodes,
+        const res = await fetch("/api/watchlist", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tmdb_id: tvShow.id,
+            title: tvShow.name,
+            media_type: "tv",
+            poster_path: tvShow.poster_path,
+            release_date: tvShow.first_air_date,
+            vote: tvShow.vote_average,
+            number_of_seasons: tvShow.number_of_seasons,
+            number_of_episodes: tvShow.number_of_episodes,
+          }),
         });
+
+        if (!res.ok) throw new Error("Failed to add to watchlist");
+
         setIsWatchlisted(true);
         console.log("✅ Added to watchlist");
         addNotification(`${tvShow.name} added to watchlist`, "success");
       }
 
-      const cacheKey = `watchlist_${user.id}`;
-      sessionStorage.removeItem(cacheKey);
-      console.log("💾 Watchlist cache cleared");
+      console.log("✅ Watchlist updated");
     } catch (err) {
       console.error("❌ Error:", err);
-      setIsWatchlisted(!isWatchlisted);
+      // setIsWatchlisted(!isWatchlisted); // Same logic as movie details
       addNotification("Failed to update watchlist", "error");
     }
   };
@@ -297,10 +312,11 @@ export default function TVShowDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${isWatchlisted
-                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                  className={`p-3 rounded-full transition ${
+                    isWatchlisted
+                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"

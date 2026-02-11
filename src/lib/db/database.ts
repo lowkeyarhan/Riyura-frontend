@@ -58,22 +58,6 @@ export async function ensureUserProfile(user: {
   return updatedData || data;
 }
 
-// Cache Invalidation Helper
-export const invalidateProfileCache = (userId: string) => {
-  if (typeof window === "undefined") return;
-
-  const keys = [
-    `profile_watchlist_${userId}`,
-    `profile_watch_history_${userId}`,
-    `profile_stats_${userId}`,
-  ];
-
-  keys.forEach((key) => {
-    localStorage.removeItem(key);
-  });
-  console.log(`🗑️ [Cache] Invalidated profile cache for user: ${userId}`);
-};
-
 // Add a movie or TV show to watchlist
 export async function addToWatchlist(userId: string, item: WatchlistRequest) {
   console.log("📌 [addToWatchlist] Adding item:", {
@@ -104,7 +88,6 @@ export async function addToWatchlist(userId: string, item: WatchlistRequest) {
   }
 
   console.log("✅ [addToWatchlist] Successfully added:", data);
-  invalidateProfileCache(userId);
   return data as WatchlistDbItem;
 }
 
@@ -133,7 +116,6 @@ export async function removeFromWatchlist(
   }
 
   console.log("✅ [removeFromWatchlist] Successfully removed");
-  invalidateProfileCache(userId);
 }
 
 // Get user's watchlist
@@ -224,7 +206,6 @@ export async function addToWatchHistory(
 
   if (error) throw error;
 
-  invalidateProfileCache(userId);
   return data as WatchHistoryDbItem;
 }
 
@@ -283,5 +264,4 @@ export async function removeFromWatchHistory(
     .eq("id", historyId);
 
   if (error) throw error;
-  invalidateProfileCache(userId);
 }

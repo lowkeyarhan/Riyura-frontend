@@ -8,11 +8,7 @@ import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import {
-  addToWatchlist,
-  removeFromWatchlist,
-  isInWatchlist,
-} from "@/src/lib/db/database";
+import { supabase } from "@/src/lib/auth/supabase";
 import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
 
 const BG_COLOR = "rgb(7, 9, 16)";
@@ -49,34 +45,12 @@ export default function MovieDetails() {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        const cacheKey = `movie_details_${params.id}`;
-        const cached = sessionStorage.getItem(cacheKey);
-
-        if (cached) {
-          try {
-            const { data, timestamp } = JSON.parse(cached);
-            if (Date.now() - timestamp < CACHE_TTL) {
-              console.log(`✅ Movie loaded from cache`);
-              setMovie(data);
-              setLoading(false);
-              return;
-            }
-            sessionStorage.removeItem(cacheKey);
-          } catch {
-            sessionStorage.removeItem(cacheKey);
-          }
-        }
-
-        console.log(`📽️ Building movie details for ID ${params.id}...`);
+        console.log(`📽️ Fetching movie details for ID ${params.id}...`);
         const response = await fetch(`/api/movie/${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch movie details");
 
         const data = await response.json();
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() }),
-        );
-        console.log(`✅ Movie built and cached`);
+        console.log(`✅ Movie fetched successfully`);
 
         setMovie(data);
         setError(null);
@@ -96,8 +70,22 @@ export default function MovieDetails() {
     const checkWatchlistStatus = async () => {
       if (user && movie) {
         try {
-          const inWatchlist = await isInWatchlist(user.id, movie.id, "movie");
-          setIsWatchlisted(inWatchlist);
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session) {
+            const res = await fetch(
+              `/api/watchlist/check?tmdbId=${movie.id}&mediaType=movie`,
+              {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              },
+            );
+            const data = await res.json();
+            setIsWatchlisted(data.inWatchlist);
+          }
         } catch (err) {
           console.error("Error checking watchlist status:", err);
         }
@@ -116,28 +104,59 @@ export default function MovieDetails() {
     if (!movie) return;
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error("No session found");
+        return;
+      }
+
       if (isWatchlisted) {
-        await removeFromWatchlist(user.id, movie.id, "movie");
+        const res = await fetch(
+          `/api/watchlist?tmdbId=${movie.id}&mediaType=movie`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          },
+        );
+        if (!res.ok) throw new Error("Failed to remove from watchlist");
         console.log("✅ Removed from watchlist");
       } else {
-        await addToWatchlist(user.id, {
-          tmdb_id: movie.id,
-          title: movie.title,
-          media_type: "movie",
-          poster_path: movie.poster_path,
-          release_date: movie.release_date,
-          vote: movie.vote_average,
+        const res = await fetch("/api/watchlist", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tmdb_id: movie.id,
+            title: movie.title,
+            media_type: "movie",
+            poster_path: movie.poster_path,
+            release_date: movie.release_date,
+            vote: movie.vote_average,
+          }),
         });
+
+        if (!res.ok) throw new Error("Failed to add to watchlist");
+
         console.log("✅ Added to watchlist");
         addNotification(`${movie.title} added to watchlist`, "success");
       }
 
       setIsWatchlisted(!isWatchlisted);
-      sessionStorage.removeItem(`watchlist_${user.id}`);
-      console.log("💾 Watchlist cache cleared");
+      console.log("✅ Watchlist updated");
     } catch (err) {
       console.error("❌ Error toggling watchlist:", err);
-      setIsWatchlisted(!isWatchlisted);
+      // setIsWatchlisted(!isWatchlisted); // Don't revert optimistically if we just failed the request? Or maybe we should. The original code toggled after success (or failed to toggle).
+      // Original code: setIsWatchlisted(!isWatchlisted) at the end of try (success), and also in catch (revert).
+      // Here I am toggling at the end of try. If it fails, I should probably NOT toggle, or revert if I did optimistic update.
+      // I am NOT doing optimistic update here. I am waiting for request.
+
       addNotification("Failed to update watchlist", "error");
     }
   };

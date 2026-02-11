@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import { addToWatchlist } from "@/src/lib/db/database";
+import { supabase } from "@/src/lib/auth/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { TMDBDiscoverItem } from "@/src/dto/tmdb/lists";
 import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
@@ -95,7 +95,7 @@ const MovieCard = ({
               router.push(
                 item.media_type === "movie"
                   ? `/details/movie/${item.id}`
-                  : `/details/tvshow/${item.id}`
+                  : `/details/tvshow/${item.id}`,
               )
             }
           >
@@ -151,7 +151,27 @@ export default function ExplorePage() {
         release_date: item.release_date || item.first_air_date || null,
         vote: item.vote_average ?? null,
       };
-      await addToWatchlist(user.id, watchlistItem);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error("No session found");
+        return;
+      }
+
+      const res = await fetch("/api/watchlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(watchlistItem),
+      });
+
+      if (!res.ok) throw new Error("Failed to add to watchlist");
+
       addNotification(`${watchlistItem.title} added to watchlist`, "success");
     } catch (error) {
       addNotification("Failed to add to watchlist", "error");
@@ -164,30 +184,6 @@ export default function ExplorePage() {
 
     const fetchData = async () => {
       setLoading(true);
-      const isDefault =
-        page === 1 &&
-        selectedGenres.length === 1 &&
-        selectedGenres[0] === "Action" &&
-        mediaType === "all";
-
-      if (isDefault) {
-        const cached = sessionStorage.getItem(EXPLORE_CACHE_KEY);
-        if (cached) {
-          try {
-            const {
-              results,
-              page: cachedPage,
-              total_pages,
-            } = JSON.parse(cached);
-            setItems(results);
-            setHasMore(cachedPage < total_pages);
-            setLoading(false);
-            return;
-          } catch (e) {
-            sessionStorage.removeItem(EXPLORE_CACHE_KEY);
-          }
-        }
-      }
 
       try {
         const genreParams = selectedGenres.join(",");
@@ -197,13 +193,9 @@ export default function ExplorePage() {
         const data = await res.json();
 
         setItems((prev) =>
-          page === 1 ? data.results : [...prev, ...data.results]
+          page === 1 ? data.results : [...prev, ...data.results],
         );
         setHasMore(data.page < data.total_pages);
-
-        if (isDefault && page === 1) {
-          sessionStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(data));
-        }
       } catch (error: any) {
         if (error.name !== "AbortError") console.error(error);
       } finally {
@@ -222,7 +214,7 @@ export default function ExplorePage() {
           setPage((prev) => prev + 1);
         }
       },
-      { threshold: 0.1, rootMargin: "100px" }
+      { threshold: 0.1, rootMargin: "100px" },
     );
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
@@ -237,7 +229,7 @@ export default function ExplorePage() {
   const handleGenreToggle = (genre: string) => {
     setPage(1);
     setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre],
     );
   };
 
@@ -282,10 +274,11 @@ export default function ExplorePage() {
                   <button
                     key={type.value}
                     onClick={() => handleTypeChange(type.value)}
-                    className={`relative cursor-pointer flex items-center justify-center gap-2 px-3 sm:px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-xs sm:text-sm font-bold transition-colors z-10 flex-1 md:flex-initial ${isActive
-                      ? "text-white"
-                      : "text-gray-500 hover:text-gray-300"
-                      }`}
+                    className={`relative cursor-pointer flex items-center justify-center gap-2 px-3 sm:px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-xs sm:text-sm font-bold transition-colors z-10 flex-1 md:flex-initial ${
+                      isActive
+                        ? "text-white"
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
                   >
                     {isActive && (
                       <motion.div
@@ -324,10 +317,11 @@ export default function ExplorePage() {
                     <button
                       key={genre}
                       onClick={() => handleGenreToggle(genre)}
-                      className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer transition-all border touch-manipulation ${isSelected
-                        ? "bg-white text-black border-white"
-                        : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
-                        }`}
+                      className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer transition-all border touch-manipulation ${
+                        isSelected
+                          ? "bg-white text-black border-white"
+                          : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
+                      }`}
                     >
                       {genre}
                     </button>

@@ -15,12 +15,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
-import { invalidateProfileCache } from "@/src/lib/db/database";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
 
 // --- Constants ---
-const CACHE_DURATION = 15 * 60 * 1000;
 const MIN_WATCH_DURATION = 60;
 const WATCH_TIMER_INTERVAL = 1000;
 
@@ -145,31 +143,11 @@ export default function MoviePlayer() {
   // Fetch Logic
   useEffect(() => {
     const fetchMovie = async () => {
-      const cacheKey = `movie_details_${movieId}`;
-      const cached = sessionStorage.getItem(cacheKey);
-
-      if (cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < CACHE_DURATION) {
-            setMovie(data);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
-
       try {
         setLoading(true);
         const response = await fetch(`/api/movie/${movieId}`);
         if (!response.ok) throw new Error("Failed");
         const data = await response.json();
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() }),
-        );
         setMovie(data);
       } catch (err) {
         console.error(err);
@@ -252,9 +230,6 @@ export default function MoviePlayer() {
           body: JSON.stringify(watchData),
           keepalive: true,
         })
-          .then(() => {
-            invalidateProfileCache(user.id);
-          })
           .catch((err) => console.error("Failed to save watch history", err));
       });
     };

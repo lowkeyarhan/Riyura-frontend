@@ -425,7 +425,6 @@ export default function Banner({ initialItems }: BannerProps) {
         setIsWatchlisted(true);
         addNotification(`${mediaTitle} added to watchlist`, "success");
       }
-      sessionStorage.removeItem(`watchlist_${user.id}`);
     } catch {
       addNotification("Failed to update watchlist", "error");
     } finally {

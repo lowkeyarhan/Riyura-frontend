@@ -20,7 +20,6 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/auth/supabase";
-import { invalidateProfileCache } from "@/src/lib/db/database";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import {
   TMDBEpisode,
@@ -29,7 +28,6 @@ import {
 } from "@/src/dto/tmdb/details";
 
 // --- Constants ---
-const CACHE_DURATION = 15 * 60 * 1000;
 const MIN_WATCH_DURATION = 60;
 const WATCH_TIMER_INTERVAL = 1000;
 
@@ -174,29 +172,11 @@ export default function TVShowPlayer() {
   // --- Logic ---
   useEffect(() => {
     const fetchShow = async () => {
-      const cacheKey = `tvshow_details_${tvShowId}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < CACHE_DURATION) {
-            setTvShow(data);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
       try {
         setLoading(true);
         const res = await fetch(`/api/tvshow/${tvShowId}`);
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
-        );
         setTvShow(data);
       } catch (e) {
         console.error(e);
@@ -322,9 +302,6 @@ export default function TVShowPlayer() {
           body: JSON.stringify(watchData),
           keepalive: true,
         })
-          .then(() => {
-            invalidateProfileCache(user.id);
-          })
           .catch((err) => console.error("Failed to save watch history", err));
       });
     };

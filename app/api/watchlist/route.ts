@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/src/lib/auth/supabase";
-import { MediaType } from "@/src/dto/media";
+import { MediaType, WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -38,21 +38,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Map to UI friendly format if needed, matching WatchlistPageItem
-  const formattedData = data.map((item) => ({
-    id: item.tmdb_id, // Map tmdb_id to id for UI
-    tmdbId: item.tmdb_id,
-    title: item.title,
-    poster: item.poster_path, // Map poster_path to poster
-    year: item.release_date ? new Date(item.release_date).getFullYear() : null,
-    rating: item.vote,
-    type: item.media_type,
-    seasons: item.number_of_seasons,
-    episodes: item.number_of_episodes,
-    addedAt: item.added_at,
-  }));
-
-  return NextResponse.json(formattedData);
+  // Return as WatchlistItem[] - no mapping needed, already in correct format
+  const items: WatchlistItem[] = data;
+  return NextResponse.json(items);
 }
 
 export async function POST(request: Request) {
@@ -72,7 +60,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body: WatchlistAddRequest = await request.json();
     const {
       tmdb_id,
       title,

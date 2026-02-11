@@ -331,9 +331,9 @@ export default function Banner({ initialItems }: BannerProps) {
         };
         const mappedItems = Array.isArray(payload.data)
           ? payload.data
-              .map(mapWatchHistoryItem)
-              .filter((item) => item.progress <= 95)
-              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+            .map(mapWatchHistoryItem)
+            .filter((item) => item.progress <= 95)
+            .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
           : [];
 
         if (isActive) setContinueWatching(mappedItems);
@@ -376,10 +376,10 @@ export default function Banner({ initialItems }: BannerProps) {
   // Get the metadata parts
   const metadataParts = currentItem
     ? [
-        getMediaTypeLabel(currentItem.contentType),
-        currentItem.date,
-        ...itemGenres,
-      ].filter((part): part is string => Boolean(part))
+      getMediaTypeLabel(currentItem.contentType),
+      currentItem.date,
+      ...itemGenres,
+    ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
@@ -478,7 +478,7 @@ export default function Banner({ initialItems }: BannerProps) {
   return (
     <section className="relative w-full bg-black pb-8 md:pb-10">
       <div
-        className="relative w-full h-[88vh] min-h-[560px] md:h-screen bg-black overflow-hidden"
+        className="relative w-full h-[90vh] min-h-[560px] md:h-screen bg-black overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -597,11 +597,10 @@ export default function Banner({ initialItems }: BannerProps) {
                           ? "Remove from watchlist"
                           : "Add to watchlist"
                       }
-                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${
-                        isWatchlisted
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
                           ? "bg-white/35 text-white"
                           : "bg-white/20 text-white hover:bg-white/30"
-                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                        } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />
                     </button>
@@ -611,7 +610,7 @@ export default function Banner({ initialItems }: BannerProps) {
             </AnimatePresence>
           </div>
 
-          {/* Side Navigation */}
+          {/* Side Navigation
           {items.length > 1 && (
             <>
               <button
@@ -621,7 +620,7 @@ export default function Banner({ initialItems }: BannerProps) {
                   resetInterval();
                 }}
                 aria-label="Previous banner"
-                className="pointer-events-auto absolute left-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:hidden"
+                className="pointer-events-auto absolute left-1 top-[50%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:bg-black/20 md:hidden"
               >
                 <ChevronLeft className="h-5 w-5" strokeWidth={2} />
               </button>
@@ -632,7 +631,7 @@ export default function Banner({ initialItems }: BannerProps) {
                   resetInterval();
                 }}
                 aria-label="Next banner"
-                className="pointer-events-auto md:hidden absolute right-1 top-[40%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:right-8 md:top-1/2 md:h-14 md:w-14"
+                className="pointer-events-auto md:hidden absolute right-1 top-[50%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:right-8 md:top-1/2 md:h-14 md:w-14"
               >
                 <ChevronRight
                   className="h-5 w-5 md:h-7 md:w-7"
@@ -640,12 +639,12 @@ export default function Banner({ initialItems }: BannerProps) {
                 />
               </button>
             </>
-          )}
+          )} */}
         </div>
 
         {/* Slide Dots (kept inside viewport) */}
         {items.length > 1 && (
-          <div className="pointer-events-auto absolute inset-x-0 bottom-10 z-20 flex items-center justify-center gap-2 px-6 md:px-20">
+          <div className="pointer-events-auto absolute inset-x-0 bottom-10 z-20 hidden items-center justify-center gap-2 px-6 md:flex md:px-20">
             {items.map((_, index) => (
               <motion.button
                 key={index}
@@ -661,9 +660,8 @@ export default function Banner({ initialItems }: BannerProps) {
                   width: index === currentSlide ? 32 : 8,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`h-2 rounded-full ${
-                  index === currentSlide ? "bg-white" : "bg-white/50"
-                }`}
+                className={`h-2 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

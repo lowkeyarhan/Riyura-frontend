@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  ProfileData,
+  ContinueWatchingItem,
+  ProfileStat,
+} from "@/src/dto/media";
 
 export async function GET(req: Request) {
   try {
@@ -44,8 +49,10 @@ export async function GET(req: Request) {
 
     if (watchlistError) throw watchlistError;
 
-    // Format watch history for Continue Watching
-    const continueWatching = (watchHistoryData || []).map((item: any) => {
+    // Format watch history for Continue Watching using ContinueWatchingItem DTO
+    const continueWatching: ContinueWatchingItem[] = (
+      watchHistoryData || []
+    ).map((item: any) => {
       const totalLength = item.episode_length || 7200;
       const progress = Math.min(
         100,
@@ -78,7 +85,7 @@ export async function GET(req: Request) {
       };
     });
 
-    // Calculate stats
+    // Calculate stats using ProfileStat DTO
     const moviesCount = (watchHistoryData || []).filter(
       (i: any) => i.media_type === "movie",
     ).length;
@@ -93,20 +100,23 @@ export async function GET(req: Request) {
     );
     const hoursCount = Math.round(totalSeconds / 3600);
 
-    const stats = [
+    const stats: ProfileStat[] = [
       { label: "Movies", value: moviesCount.toString() },
       { label: "Series", value: seriesCount.toString() },
       { label: "Hours", value: hoursCount.toString() },
     ];
 
+    // Build response data using ProfileData DTO
+    const responseData: ProfileData = {
+      continueWatching,
+      watchlist: watchlistData || [],
+      stats,
+    };
+
     return NextResponse.json(
       {
         success: true,
-        data: {
-          continueWatching,
-          watchlist: watchlistData || [],
-          stats,
-        },
+        data: responseData,
       },
       { status: 200 },
     );

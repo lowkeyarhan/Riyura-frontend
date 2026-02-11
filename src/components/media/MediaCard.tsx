@@ -104,9 +104,6 @@ export default function MediaCard({
             >
               <Play className="w-5 h-5 ml-1 fill-black" />
             </button>
-            <span className="text-xs font-medium text-white tracking-wide">
-              Watch
-            </span>
           </div>
 
           {hasRemove && (
@@ -140,31 +137,6 @@ export default function MediaCard({
           <span className="text-xs md:text-sm text-gray-400">
             {year || "Unknown Year"}
           </span>
-        </div>
-
-        {/* Mobile Actions (Visible only on mobile) */}
-        <div className="flex md:hidden items-center gap-2 mt-2 pt-2 border-t border-white/5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-white/10 text-white text-xs font-semibold active:bg-white/20 transition-colors"
-          >
-            <Play className="w-3 h-3 fill-current" />
-            Watch
-          </button>
-          {hasRemove && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(e);
-              }}
-              className="flex items-center justify-center p-1.5 rounded-lg bg-red-500/10 text-red-500 active:bg-red-500/20 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
     </div>

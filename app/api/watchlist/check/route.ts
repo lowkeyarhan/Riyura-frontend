@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/src/lib/auth/supabase";
+import { WatchlistCheckResponse } from "@/src/dto/media";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
   // Get auth token from header
   const authHeader = request.headers.get("Authorization");
   if (!authHeader) {
-    return NextResponse.json({ inWatchlist: false });
+    const response: WatchlistCheckResponse = { exists: false };
+    return NextResponse.json(response);
   }
 
   const token = authHeader.replace("Bearer ", "");
@@ -28,7 +30,8 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
-    return NextResponse.json({ inWatchlist: false });
+    const response: WatchlistCheckResponse = { exists: false };
+    return NextResponse.json(response);
   }
 
   const { data, error } = await supabase
@@ -41,8 +44,10 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error("Error checking watchlist:", error);
-    return NextResponse.json({ inWatchlist: false });
+    const response: WatchlistCheckResponse = { exists: false };
+    return NextResponse.json(response);
   }
 
-  return NextResponse.json({ inWatchlist: !!data });
+  const response: WatchlistCheckResponse = { exists: !!data };
+  return NextResponse.json(response);
 }

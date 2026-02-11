@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
+import { ApiResponse } from "@/src/dto/api";
 
 const VALID_STREAMS = new Set([
   "syntherionmovie",
@@ -18,14 +20,14 @@ export async function GET(req: Request) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or Invalid Token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -45,12 +47,18 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data }, { status: 200 });
+    // Use ApiResponse wrapper for consistent response format
+    const response: ApiResponse<WatchHistoryItem[]> = {
+      success: true,
+      data: data as WatchHistoryItem[],
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (err: any) {
     console.error("Error fetching watch history:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,23 +68,22 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.warn(
-        "⚠️ Watch History: Blocked request with missing/invalid token"
+        "⚠️ Watch History: Blocked request with missing/invalid token",
       );
       return NextResponse.json(
         { error: "Missing or Invalid Token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
-    const body = await req.json();
+    const body: WatchHistoryAddRequest = await req.json();
     const {
-      user_id,
       tmdb_id,
       media_type,
       stream_id,
@@ -91,14 +98,25 @@ export async function POST(req: Request) {
     } = body;
 
     console.log(
-      `📥 Watch History: Received update for [${media_type.toUpperCase()}] "${title}" (ID: ${tmdb_id})`
+      `📥 Watch History: Received update for [${media_type.toUpperCase()}] "${title}" (ID: ${tmdb_id})`,
     );
+
+    // Get user_id from authenticated user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user_id = user.id;
 
     if (!user_id || !tmdb_id || !title || !media_type || !stream_id) {
       console.error("❌ Watch History: Missing required fields in payload");
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -126,11 +144,11 @@ export async function POST(req: Request) {
       if (isSameContext) {
         finalDuration += existing.duration_sec || 0;
         console.log(
-          `⏱️  Accumulating time: ${existing.duration_sec}s + ${duration_sec}s = ${finalDuration}s`
+          `⏱️  Accumulating time: ${existing.duration_sec}s + ${duration_sec}s = ${finalDuration}s`,
         );
       } else {
         console.log(
-          `🔄 New Episode/Season detected (S${existing.season_number}E${existing.episode_number} -> S${season_number}E${episode_number}). Resetting duration.`
+          `🔄 New Episode/Season detected (S${existing.season_number}E${existing.episode_number} -> S${season_number}E${episode_number}). Resetting duration.`,
         );
       }
     } else {
@@ -176,14 +194,14 @@ export async function POST(req: Request) {
     }
 
     console.log(
-      `✅ Watch History: Successfully saved. Total Duration: ${finalDuration}s`
+      `✅ Watch History: Successfully saved. Total Duration: ${finalDuration}s`,
     );
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (err: any) {
     console.error("🔥 Critical Error in Watch History API:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

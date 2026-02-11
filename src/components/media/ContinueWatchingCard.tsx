@@ -24,7 +24,7 @@ export default function ContinueWatchingCard({
           src={item.image}
           alt={item.title}
           fill
-          className="object-cover transition duration-500 group-hover:scale-[1.03]"
+          className="object-cover transition duration-500"
           sizes="(max-width: 768px) 50vw, 20vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent" />

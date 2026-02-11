@@ -219,6 +219,13 @@ export default function HomePage() {
       ? homeData.comingSoon.movie.results
       : homeData.comingSoon.tv.results;
 
+  const hasSectionContent = isAnime
+    ? homeData.trending.anime.results.length > 0
+    : nowPlayingItems.length > 0 ||
+      trendingItems.length > 0 ||
+      popularItems.length > 0 ||
+      comingSoonItems.length > 0;
+
   const handleCardClick = (item: MediaGridItem) => {
     router.push(getDetailsPath(item));
   };
@@ -267,7 +274,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {isLoading || isTabSwitching ? (
+        {isLoading || isTabSwitching || !hasSectionContent ? (
           <MediaGridSkeleton />
         ) : isAnime ? (
           <AnimeMediaGrid

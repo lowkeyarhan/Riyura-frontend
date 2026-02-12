@@ -15,6 +15,7 @@ export interface TMDBBaseListItem {
   title?: string;
   name?: string;
   original_name?: string;
+  original_language?: string;
   overview?: string;
   backdrop_path?: string | null;
   poster_path: string | null;

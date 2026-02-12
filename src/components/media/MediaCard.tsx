@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import { Play, Sparkles, Trash2 } from "lucide-react";
+import { Play, Sparkles } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { MediaCardDTO } from "@/src/dto/ui/card";
 
@@ -14,6 +14,8 @@ type MediaCardProps = Pick<MediaCardDTO, "title" | "posterUrl"> & {
   episodes?: number;
   onClick: () => void;
   onRemove?: (e: MouseEvent<HTMLButtonElement>) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onLongPress?: () => void;
 };
 
 const MovieIcon = () => (
@@ -64,20 +66,52 @@ export default function MediaCard({
   type,
   onClick,
   onRemove,
+  onContextMenu,
+  onLongPress,
 }: MediaCardProps) {
   const typeConfig = TYPE_CONFIG[type];
   const hasRemove = typeof onRemove === "function";
 
+  // Long-press detection for mobile
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!onLongPress) return;
+    setIsLongPressing(true);
+    const timer = setTimeout(() => {
+      if (navigator.vibrate) {
+        navigator.vibrate(50); // Haptic feedback
+      }
+      onLongPress();
+      setIsLongPressing(false);
+    }, 500); // 500ms long press
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
   return (
     <div
-      className="
+      className={`
         group relative cursor-pointer rounded-xl overflow-hidden 
         bg-[#0f1115]
         border border-white/5 
-        transition-colors duration-300 
+        transition-all duration-300 
         shadow-md
-      "
+        ${isLongPressing ? "scale-[0.98]" : ""}
+      `}
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchEnd}
     >
       {/* Image Container */}
       <div className="relative aspect-[2/3] overflow-hidden bg-[#0f1115]">
@@ -92,8 +126,8 @@ export default function MediaCard({
         {/* Gradient Overlay */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
 
-        {/* Hover Action Overlay (Desktop) */}
-        <div className="hidden md:flex absolute inset-0 bg-[#0f1115]/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center gap-4 z-20">
+        {/* Hover Action Overlay (Desktop) - Only Play button, no Remove */}
+        <div className="hidden md:flex absolute inset-0 bg-[#0f1115]/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center z-20">
           <div className="flex flex-col items-center gap-2 scale-0 group-hover:scale-100 transition-transform duration-300 delay-75">
             <button
               className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:scale-110 transition-transform text-black"
@@ -105,23 +139,6 @@ export default function MediaCard({
               <Play className="w-5 h-5 ml-1 fill-black" />
             </button>
           </div>
-
-          {hasRemove && (
-            <div className="flex flex-col items-center gap-2 scale-0 group-hover:scale-100 transition-transform duration-300 delay-100">
-              <button
-                className="w-12 h-12 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 hover:border-red-600 hover:scale-110 transition-all text-red-500 hover:text-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(e);
-                }}
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-              <span className="text-xs font-medium text-red-400 tracking-wide">
-                Remove
-              </span>
-            </div>
-          )}
         </div>
       </div>
 

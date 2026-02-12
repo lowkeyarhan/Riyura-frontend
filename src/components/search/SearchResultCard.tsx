@@ -32,13 +32,18 @@ export function SearchResultCard({
     return rating > 0 ? `${rating.toFixed(1)}` : "";
   };
 
-  const metadataItems = [getMediaTypeLabel(), getYear(), getRating()]
+  const getLanguage = () => {
+    if (!item.original_language) return "";
+    return item.original_language.toUpperCase();
+  };
+
+  const metadataItems = [getMediaTypeLabel(), getYear(), getLanguage(), getRating()]
     .filter(Boolean)
     .join(" • ");
 
   return (
     <div
-      className="group flex flex-col rounded-2xl overflow-hidden bg-[#0f1115]
+      className="group flex flex-col h-full rounded-2xl overflow-hidden bg-[#0f1115]
         border border-white/5 
         transition-colors duration-300 
         shadow-md hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
@@ -83,15 +88,13 @@ export function SearchResultCard({
           {metadataItems}
         </p>
 
-        {/* Overview */}
-        {item.overview && (
-          <p
-            className="text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1"
-            style={FONT_STYLE}
-          >
-            {item.overview}
-          </p>
-        )}
+        {/* Overview - Always present to maintain consistent height */}
+        <p
+          className="text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 min-h-[4rem]"
+          style={FONT_STYLE}
+        >
+          {item.overview || ""}
+        </p>
       </div>
     </div>
   );

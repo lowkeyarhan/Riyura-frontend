@@ -1,6 +1,8 @@
 import { LayoutGrid } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
 import { WatchlistItem } from "@/src/dto/media";
+import { ContextMenu } from "@/src/components/media/ContextMenu";
+import { useState } from "react";
 
 const FONT_FAMILY = "Be Vietnam Pro, sans-serif";
 
@@ -23,6 +25,54 @@ export function WatchlistGrid({
   onRemove,
   onItemClick,
 }: WatchlistGridProps) {
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    item: WatchlistItem;
+  } | null>(null);
+
+  // Handle right-click (desktop)
+  const handleContextMenu = (e: React.MouseEvent, item: WatchlistItem) => {
+    e.preventDefault(); // Prevent browser context menu
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      item,
+    });
+  };
+
+  // Handle long-press (mobile)
+  const handleLongPress = (item: WatchlistItem) => {
+    // Position at center of screen for mobile
+    setContextMenu({
+      x: window.innerWidth / 2 - 100, // Center (100px = half menu width)
+      y: window.innerHeight / 2 - 30, // Center (30px = half menu height)
+      item,
+    });
+  };
+
+  // Close context menu
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  // Handle remove from context menu
+  const handleRemoveFromMenu = () => {
+    if (contextMenu) {
+      // Create a mock event with stopPropagation method
+      const mockEvent = {
+        stopPropagation: () => { },
+      } as React.MouseEvent;
+
+      onRemove(
+        mockEvent,
+        contextMenu.item.tmdb_id,
+        contextMenu.item.media_type
+      );
+      closeContextMenu();
+    }
+  };
   if (loading) {
     return (
       <div className="bg-[#3c3c3c17] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
@@ -82,13 +132,22 @@ export function WatchlistGrid({
             type={item.media_type}
             seasons={item.number_of_seasons ?? undefined}
             episodes={item.number_of_episodes ?? undefined}
-            onRemove={(e: React.MouseEvent) =>
-              onRemove(e, item.tmdb_id, item.media_type)
-            }
             onClick={() => onItemClick(item.tmdb_id, item.media_type)}
+            onContextMenu={(e) => handleContextMenu(e, item)}
+            onLongPress={() => handleLongPress(item)}
           />
         ))}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onRemove={handleRemoveFromMenu}
+          onClose={closeContextMenu}
+        />
+      )}
     </div>
   );
 }

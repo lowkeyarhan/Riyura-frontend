@@ -36,9 +36,8 @@ export function TrendingCard({ item, onClick, formatDate }: TrendingCardProps) {
     >
       {item.backdrop_path || item.poster_path ? (
         <Image
-          src={`https://image.tmdb.org/t/p/w780${
-            item.backdrop_path || item.poster_path
-          }`}
+          src={`https://image.tmdb.org/t/p/w780${item.backdrop_path || item.poster_path
+            }`}
           alt={item.title || item.name || ""}
           fill
           className="object-cover opacity-40 group-hover:opacity-55 transition-opacity duration-500"
@@ -50,18 +49,6 @@ export function TrendingCard({ item, onClick, formatDate }: TrendingCardProps) {
       <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-transparent to-black/70" />
 
       <div className="relative z-10 flex flex-col gap-2 md:gap-6 md:h-full justify-between min-h-0 overflow-hidden">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 md:gap-2 rounded-full bg-white/10 px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.32em] text-slate-200">
-            <Icon className="w-3 h-3 md:w-4 md:h-4" />
-            {isMovie ? "Movie" : "TV"}
-          </span>
-          {(item.vote_average ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 md:px-2.5 md:py-1 text-[10px] md:text-xs font-semibold text-amber-300">
-              <StarIcon />
-              {(item.vote_average ?? 0).toFixed(1)}
-            </span>
-          )}
-        </div>
 
         <div className="flex-1 overflow-hidden">
           <h3 className="text-sm md:text-2xl font-semibold text-white leading-tight line-clamp-1">
@@ -74,7 +61,6 @@ export function TrendingCard({ item, onClick, formatDate }: TrendingCardProps) {
 
         <div className="flex items-center justify-between text-[10px] md:text-xs text-slate-300">
           <div className="flex items-center gap-1 md:gap-2">
-            <span className="text-slate-400">Premiere</span>
             <div className="flex items-center gap-1 text-slate-200">
               <CalendarIcon />
               <span>{formatDate(releaseDate)}</span>

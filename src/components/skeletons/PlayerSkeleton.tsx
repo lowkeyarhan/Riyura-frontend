@@ -78,17 +78,15 @@ export default function PlayerSkeleton() {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className={`flex items-center justify-between w-full p-3 rounded-xl border transition-all ${
-                      i === 1
-                        ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-                        : "bg-[#29292930] border-white/5"
-                    }`}
+                    className={`flex items-center justify-between w-full p-3 rounded-xl border transition-all ${i === 1
+                      ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
+                      : "bg-[#29292930] border-white/5"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          i === 1 ? "bg-orange-600" : "bg-[#29292930]"
-                        }`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${i === 1 ? "bg-orange-600" : "bg-[#29292930]"
+                          }`}
                       >
                         <Skeleton width={14} height={14} />
                       </div>

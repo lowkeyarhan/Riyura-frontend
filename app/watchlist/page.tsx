@@ -16,6 +16,7 @@ export default function WatchlistPage() {
   const { items, loading, error, removeItem } = useWatchlist(user?.id);
 
   const [filter, setFilter] = useState<"all" | "movie" | "tv">("all");
+  const [sortBy, setSortBy] = useState<"recent" | "title" | "year">("recent");
 
   // Show error notification
   useEffect(() => {
@@ -25,13 +26,43 @@ export default function WatchlistPage() {
     }
   }, [error, addNotification]);
 
-  // Filter Logic - ensure items is always an array
+  // Count items by type
+  const counts = useMemo(() => {
+    if (!Array.isArray(items)) return { movie: 0, tv: 0, total: 0 };
+    return {
+      movie: items.filter((i) => i.media_type === "movie").length,
+      tv: items.filter((i) => i.media_type === "tv").length,
+      total: items.length,
+    };
+  }, [items]);
+
+  // Filter and Sort Logic
   const visibleItems = useMemo(() => {
     if (!Array.isArray(items)) return [];
-    return filter === "all"
-      ? items
-      : items.filter((i) => i.media_type === filter);
-  }, [items, filter]);
+    
+    // Filter
+    let filtered = filter === "all" ? items : items.filter((i) => i.media_type === filter);
+    
+    // Sort
+    const sorted = [...filtered];
+    if (sortBy === "recent") {
+      sorted.sort((a, b) => {
+        const dateA = a.added_at ? new Date(a.added_at).getTime() : 0;
+        const dateB = b.added_at ? new Date(b.added_at).getTime() : 0;
+        return dateB - dateA;
+      });
+    } else if (sortBy === "title") {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy === "year") {
+      sorted.sort((a, b) => {
+        const yearA = a.release_date ? new Date(a.release_date).getFullYear() : 0;
+        const yearB = b.release_date ? new Date(b.release_date).getFullYear() : 0;
+        return yearB - yearA;
+      });
+    }
+    
+    return sorted;
+  }, [items, filter, sortBy]);
 
   // Remove Handler
   const handleRemove = async (
@@ -124,7 +155,11 @@ export default function WatchlistPage() {
         <WatchlistHeader
           filter={filter}
           onFilterChange={setFilter}
-          hasItems={Array.isArray(items) && items.length > 0}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          totalItems={counts.total}
+          movieCount={counts.movie}
+          tvCount={counts.tv}
         />
 
         <WatchlistGrid

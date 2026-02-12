@@ -32,7 +32,7 @@ export function TrendingCard({ item, onClick, formatDate }: TrendingCardProps) {
   return (
     <div
       onClick={onClick}
-      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#161a39] via-[#10172c] to-[#070b18] p-3 md:p-6 cursor-pointer transition-all duration-500 hover:shadow-[0_30px_60px_-18px_rgba(7,11,24,0.9)] aspect-[2/3] md:aspect-auto"
+      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#161a39] via-[#10172c] to-[#070b18] p-3 md:p-6 cursor-pointer transition-all duration-500 hover:shadow-[0_30px_60px_-18px_rgba(7,11,24,0.9)] aspect-[16/9] md:aspect-auto"
     >
       {item.backdrop_path || item.poster_path ? (
         <Image
@@ -48,27 +48,33 @@ export function TrendingCard({ item, onClick, formatDate }: TrendingCardProps) {
       )}
       <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-transparent to-black/70" />
 
-      <div className="relative z-10 flex flex-col gap-2 md:gap-6 md:h-full justify-between min-h-0 overflow-hidden">
-
-        <div className="flex-1 overflow-hidden">
-          <h3 className="text-sm md:text-2xl font-semibold text-white leading-tight line-clamp-1">
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Empty space between on mobile */}
+        <div className="flex-1" />
+        {/* Title at top */}
+        <div>
+          <h3 className=" text-xl md:text-2xl font-semibold text-white mb-4 leading-tight line-clamp-2 md:line-clamp-1">
             {item.title || item.name}
           </h3>
-          <p className="mt-1 md:mt-3 text-xs md:text-sm text-slate-300/80 leading-relaxed line-clamp-2 md:line-clamp-3">
-            {cardOverview}
-          </p>
         </div>
 
-        <div className="flex items-center justify-between text-[10px] md:text-xs text-slate-300">
-          <div className="flex items-center gap-1 md:gap-2">
-            <div className="flex items-center gap-1 text-slate-200">
-              <CalendarIcon />
-              <span>{formatDate(releaseDate)}</span>
+        {/* Overview and metadata at bottom */}
+        <div className="space-y-3 md:space-y-4">
+          <p className="text-sm md:text-sm text-slate-300/80 leading-relaxed line-clamp-2 md:line-clamp-3">
+            {cardOverview}
+          </p>
+
+          <div className="flex items-center justify-between text-xs md:text-xs text-slate-300">
+            <div className="flex items-center gap-1 md:gap-2">
+              <div className="flex items-center gap-1 text-slate-200">
+                <CalendarIcon />
+                <span>{formatDate(releaseDate)}</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1 md:gap-2 uppercase tracking-[0.2em] md:tracking-[0.3em] text-pink-300">
-            <PlayIcon />
-            <span>Watch</span>
+            <div className="flex items-center gap-1 md:gap-2 uppercase tracking-[0.2em] md:tracking-[0.3em] text-pink-300">
+              <PlayIcon />
+              <span>Watch</span>
+            </div>
           </div>
         </div>
       </div>

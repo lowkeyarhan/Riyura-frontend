@@ -18,6 +18,7 @@ import { FilterTabs } from "@/src/components/search/FilterTabs";
 import { TrendingSection } from "@/src/components/search/TrendingSection";
 import { SearchResultsSection } from "@/src/components/search/SearchResultsSection";
 import { EmptyState } from "@/src/components/search/EmptyState";
+import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -118,7 +119,7 @@ export default function SearchPage() {
           <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-7">
               {Array.from({ length: 10 }).map((_, i) => (
-                <MediaCardSkeleton key={i} />
+                <SearchCardSkeleton key={i} />
               ))}
             </div>
           </SkeletonTheme>

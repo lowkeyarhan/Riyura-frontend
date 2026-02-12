@@ -4,7 +4,7 @@ import { TMDBDiscoverItem, TMDBListResponse } from "@/src/dto/tmdb/lists";
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
 
-const GENRE_MAP: Record<string, number> = {
+const MOVIE_GENRE_MAP: Record<string, number> = {
   Action: 28,
   Adventure: 12,
   Animation: 16,
@@ -25,6 +25,50 @@ const GENRE_MAP: Record<string, number> = {
   Western: 37,
 };
 
+const TV_GENRE_MAP: Record<string, number> = {
+  Action: 10759,
+  Adventure: 10759,
+  Animation: 16,
+  Comedy: 35,
+  Crime: 80,
+  Documentary: 99,
+  Drama: 18,
+  Family: 10751,
+  Fantasy: 10765,
+  History: 10768,
+  Horror: 9648,
+  Music: 10402,
+  Mystery: 9648,
+  Romance: 10766,
+  "Sci-Fi": 10765,
+  Thriller: 9648,
+  War: 10768,
+  Western: 37,
+};
+
+const buildApiParams = (
+  page: string,
+  genreNames: string[],
+  genreMap: Record<string, number>,
+) => {
+  const genreIds = genreNames
+    .map((name) => genreMap[name.trim()])
+    .filter(Boolean)
+    .join(",");
+
+  const params = new URLSearchParams({
+    api_key: TMDB_API_KEY!,
+    include_adult: "false",
+    language: "en-US",
+    sort_by: "popularity.desc",
+    page,
+  });
+
+  if (genreIds) params.set("with_genres", genreIds);
+
+  return params;
+};
+
 export async function GET(request: Request) {
   if (!TMDB_API_KEY) {
     return NextResponse.json({ error: "API Key missing" }, { status: 500 });
@@ -37,30 +81,25 @@ export async function GET(request: Request) {
     const mediaType = searchParams.get("mediaType") || "movie";
     const genreNames = searchParams.get("genres")?.split(",") || [];
 
-    // Convert names (e.g. "Action") to IDs (e.g. 28)
-    const genreIds = genreNames
-      .map((name) => GENRE_MAP[name.trim()]) // Look up ID
-      .filter(Boolean) // Remove undefined/invalid ones
-      .join(",");
-
-    // 3. Construct Base Query Params (Used for both Movie & TV fetches)
-    const apiParams = new URLSearchParams({
-      api_key: TMDB_API_KEY,
-      include_adult: "false",
-      language: "en-US",
-      sort_by: "popularity.desc",
-      page: page,
-      with_genres: genreIds,
-    });
+    const movieParams = buildApiParams(page, genreNames, MOVIE_GENRE_MAP);
+    const tvParams = buildApiParams(page, genreNames, TV_GENRE_MAP);
 
     // 4. Scenario A: Fetch "All" (Movies + TV mixed)
     if (mediaType === "all") {
       const [movieRes, tvRes] = await Promise.all([
-        fetch(`${BASE_URL}/discover/movie?${apiParams}`),
-        fetch(`${BASE_URL}/discover/tv?${apiParams}`),
+        fetch(`${BASE_URL}/discover/movie?${movieParams}`),
+        fetch(`${BASE_URL}/discover/tv?${tvParams}`),
       ]);
 
-      if (!movieRes.ok || !tvRes.ok) throw new Error("TMDB Fetch Failed");
+      if (!movieRes.ok || !tvRes.ok) {
+        const movieError = !movieRes.ok
+          ? `movie:${movieRes.status} ${movieRes.statusText}`
+          : "";
+        const tvError = !tvRes.ok
+          ? `tv:${tvRes.status} ${tvRes.statusText}`
+          : "";
+        throw new Error(`TMDB Fetch Failed (${movieError} ${tvError})`.trim());
+      }
 
       const [movies, tv] = (await Promise.all([
         movieRes.json(),
@@ -93,10 +132,16 @@ export async function GET(request: Request) {
 
     // 5. Scenario B: Fetch Single Type (Movie OR TV)
     const response = await fetch(
-      `${BASE_URL}/discover/${mediaType}?${apiParams}`,
+      `${BASE_URL}/discover/${mediaType}?${
+        mediaType === "tv" ? tvParams : movieParams
+      }`,
     );
 
-    if (!response.ok) throw new Error("TMDB Fetch Failed");
+    if (!response.ok) {
+      throw new Error(
+        `TMDB Fetch Failed (${response.status} ${response.statusText})`,
+      );
+    }
 
     const data = (await response.json()) as TMDBListResponse<TMDBDiscoverItem>;
     return NextResponse.json(data);

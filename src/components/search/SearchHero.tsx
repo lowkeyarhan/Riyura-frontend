@@ -19,7 +19,7 @@ export function SearchHero({ show }: SearchHeroProps) {
         To find it later, just search for it.
       </h1>
       <p
-        className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
+        className="text-gray-400 text-sm md:text-lg max-w-2xl mx-auto leading-relaxed"
         style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 400 }}
       >
         Search by keyword, brand, type, date, color – whatever you think of

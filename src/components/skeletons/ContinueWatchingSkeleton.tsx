@@ -1,61 +1,69 @@
 "use client";
 
 import React from "react";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import Skeleton from "react-loading-skeleton";
 
-export function ContinueWatchingSkeleton() {
+export const ContinueWatchingSkeleton = () => {
   return (
-    <div className="group w-full text-left">
-      <div className="relative aspect-video overflow-hidden rounded-xl bg-[#1a1d26]">
-        <Skeleton height="100%" className="w-full h-full" />
+    <div className="w-full">
+      {/* Image Container */}
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40">
+        <Skeleton
+          height="100%"
+          containerClassName="h-full block"
+          className="absolute inset-0"
+        />
       </div>
 
-      {/* Progress Bar placeholder */}
+      {/* Progress Bar */}
       <div className="w-full mb-2 mt-2">
-        <Skeleton height={4} className="w-full rounded-full" />
+        <div className="w-full h-1 rounded-full bg-white/20 overflow-hidden">
+          <Skeleton height={4} borderRadius={9999} className="!bg-white/10" />
+        </div>
       </div>
 
-      <Skeleton width="80%" height={18} className="mb-1" />
-      <Skeleton width="40%" height={12} />
+      {/* Title */}
+      <div className="mb-1">
+        <Skeleton height={20} width="75%" style={{ lineHeight: 1.04 }} />
+      </div>
+
+      {/* Meta info */}
+      <div className="mt-0.5">
+        <Skeleton height={14} width="55%" />
+      </div>
     </div>
   );
-}
+};
 
-export function ContinueWatchingListSkeleton() {
+export const ContinueWatchingListSkeleton = () => {
   return (
-    <div className="group relative flex items-center gap-3 p-2 md:gap-5 md:p-4 rounded-2xl">
-      <div className="relative w-28 md:w-40 aspect-[3/2] md:aspect-video rounded-lg overflow-hidden flex-shrink-0">
-        <Skeleton height="100%" className="w-full h-full" />
-        {/* Play button overlay area */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Skeleton circle width={32} height={32} className="md:w-10 md:h-10" />
-        </div>
-        {/* Progress bar at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-1">
-          <Skeleton height={4} className="w-1/3" />
-        </div>
+    <div className="flex items-center gap-3 p-2 md:gap-5 md:p-4 bg-[#1518215f] border border-white/5 rounded-2xl overflow-hidden shadow-lg mb-4">
+      {/* Image Container */}
+      <div className="relative w-28 md:w-40 aspect-[3/2] md:aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0">
+        <Skeleton
+          className="absolute inset-0"
+          height="100%"
+          containerClassName="w-full h-full block"
+        />
       </div>
-      <div className="flex-1 min-w-0 py-1 pr-6 sm:pr-0">
+
+      {/* Content Info */}
+      <div className="flex-1 min-w-0 pr-6 sm:pr-0">
         {/* Title */}
-        <Skeleton width="70%" height={20} className="mb-2" />
-        {/* Type badge and year */}
+        <Skeleton height={20} width="80%" className="mb-2" />
+
+        {/* Type & Year */}
         <div className="flex items-center gap-2 mb-2">
-          <Skeleton width={60} height={16} className="rounded" />
-          <Skeleton width={8} height={8} circle />
-          <Skeleton width={40} height={12} />
+          <Skeleton width={50} height={16} />
+          <Skeleton width={40} height={16} />
         </div>
-        {/* Progress info */}
-        <div className="flex items-center gap-2 text-xs">
-          <Skeleton width={80} height={10} />
-          <Skeleton width={4} height={4} circle />
-          <Skeleton width={60} height={10} />
+
+        {/* Progress */}
+        <div className="flex items-center gap-2">
+          <Skeleton width={70} height={14} />
+          <Skeleton width={30} height={14} />
         </div>
-      </div>
-      {/* Delete button */}
-      <div className="absolute top-2 right-2 sm:static">
-        <Skeleton circle width={32} height={32} className="md:w-10 md:h-10" />
       </div>
     </div>
   );
-}
+};

@@ -17,7 +17,7 @@ export function SearchResultCard({
 }: SearchResultCardProps) {
   const getMediaTypeLabel = () => {
     if (item.media_type === "movie") return "Movie";
-    if (item.media_type === "tv") return "TV Series";
+    if (item.media_type === "tv") return "TV";
     return "Media";
   };
 
@@ -37,20 +37,25 @@ export function SearchResultCard({
     return item.original_language.toUpperCase();
   };
 
-  const metadataItems = [getMediaTypeLabel(), getYear(), getLanguage(), getRating()]
+  const metadataItems = [
+    getMediaTypeLabel(),
+    getYear(),
+    getLanguage(),
+    getRating(),
+  ]
     .filter(Boolean)
     .join(" • ");
 
   return (
     <div
-      className="group flex flex-col h-full rounded-2xl overflow-hidden bg-[#0f1115]
+      className="group flex flex-col h-full rounded-2xl overflow-hidden
         border border-white/5 
         transition-colors duration-300 
-        shadow-md hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+        shadow-md hover:shadow-2xl hover:shadow-black/40 hover:border-white/40 cursor-pointer"
       onClick={onClick}
     >
       {/* Poster Image Section */}
-      <div className="relative aspect-[2/3] bg-[#0f1115] overflow-hidden">
+      <div className="relative aspect-[2/3] overflow-hidden bg-[#2429342c]">
         {item.poster_path ? (
           <>
             <Image
@@ -64,14 +69,14 @@ export function SearchResultCard({
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
           </>
         ) : (
-          <div className="w-full h-full bg-[#1a1d26] flex items-center justify-center text-gray-500">
+          <div className="w-full h-full  flex items-center justify-center text-gray-500">
             No Poster
           </div>
         )}
       </div>
 
       {/* Info Section */}
-      <div className="flex-1 flex flex-col gap-2 p-4 md:p-5">
+      <div className="flex-1 flex flex-col gap-2 p-4 md:p-5 bg-[#0f1115]">
         {/* Title */}
         <h3
           className="text-white text-lg md:text-xl font-bold line-clamp-2"

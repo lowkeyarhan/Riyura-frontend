@@ -1,99 +1,58 @@
 "use client";
 
 import React from "react";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { MediaCardSkeleton } from "./MediaCardSkeleton";
+import { SearchCardSkeleton } from "./SearchCardSkeleton";
 
 export default function ExploreSkeleton() {
   return (
-    <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
-      <div className="min-h-screen bg-black pt-20 md:pt-28 px-4 sm:px-6 md:px-16 lg:px-16 pb-20 font-sans">
-        {/* Hero Section */}
-        <div className="mb-8 md:mb-12 text-center">
-          <Skeleton width="60%" height={48} className="mb-3 mx-auto" />
-          <Skeleton width="50%" height={20} className="mx-auto" />
+    <div className="relative min-h-screen bg-black pt-20 md:pt-28 px-4 sm:px-6 md:px-16 lg:px-16 pb-20 md:pb-12 font-sans">
+      {/* --- STATIC BACKGROUND LAYER  --- */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-black" />
+        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+      </div>
+
+      <div className="relative z-10">
+        {/* Title */}
+        <div className="mb-8 md:mb-10">
+          <div className="h-10 md:h-16 bg-white/10 rounded-lg w-48 md:w-64 animate-pulse" />
         </div>
 
-        {/* Sticky Control Bar */}
-        <div className="sticky top-16 md:top-24 z-30 bg-[#1518215f] backdrop-blur-xl border border-white/10 rounded-xl md:rounded-2xl p-3 mb-8 shadow-2xl">
-          {/* Media Type Toggle */}
-          <div className="flex items-center gap-8 px-2">
-            <div className="flex gap-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} width={80} height={40} borderRadius={10} />
-              ))}
-            </div>
-
-            {/* Divider */}
-            <div className="hidden md:block w-px h-8 bg-white/10" />
-
-            {/* Genre Scroll */}
-            <div className="hidden md:flex items-center gap-2 flex-1 overflow-hidden">
-              <Skeleton width={100} height={20} borderRadius={4} />
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} width={70} height={32} borderRadius={8} />
-              ))}
-            </div>
-
-            {/* Clear Button */}
-            <Skeleton width={40} height={40} circle />
-          </div>
-        </div>
-
-        {/* Now Playing Section */}
-        <section className="mt-10 md:mt-12">
-          <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} className="mb-2" />
-            <Skeleton width={300} height={18} />
-          </div>
-          <div className="flex gap-4 md:gap-5 overflow-x-auto pb-3">
-            {[1, 2, 3, 4].map((i) => (
+        {/* Media Type Toggle */}
+        <div className="mb-6 md:mb-7">
+          <div className="inline-flex items-center rounded-xl border border-white/10 bg-[#131722]/80 p-1 gap-1">
+            {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="min-w-[285px] sm:min-w-[330px] lg:min-w-[360px] aspect-[16/9] rounded-xl">
-                <Skeleton height="100%" containerClassName="h-full block" />
-              </div>
+                className="h-9 w-20 md:w-28 bg-white/5 rounded-lg animate-pulse"
+              />
             ))}
           </div>
-        </section>
+        </div>
 
-        {/* Trending Now Section */}
-        <section className="mt-12 md:mt-16">
-          <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <MediaCardSkeleton key={i} />
+        {/* Genre Selector */}
+        <div className="mb-8 md:mb-9 border-b border-white/10">
+          <div className="flex items-center gap-4 md:gap-7 overflow-x-auto scrollbar-hide pb-2 md:pb-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div
+                key={i}
+                className="h-5 md:h-7 bg-white/10 rounded w-16 md:w-24 whitespace-nowrap animate-pulse"
+              />
             ))}
           </div>
-        </section>
+        </div>
 
-        {/* Most Popular Section */}
-        <section className="mt-12 md:mt-16">
-          <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <MediaCardSkeleton key={i} />
-            ))}
-          </div>
-        </section>
-
-        {/* Coming Soon Section */}
-        <section className="mt-12 md:mt-16">
-          <div className="mb-5 md:mb-6">
-            <Skeleton width={180} height={32} />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <MediaCardSkeleton key={i} />
-            ))}
-          </div>
-        </section>
+        {/* Media Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <SearchCardSkeleton key={`skeleton-${i}`} />
+          ))}
+        </div>
       </div>
-    </SkeletonTheme>
+    </div>
   );
 }

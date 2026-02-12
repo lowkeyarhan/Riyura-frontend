@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
 
         return results;
       },
-      { ttl: 86400 },
+      { ttl: 43200 },
     );
 
     return NextResponse.json({ results }, { status: 200 });

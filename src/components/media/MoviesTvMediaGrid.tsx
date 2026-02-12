@@ -80,14 +80,14 @@ function NowPlayingCard({
     <button
       type="button"
       onClick={onClick}
-      className="group relative min-w-[285px] sm:min-w-[330px] lg:min-w-[360px] aspect-[16/9] overflow-hidden rounded-xl border border-white/10 bg-black/40 text-left transition-all duration-300"
+      className="group relative min-w-[285px] sm:min-w-[330px] lg:min-w-[360px] aspect-[16/9] overflow-hidden rounded-xl border border-white/10 cursor-pointer hover:border-white/40 bg-black/40 text-left transition-all duration-300"
     >
       <Image
         src={getNowPlayingImageUrl(item)}
         alt={getTitle(item)}
         fill
         sizes="(max-width: 768px) 85vw, (max-width: 1280px) 40vw, 25vw"
-        className="object-cover transition-transform duration-500 group-hover:scale-102"
+        className="object-cover transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">

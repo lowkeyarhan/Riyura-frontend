@@ -3,6 +3,7 @@
 import React from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { ContinueWatchingSkeleton } from "./ContinueWatchingSkeleton";
 
 export default function BannerSkeleton() {
   return (
@@ -22,7 +23,7 @@ export default function BannerSkeleton() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
 
         {/* Content area — anchored to bottom left like real banner */}
-        <div className="absolute bottom-0 left-0 w-full px-6 pb-16 md:px-20 md:pb-24 z-10">
+        <div className="absolute bottom-0 left-0 w-full px-6 pb-16 md:px-20 md:pb-32 z-10">
           <div className="max-w-2xl">
             {/* HD badge */}
             <Skeleton

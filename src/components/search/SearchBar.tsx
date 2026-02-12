@@ -25,8 +25,8 @@ export function SearchBar({
 }: SearchBarProps) {
   return (
     <div className="max-w-3xl mx-auto mb-16">
-      <div className="flex items-center gap-4 rounded-full bg-[#1a2332]/80 border border-white/10 px-4 py-3 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_25px_60px_rgba(0,255,255,0.15)]">
-        <Search className="w-5 h-5 text-cyan-400" />
+      <div className="flex items-center gap-4 rounded-full border bg-black/30 border-white/10 px-4 py-3 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_25px_60px_rgba(0,255,255,0.15)]">
+        <Search className="w-5 h-5 text-white" />
         <div className="relative flex-1">
           <input
             type="text"
@@ -39,7 +39,7 @@ export function SearchBar({
           />
           {!query && (
             <span
-              className={`absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none transition-opacity duration-500 ${
+              className={`absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none line-clamp-1 select-none transition-opacity duration-500 ${
                 placeholderOpacity === 1 ? "opacity-100" : "opacity-0"
               }`}
               style={FONT_STYLE}
@@ -60,7 +60,7 @@ export function SearchBar({
         <button
           type="button"
           onClick={onSearch}
-          className="px-4 py-2 md:px-6 md:py-2.5 rounded-full bg-gradient-to-r from-orange-600 to-red-600 text-xs md:text-base font-bold text-white shadow-[0_0_24px_rgba(255,80,0,0.35)] transition-all duration-300 hover:shadow-[0_0_32px_rgba(255,80,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+          className="px-4 py-2 md:px-6 md:py-2.5 rounded-full bg-white/80 text-xs md:text-base font-bold text-black  transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
           disabled={!query.trim() || isLoading}
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >

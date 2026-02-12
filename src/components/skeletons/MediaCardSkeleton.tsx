@@ -8,19 +8,19 @@ export const MediaCardSkeleton = () => {
     <div
       className="
         group relative cursor-pointer rounded-xl overflow-hidden 
-        bg-[#0f1115]
+        bg-[#0f111536]
         border border-white/5 
         transition-colors duration-300 
         shadow-md
       "
     >
       {/* Image Container */}
-      <div className="relative aspect-[2/3] overflow-hidden bg-[#0f1115]">
+      <div className="relative aspect-[2/3] overflow-hidden">
         {/* Animated gradient background */}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 animate-pulse" />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t bg-[#0f111536] via-[#0f111536]/60 to-transparent" />
       </div>
 
       {/* Content Info */}

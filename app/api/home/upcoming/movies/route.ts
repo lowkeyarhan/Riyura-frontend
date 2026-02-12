@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCachedData } from "@/src/lib/cache";
 import { MediaGridItem } from "@/src/dto/ui/card";
 import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
@@ -19,22 +20,28 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(
-      `https://api.themoviedb.org/3/movie/upcoming?api_key=${apiKey}&language=en-US&page=1`,
-      {
-        headers: { accept: "application/json" },
-        cache: "no-store",
+    const data = await getCachedData(
+      `upcoming:movies`,
+      async () => {
+        const response = await fetch(
+          `https://api.themoviedb.org/3/movie/upcoming?api_key=${apiKey}&language=en-US&page=1`,
+          {
+            headers: { accept: "application/json" },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch upcoming movies: ${response.status}`,
+          );
+        }
+
+        return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
       },
+      { ttl: 3600 },
     );
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Failed to fetch upcoming movies" },
-        { status: response.status },
-      );
-    }
-
-    const data = (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
+    // Data is already parsed from cache or fetch
 
     // Map to MediaGridItem and sanitize
     const items: MediaGridItem[] = Array.isArray(data?.results)

@@ -5,6 +5,7 @@ import {
   ContinueWatchingItem,
   ProfileStat,
 } from "@/src/dto/media";
+import { getCachedData } from "@/src/lib/cache";
 
 export async function GET(req: Request) {
   try {
@@ -30,88 +31,95 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch watch history
-    const { data: watchHistoryData, error: historyError } = await supabase
-      .from("watch_history")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("watched_at", { ascending: false })
-      .limit(10);
+    // Cache profile data for 5 minutes
+    const responseData = await getCachedData(
+      `profile:${user.id}`,
+      async () => {
+        // Fetch watch history
+        const { data: watchHistoryData, error: historyError } = await supabase
+          .from("watch_history")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("watched_at", { ascending: false })
+          .limit(10);
 
-    if (historyError) throw historyError;
+        if (historyError) throw historyError;
 
-    // Fetch watchlist
-    const { data: watchlistData, error: watchlistError } = await supabase
-      .from("watchlist")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("added_at", { ascending: false });
+        // Fetch watchlist
+        const { data: watchlistData, error: watchlistError } = await supabase
+          .from("watchlist")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("added_at", { ascending: false });
 
-    if (watchlistError) throw watchlistError;
+        if (watchlistError) throw watchlistError;
 
-    // Format watch history for Continue Watching using ContinueWatchingItem DTO
-    const continueWatching: ContinueWatchingItem[] = (
-      watchHistoryData || []
-    ).map((item: any) => {
-      const totalLength = item.episode_length || 7200;
-      const progress = Math.min(
-        100,
-        Math.round((item.duration_sec / totalLength) * 100),
-      );
-      const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
+        // Format watch history for Continue Watching using ContinueWatchingItem DTO
+        const continueWatching: ContinueWatchingItem[] = (
+          watchHistoryData || []
+        ).map((item: any) => {
+          const totalLength = item.episode_length || 7200;
+          const progress = Math.min(
+            100,
+            Math.round((item.duration_sec / totalLength) * 100),
+          );
+          const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
 
-      return {
-        id: item.id,
-        tmdbId: item.tmdb_id,
-        title: item.title,
-        progress,
-        image: item.poster_path
-          ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-          : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
-        type:
-          item.media_type === "movie"
-            ? "Movie"
-            : item.episode_name
-              ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
-              : `S${item.season_number} E${item.episode_number}`,
-        year: item.release_date
-          ? new Date(item.release_date).getFullYear()
-          : null,
-        remaining: `${Math.floor(remainingSeconds / 60)}m remaining`,
-        mediaType: item.media_type,
-        seasonNumber: item.season_number,
-        episodeNumber: item.episode_number,
-        streamId: item.stream_id,
-      };
-    });
+          return {
+            id: item.id,
+            tmdbId: item.tmdb_id,
+            title: item.title,
+            progress,
+            image: item.poster_path
+              ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+              : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+            type:
+              item.media_type === "movie"
+                ? "Movie"
+                : item.episode_name
+                  ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
+                  : `S${item.season_number} E${item.episode_number}`,
+            year: item.release_date
+              ? new Date(item.release_date).getFullYear()
+              : null,
+            remaining: `${Math.floor(remainingSeconds / 60)}m remaining`,
+            mediaType: item.media_type,
+            seasonNumber: item.season_number,
+            episodeNumber: item.episode_number,
+            streamId: item.stream_id,
+          };
+        });
 
-    // Calculate stats using ProfileStat DTO
-    const moviesCount = (watchHistoryData || []).filter(
-      (i: any) => i.media_type === "movie",
-    ).length;
-    const seriesCount = new Set(
-      (watchHistoryData || [])
-        .filter((i: any) => i.media_type !== "movie")
-        .map((i: any) => i.tmdb_id),
-    ).size;
-    const totalSeconds = (watchHistoryData || []).reduce(
-      (acc: number, item: any) => acc + (item.duration_sec || 0),
-      0,
+        // Calculate stats using ProfileStat DTO
+        const moviesCount = (watchHistoryData || []).filter(
+          (i: any) => i.media_type === "movie",
+        ).length;
+        const seriesCount = new Set(
+          (watchHistoryData || [])
+            .filter((i: any) => i.media_type !== "movie")
+            .map((i: any) => i.tmdb_id),
+        ).size;
+        const totalSeconds = (watchHistoryData || []).reduce(
+          (acc: number, item: any) => acc + (item.duration_sec || 0),
+          0,
+        );
+        const hoursCount = Math.round(totalSeconds / 3600);
+
+        const stats: ProfileStat[] = [
+          { label: "Movies", value: moviesCount.toString() },
+          { label: "Series", value: seriesCount.toString() },
+          { label: "Hours", value: hoursCount.toString() },
+        ];
+
+        // Build response data using ProfileData DTO
+        return {
+          continueWatching,
+          watchlist: watchlistData || [],
+          stats,
+        };
+      },
+      { ttl: 300 }, // 5 minutes
     );
-    const hoursCount = Math.round(totalSeconds / 3600);
-
-    const stats: ProfileStat[] = [
-      { label: "Movies", value: moviesCount.toString() },
-      { label: "Series", value: seriesCount.toString() },
-      { label: "Hours", value: hoursCount.toString() },
-    ];
-
-    // Build response data using ProfileData DTO
-    const responseData: ProfileData = {
-      continueWatching,
-      watchlist: watchlistData || [],
-      stats,
-    };
 
     return NextResponse.json(
       {

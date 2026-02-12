@@ -63,15 +63,6 @@ export async function addToWatchlist(
   userId: string,
   item: WatchlistAddRequest,
 ) {
-  console.log("📌 [addToWatchlist] Adding item:", {
-    userId,
-    tmdb_id: item.tmdb_id,
-    title: item.title,
-    media_type: item.media_type,
-    seasons: item.number_of_seasons,
-    episodes: item.number_of_episodes,
-  });
-
   const { data, error } = await supabase
     .from("watchlist")
     .insert({
@@ -90,7 +81,6 @@ export async function addToWatchlist(
     throw error;
   }
 
-  console.log("✅ [addToWatchlist] Successfully added:", data);
   return data as WatchlistItem;
 }
 
@@ -100,12 +90,6 @@ export async function removeFromWatchlist(
   tmdbId: number,
   mediaType: MediaType,
 ) {
-  console.log("🗑️ [removeFromWatchlist] Removing item:", {
-    userId,
-    tmdbId,
-    mediaType,
-  });
-
   const { error } = await supabase
     .from("watchlist")
     .delete()
@@ -118,13 +102,10 @@ export async function removeFromWatchlist(
     throw error;
   }
 
-  console.log("✅ [removeFromWatchlist] Successfully removed");
 }
 
 // Get user's watchlist
 export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
-  console.log("📋 [getWatchlist] Fetching watchlist for user:", userId);
-
   const { data, error } = await supabase
     .from("watchlist")
     .select("*")
@@ -136,7 +117,6 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
     throw error;
   }
 
-  console.log("✅ [getWatchlist] Found items:", data?.length || 0);
   return data || [];
 }
 
@@ -160,7 +140,6 @@ export async function isInWatchlist(
   }
 
   const inWatchlist = !!data;
-  console.log(`🔍 [isInWatchlist] Item ${tmdbId} in watchlist:`, inWatchlist);
   return inWatchlist;
 }
 
@@ -169,11 +148,6 @@ export async function getWatchlistByType(
   userId: string,
   mediaType: MediaType,
 ): Promise<WatchlistItem[]> {
-  console.log(
-    `🎬 [getWatchlistByType] Fetching ${mediaType} watchlist for user:`,
-    userId,
-  );
-
   const { data, error } = await supabase
     .from("watchlist")
     .select("*")
@@ -186,10 +160,6 @@ export async function getWatchlistByType(
     throw error;
   }
 
-  console.log(
-    `✅ [getWatchlistByType] Found ${mediaType} items:`,
-    data?.length || 0,
-  );
   return data || [];
 }
 

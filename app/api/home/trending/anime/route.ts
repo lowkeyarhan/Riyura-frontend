@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCachedData } from "@/src/lib/cache";
 import { MediaGridItem } from "@/src/dto/ui/card";
 import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
@@ -20,34 +21,36 @@ export async function GET(request: Request) {
 
   try {
     // Fetch both TV shows and movies with animation genre and Japanese language
-    const [tvResponse, movieResponse] = await Promise.all([
-      fetch(
-        `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
-        {
-          headers: { accept: "application/json" },
-          cache: "no-store",
+    const [tvData, movieData] = await Promise.all([
+      getCachedData(
+        `anime:tv:discover`,
+        async () => {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
+            {
+              headers: { accept: "application/json" },
+            },
+          );
+          if (!response.ok) throw new Error("Failed to fetch anime TV");
+          return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
         },
+        { ttl: 3600 },
       ),
-      fetch(
-        `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
-        {
-          headers: { accept: "application/json" },
-          cache: "no-store",
+      getCachedData(
+        `anime:movie:discover`,
+        async () => {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
+            {
+              headers: { accept: "application/json" },
+            },
+          );
+          if (!response.ok) throw new Error("Failed to fetch anime movies");
+          return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
         },
+        { ttl: 3600 },
       ),
     ]);
-
-    if (!tvResponse.ok || !movieResponse.ok) {
-      return NextResponse.json(
-        { error: "Failed to fetch anime" },
-        { status: 500 },
-      );
-    }
-
-    const tvData =
-      (await tvResponse.json()) as TMDBListResponse<TMDBBaseListItem>;
-    const movieData =
-      (await movieResponse.json()) as TMDBListResponse<TMDBBaseListItem>;
 
     // Combine results with media_type
     const tvResults = Array.isArray(tvData?.results)

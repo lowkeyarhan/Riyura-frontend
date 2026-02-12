@@ -68,12 +68,10 @@ export default function TVShowDetails() {
   useEffect(() => {
     const fetchTVShowDetails = async () => {
       try {
-        console.log(`📺 Fetching TV show details for ID ${params.id}...`);
         const response = await fetch(`/api/tvshow/${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch TV show details");
 
         const data = await response.json();
-        console.log(`✅ TV show fetched successfully`);
 
         setTVShow(data);
         setError(null);
@@ -162,7 +160,7 @@ export default function TVShowDetails() {
         if (!res.ok) throw new Error("Failed to remove from watchlist");
 
         setIsWatchlisted(false);
-        console.log("✅ Removed from watchlist");
+
       } else {
         const res = await fetch("/api/watchlist", {
           method: "POST",
@@ -185,11 +183,9 @@ export default function TVShowDetails() {
         if (!res.ok) throw new Error("Failed to add to watchlist");
 
         setIsWatchlisted(true);
-        console.log("✅ Added to watchlist");
         addNotification(`${tvShow.name} added to watchlist`, "success");
       }
 
-      console.log("✅ Watchlist updated");
     } catch (err) {
       console.error("❌ Error:", err);
       // setIsWatchlisted(!isWatchlisted); // Same logic as movie details

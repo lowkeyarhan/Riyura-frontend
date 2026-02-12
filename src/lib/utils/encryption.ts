@@ -23,7 +23,6 @@ const getEnvKey = (): Buffer => {
  */
 export const generateEncryptionKey = (): string => {
   const key = randomBytes(32).toString("hex");
-  console.log(`🔐 Generated Key: ENCRYPTION_KEY=${key}`);
   return key;
 };
 

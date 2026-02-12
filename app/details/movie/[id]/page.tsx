@@ -45,12 +45,10 @@ export default function MovieDetails() {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        console.log(`📽️ Fetching movie details for ID ${params.id}...`);
         const response = await fetch(`/api/movie/${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch movie details");
 
         const data = await response.json();
-        console.log(`✅ Movie fetched successfully`);
 
         setMovie(data);
         setError(null);
@@ -124,7 +122,6 @@ export default function MovieDetails() {
           },
         );
         if (!res.ok) throw new Error("Failed to remove from watchlist");
-        console.log("✅ Removed from watchlist");
       } else {
         const res = await fetch("/api/watchlist", {
           method: "POST",
@@ -144,12 +141,10 @@ export default function MovieDetails() {
 
         if (!res.ok) throw new Error("Failed to add to watchlist");
 
-        console.log("✅ Added to watchlist");
         addNotification(`${movie.title} added to watchlist`, "success");
       }
 
       setIsWatchlisted(!isWatchlisted);
-      console.log("✅ Watchlist updated");
     } catch (err) {
       console.error("❌ Error toggling watchlist:", err);
       // setIsWatchlisted(!isWatchlisted); // Don't revert optimistically if we just failed the request? Or maybe we should. The original code toggled after success (or failed to toggle).

@@ -24,7 +24,6 @@ export function useRecommendations(
 
       // Prevent duplicate calls if already fetching
       if (recommendationsFetchingRef.current) {
-        console.log(`🚫 [Recommendations] Already fetching, skipping call`);
         return;
       }
 
@@ -32,8 +31,6 @@ export function useRecommendations(
         recommendationsFetchingRef.current = true;
         setIsLoading(true);
         setError(null);
-
-        console.log(`🎬 [Recommendations] Fetching for user: ${userId}`);
 
         const {
           data: { session },
@@ -47,11 +44,6 @@ export function useRecommendations(
           if (res.ok) {
             const data = await res.json();
             setRecommendations(data.recommendations || []);
-            console.log(
-              `✅ [Recommendations] Fetched ${
-                data.recommendations?.length || 0
-              } recommendations`,
-            );
           } else {
             const errorData = await res.json();
             setError(errorData.error || "Failed to load recommendations");

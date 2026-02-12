@@ -55,7 +55,6 @@ export function useMoviePlayer({
 
   // Watch history tracking
   useEffect(() => {
-    console.log("⏱️ [Watch Timer] Started");
     watchTimer.current = setInterval(() => {
       watchDuration.current += 1;
     }, WATCH_TIMER_INTERVAL);
@@ -73,15 +72,8 @@ export function useMoviePlayer({
         hasSavedWatch.current ||
         watchDuration.current < MIN_WATCH_DURATION
       ) {
-        console.log(
-          `⚠️ [Watch Timer] Save skipped. Duration: ${watchDuration.current}s`,
-        );
         return;
       }
-
-      console.log(
-        `💾 [Watch Timer] Saving history. Duration: ${watchDuration.current}s`,
-      );
 
       hasSavedWatch.current = true;
       const currentMovie = movieRef.current;

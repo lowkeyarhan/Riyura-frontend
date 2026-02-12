@@ -38,8 +38,6 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        console.log("✅ Session established for user:", session.user.id);
-
         // Wait a bit more for the database trigger to create the profile
         await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -73,8 +71,6 @@ export default function AuthCallbackPage() {
           }
           return;
         }
-
-        console.log("✅ Profile loaded:", profile);
 
         // Check if user needs onboarding
         if (profile && !profile.onboarded) {

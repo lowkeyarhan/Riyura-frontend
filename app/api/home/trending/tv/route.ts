@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCachedData } from "@/src/lib/cache";
 import { MediaGridItem } from "@/src/dto/ui/card";
 import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
@@ -19,22 +20,28 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(
-      `https://api.themoviedb.org/3/trending/tv/week?api_key=${apiKey}&language=en-US`,
-      {
-        headers: { accept: "application/json" },
-        cache: "no-store",
+    const data = await getCachedData(
+      `trending:tv:week`,
+      async () => {
+        const response = await fetch(
+          `https://api.themoviedb.org/3/trending/tv/week?api_key=${apiKey}&language=en-US`,
+          {
+            headers: { accept: "application/json" },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch trending TV shows: ${response.status}`,
+          );
+        }
+
+        return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
       },
+      { ttl: 3600 },
     );
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Failed to fetch trending TV shows" },
-        { status: response.status },
-      );
-    }
-
-    const data = (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
+    // Data is already parsed from cache or fetch
 
     // Genre IDs to exclude: Talk (10767), Reality (10764), Kids (10762), Soap (10766), Animation (16)
     const excludedGenres = [10767, 10764, 10762, 10766, 16];

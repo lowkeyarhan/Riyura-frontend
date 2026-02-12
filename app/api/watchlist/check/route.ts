@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { WatchlistCheckResponse } from "@/src/dto/media";
+import { getCachedData } from "@/src/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -53,20 +54,29 @@ export async function GET(request: Request) {
     return NextResponse.json(response);
   }
 
-  const { data, error } = await supabase
-    .from("watchlist")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("tmdb_id", tmdbId)
-    .eq("media_type", mediaType)
-    .maybeSingle();
+  // Cache check result for 30 seconds
+  const cacheKey = `watchlist_check:${user.id}:${tmdbId}:${mediaType}`;
+  const exists = await getCachedData(
+    cacheKey,
+    async () => {
+      const { data, error } = await supabase
+        .from("watchlist")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("tmdb_id", tmdbId)
+        .eq("media_type", mediaType)
+        .maybeSingle();
 
-  if (error) {
-    console.error("Error checking watchlist:", error);
-    const response: WatchlistCheckResponse = { exists: false };
-    return NextResponse.json(response);
-  }
+      if (error) {
+        console.error("Error checking watchlist:", error);
+        return false;
+      }
 
-  const response: WatchlistCheckResponse = { exists: !!data };
+      return !!data;
+    },
+    { ttl: 30 }, // 30 seconds
+  );
+
+  const response: WatchlistCheckResponse = { exists };
   return NextResponse.json(response);
 }

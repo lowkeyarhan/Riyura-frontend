@@ -10,13 +10,11 @@ export function useWatchlist(userId: string | undefined) {
   useEffect(() => {
     const fetchWatchlist = async () => {
       if (!userId) {
-        console.log("[useWatchlist] No userId provided, skipping fetch");
         setLoading(false);
         setItems([]);
         return;
       }
 
-      console.log("[useWatchlist] Fetching watchlist for userId:", userId);
       setLoading(true);
       setError(null);
 
@@ -32,16 +30,12 @@ export function useWatchlist(userId: string | undefined) {
           return;
         }
 
-        console.log("[useWatchlist] Session found, making API request");
         const res = await fetch("/api/watchlist", {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
-        console.log("[useWatchlist] API response status:", res.status);
-
         if (res.ok) {
           const data = await res.json();
-          console.log("[useWatchlist] Fetched items:", data?.length || 0);
           setItems(Array.isArray(data) ? data : []);
         } else {
           const errorText = await res.text();

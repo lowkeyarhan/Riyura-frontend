@@ -17,18 +17,6 @@ export default function WatchlistPage() {
 
   const [filter, setFilter] = useState<"all" | "movie" | "tv">("all");
 
-  // Debug logging
-  useEffect(() => {
-    console.log("[WatchlistPage] State:", {
-      user: user?.id,
-      authLoading,
-      loading,
-      error,
-      itemsCount: items?.length,
-      items: items,
-    });
-  }, [user, authLoading, loading, error, items]);
-
   // Show error notification
   useEffect(() => {
     if (error) {

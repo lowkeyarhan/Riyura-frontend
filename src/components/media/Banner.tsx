@@ -297,6 +297,12 @@ export default function Banner({ initialItems }: BannerProps) {
     checkWatchlistStatus();
   }, [user, currentItemId, currentContentType]);
 
+  // Deduplication: Use ref to track ongoing/recent fetch
+  const fetchCacheRef = useRef<{
+    promise: Promise<ContinueWatchingOverlayItem[]> | null;
+    userId: string | null;
+  }>({ promise: null, userId: null });
+
   useEffect(() => {
     let isActive = true;
 
@@ -307,38 +313,67 @@ export default function Banner({ initialItems }: BannerProps) {
         return;
       }
 
+      // Deduplication: If there's an ongoing fetch for this user, reuse it
+      if (fetchCacheRef.current.promise && fetchCacheRef.current.userId === user.id) {
+        try {
+          const cachedResult = await fetchCacheRef.current.promise;
+          if (isActive) setContinueWatching(cachedResult);
+        } catch {
+          if (isActive) setContinueWatching([]);
+        } finally {
+          if (isActive) setContinueWatchingLoading(false);
+        }
+        return;
+      }
+
       try {
         setContinueWatchingLoading(true);
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
 
-        if (!session?.access_token) {
-          if (isActive) setContinueWatching([]);
-          return;
-        }
+        // Create and cache the promise
+        const fetchPromise = (async () => {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
 
-        const response = await fetch("/api/watch-history", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+          if (!session?.access_token) {
+            return [];
+          }
 
-        if (!response.ok) {
-          throw new Error("Failed to load watch history");
-        }
+          const response = await fetch("/api/watch-history", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
 
-        const payload = (await response.json()) as {
-          data?: WatchHistoryItem[];
-        };
-        const mappedItems = Array.isArray(payload.data)
-          ? payload.data
-            .map(mapWatchHistoryItem)
-            .filter((item) => item.progress <= 95)
-            .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
-          : [];
+          if (!response.ok) {
+            throw new Error("Failed to load watch history");
+          }
+
+          const payload = (await response.json()) as {
+            data?: WatchHistoryItem[];
+          };
+
+          return Array.isArray(payload.data)
+            ? payload.data
+              .map(mapWatchHistoryItem)
+              .filter((item) => item.progress <= 95)
+              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+            : [];
+        })();
+
+        fetchCacheRef.current = { promise: fetchPromise, userId: user.id };
+
+        const mappedItems = await fetchPromise;
 
         if (isActive) setContinueWatching(mappedItems);
+
+        // Clear cache after successful completion
+        setTimeout(() => {
+          if (fetchCacheRef.current.userId === user.id) {
+            fetchCacheRef.current = { promise: null, userId: null };
+          }
+        }, 1000);
       } catch {
         if (isActive) setContinueWatching([]);
+        fetchCacheRef.current = { promise: null, userId: null };
       } finally {
         if (isActive) setContinueWatchingLoading(false);
       }
@@ -598,8 +633,8 @@ export default function Banner({ initialItems }: BannerProps) {
                           : "Add to watchlist"
                       }
                       className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
-                          ? "bg-white/35 text-white"
-                          : "bg-white/20 text-white hover:bg-white/30"
+                        ? "bg-white/35 text-white"
+                        : "bg-white/20 text-white hover:bg-white/30"
                         } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />

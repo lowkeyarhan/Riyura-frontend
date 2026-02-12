@@ -22,8 +22,7 @@ export async function GET(
   try {
     const { id: tvShowId } = await params;
 
-    console.log(`📺 TV show details API called for ID: ${tvShowId}`);
-    console.log(`🌐 Fetching TV show details from TMDB for ID: ${tvShowId}`);
+
 
     // Fetch TV show details, credits, and similar shows in parallel
     const [detailsResponse, creditsResponse, similarResponse] =
@@ -61,7 +60,7 @@ export async function GET(
       similar,
     };
 
-    console.log(`✅ TV show details fetched and returned for ID: ${tvShowId}`);
+
     return NextResponse.json(tvShowData);
   } catch (error) {
     console.error("Error fetching TV show data:", error);

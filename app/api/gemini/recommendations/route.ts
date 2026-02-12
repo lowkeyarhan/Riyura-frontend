@@ -137,8 +137,6 @@ export async function GET(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Invalid Token" }, { status: 401 });
 
-    console.log(`🔍 [Gemini] Fetching data for user: ${user.id}`);
-
     // 2. Parallel Data Fetching (Optimized)
     const [keyRes, historyRes, watchlistRes] = await Promise.all([
       supabase
@@ -185,7 +183,7 @@ export async function GET(req: Request) {
       historyRes.data || [],
       watchlistRes.data || [],
     );
-    console.log("🤖 [Gemini] Calling AI Model...");
+
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
@@ -228,9 +226,7 @@ export async function GET(req: Request) {
       jsonMatch[0],
     );
 
-    console.log(
-      `🎬 [Gemini] Received ${geminiRecommendations.length} recommendations. Fetching TMDB details...`,
-    );
+
 
     // 6. TMDB Enrichment (Sequential to avoid ECONNRESET)
     const validResults: GeminiRecommendationResponse[] = [];
@@ -240,7 +236,7 @@ export async function GET(req: Request) {
       if (data) validResults.push(data);
     }
 
-    console.log(`✅ [Success] Returned ${validResults.length} recommendations`);
+
 
     return NextResponse.json({
       success: true,

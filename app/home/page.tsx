@@ -138,62 +138,111 @@ export default function HomePage() {
     useState<HomeInitialDataResponse>(EMPTY_HOME_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [isTabSwitching, setIsTabSwitching] = useState(false);
+  const [loadedSections, setLoadedSections] = useState<Set<MediaSelector>>(
+    new Set(["movie"]),
+  );
 
+  // Initial load - only movies
   useEffect(() => {
     const controller = new AbortController();
 
-    const loadHomeData = async () => {
+    const loadMoviesData = async () => {
       const [
         nowPlayingMovies,
-        nowPlayingTV,
         trendingMovies,
-        trendingTV,
-        trendingAnime,
         popularMovies,
-        popularTV,
         upcomingMovies,
-        upcomingTV,
       ] = await Promise.all([
         fetchMedia("/api/home/now-playing/movies?limit=6", controller.signal),
-        fetchMedia("/api/home/now-playing/tv?limit=6", controller.signal),
         fetchMedia("/api/home/trending/movies", controller.signal),
-        fetchMedia("/api/home/trending/tv", controller.signal),
-        fetchMedia("/api/home/trending/anime", controller.signal),
         fetchMedia("/api/home/popular/movies", controller.signal),
-        fetchMedia("/api/home/popular/tv", controller.signal),
         fetchMedia("/api/home/upcoming/movies", controller.signal),
-        fetchMedia("/api/home/upcoming/tv", controller.signal),
       ]);
 
       setHomeData({
         nowPlaying: {
           movie: nowPlayingMovies,
-          tv: nowPlayingTV,
-          anime: trendingAnime,
+          tv: EMPTY_MEDIA_RESULTS,
+          anime: EMPTY_MEDIA_RESULTS,
         },
         trending: {
           movie: trendingMovies,
-          tv: trendingTV,
-          anime: trendingAnime,
+          tv: EMPTY_MEDIA_RESULTS,
+          anime: EMPTY_MEDIA_RESULTS,
         },
         popular: {
           movie: popularMovies,
-          tv: popularTV,
-          anime: trendingAnime,
+          tv: EMPTY_MEDIA_RESULTS,
+          anime: EMPTY_MEDIA_RESULTS,
         },
         comingSoon: {
           movie: upcomingMovies,
-          tv: upcomingTV,
-          anime: trendingAnime,
+          tv: EMPTY_MEDIA_RESULTS,
+          anime: EMPTY_MEDIA_RESULTS,
         },
         bannerData: { items: [] },
       });
       setIsLoading(false);
     };
 
-    loadHomeData();
+    loadMoviesData();
     return () => controller.abort();
   }, []);
+
+  // Lazy load TV or Anime when tabs are clicked
+  useEffect(() => {
+    if (
+      activeFilter === "movie" ||
+      loadedSections.has(activeFilter) ||
+      isLoading
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadSectionData = async () => {
+      setIsTabSwitching(true);
+
+      if (activeFilter === "tv") {
+        const [nowPlayingTV, trendingTV, popularTV, upcomingTV] =
+          await Promise.all([
+            fetchMedia("/api/home/now-playing/tv?limit=6", controller.signal),
+            fetchMedia("/api/home/trending/tv", controller.signal),
+            fetchMedia("/api/home/popular/tv", controller.signal),
+            fetchMedia("/api/home/upcoming/tv", controller.signal),
+          ]);
+
+        setHomeData((prev) => ({
+          ...prev,
+          nowPlaying: { ...prev.nowPlaying, tv: nowPlayingTV },
+          trending: { ...prev.trending, tv: trendingTV },
+          popular: { ...prev.popular, tv: popularTV },
+          comingSoon: { ...prev.comingSoon, tv: upcomingTV },
+        }));
+      } else if (activeFilter === "anime") {
+        const trendingAnime = await fetchMedia(
+          "/api/home/trending/anime",
+          controller.signal,
+        );
+
+        setHomeData((prev) => ({
+          ...prev,
+          nowPlaying: { ...prev.nowPlaying, anime: trendingAnime },
+          trending: { ...prev.trending, anime: trendingAnime },
+          popular: { ...prev.popular, anime: trendingAnime },
+          comingSoon: { ...prev.comingSoon, anime: trendingAnime },
+        }));
+      }
+
+      setLoadedSections((prev) => new Set([...prev, activeFilter]));
+      setIsTabSwitching(false);
+    };
+
+    loadSectionData();
+
+    return () => controller.abort();
+  }, [activeFilter, loadedSections, isLoading]);
 
   const isAnime = activeFilter === "anime";
   const selectedMediaType: "movie" | "tv" =
@@ -222,9 +271,9 @@ export default function HomePage() {
   const hasSectionContent = isAnime
     ? homeData.trending.anime.results.length > 0
     : nowPlayingItems.length > 0 ||
-      trendingItems.length > 0 ||
-      popularItems.length > 0 ||
-      comingSoonItems.length > 0;
+    trendingItems.length > 0 ||
+    popularItems.length > 0 ||
+    comingSoonItems.length > 0;
 
   const handleCardClick = (item: MediaGridItem) => {
     router.push(getDetailsPath(item));
@@ -232,10 +281,7 @@ export default function HomePage() {
 
   const handleTabChange = (tab: MediaSelector) => {
     if (tab !== activeFilter) {
-      setIsTabSwitching(true);
       setActiveFilter(tab);
-      // Small delay to show skeleton animation
-      setTimeout(() => setIsTabSwitching(false), 300);
     }
   };
 
@@ -257,11 +303,10 @@ export default function HomePage() {
                   key={tab.id}
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
-                  className={`relative shrink-0 pb-2.5 text-base md:text-lg font-semibold transition-all duration-200 ${
-                    isActive
-                      ? "text-white"
-                      : "text-white/50 hover:text-white/75"
-                  }`}
+                  className={`relative shrink-0 pb-2.5 text-base md:text-lg font-semibold transition-all duration-200 ${isActive
+                    ? "text-white"
+                    : "text-white/50 hover:text-white/75"
+                    }`}
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
                   {tab.label}

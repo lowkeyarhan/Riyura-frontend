@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCachedData } from "@/src/lib/cache";
 import { TMDBCreditsResponse } from "@/src/dto/tmdb/common";
 import {
   TMDBMovieDetails,
@@ -21,47 +22,52 @@ export async function GET(
 
   try {
     const { id: movieId } = await params;
+    const cacheKey = `movie:${movieId}`;
 
-    console.log(`🎬 Movie details API called for ID: ${movieId}`);
-    console.log(`🌐 Fetching movie details from TMDB for ID: ${movieId}`);
+    // valid for 1 hour
+    const movieData = await getCachedData(
+      cacheKey,
+      async () => {
+        // Fetch movie details, credits, and similar movies in parallel
+        const [detailsResponse, creditsResponse, similarResponse] =
+          await Promise.all([
+            fetch(
+              `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`,
+            ),
+            fetch(
+              `https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${apiKey}&language=en-US`,
+            ),
+            fetch(
+              `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}&language=en-US&page=1`,
+            ),
+          ]);
 
-    // Fetch movie details, credits, and similar movies in parallel
-    const [detailsResponse, creditsResponse, similarResponse] =
-      await Promise.all([
-        fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`,
-          { next: { revalidate: 3600 } },
-        ),
-        fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${apiKey}&language=en-US`,
-          { next: { revalidate: 3600 } },
-        ),
-        fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}&language=en-US&page=1`,
-          { next: { revalidate: 3600 } },
-        ),
-      ]);
+        if (!detailsResponse.ok) {
+          return null; // Return null to indicate failure to cache/fetch
+        }
 
-    if (!detailsResponse.ok) {
+        const details = (await detailsResponse.json()) as TMDBMovieDetails;
+        const credits = (await creditsResponse.json()) as TMDBCreditsResponse;
+        const similar =
+          (await similarResponse.json()) as TMDBSimilarResponse<TMDBSimilarMovie>;
+
+        // Combine all data
+        return {
+          ...details,
+          credits,
+          similar,
+        };
+      },
+      { ttl: 3600 },
+    );
+
+    if (!movieData) {
       return NextResponse.json(
         { error: "Failed to fetch movie details" },
-        { status: detailsResponse.status },
+        { status: 404 }, // Or appropriate error status
       );
     }
 
-    const details = (await detailsResponse.json()) as TMDBMovieDetails;
-    const credits = (await creditsResponse.json()) as TMDBCreditsResponse;
-    const similar =
-      (await similarResponse.json()) as TMDBSimilarResponse<TMDBSimilarMovie>;
-
-    // Combine all data
-    const movieData = {
-      ...details,
-      credits,
-      similar,
-    };
-
-    console.log(`✅ Movie details fetched and returned for ID: ${movieId}`);
     return NextResponse.json(movieData);
   } catch (error) {
     console.error("Error fetching movie data:", error);

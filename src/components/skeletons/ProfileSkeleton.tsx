@@ -3,6 +3,7 @@
 import React from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { MediaCardSkeleton } from "./MediaCardSkeleton";
 
 export default function ProfileSkeleton() {
   return (
@@ -153,15 +154,7 @@ export default function ProfileSkeleton() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
                   {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="aspect-[2/3] rounded-xl overflow-hidden"
-                    >
-                      <Skeleton
-                        height="100%"
-                        containerClassName="h-full block"
-                      />
-                    </div>
+                    <MediaCardSkeleton key={i} />
                   ))}
                 </div>
               </section>
@@ -174,15 +167,7 @@ export default function ProfileSkeleton() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
                   {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="aspect-[2/3] rounded-xl overflow-hidden"
-                    >
-                      <Skeleton
-                        height="100%"
-                        containerClassName="h-full block"
-                      />
-                    </div>
+                    <MediaCardSkeleton key={i} />
                   ))}
                 </div>
               </section>

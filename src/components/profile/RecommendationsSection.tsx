@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { MediaCard } from "./MediaCard";
+import MediaCard from "@/src/components/media/MediaCard";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 
 interface RecommendationsSectionProps {
   recommendations: any[];
@@ -21,6 +22,12 @@ export function RecommendationsSection({
   onItemClick,
 }: RecommendationsSectionProps) {
   const [showAll, setShowAll] = useState(false);
+
+  const getPosterUrl = (posterPath: string | null) =>
+    posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
+
+  const getYear = (releaseDate: string | null) =>
+    releaseDate ? new Date(releaseDate).getFullYear() : undefined;
 
   return (
     <section>
@@ -63,7 +70,13 @@ export function RecommendationsSection({
           )}
         </div>
       </div>
-      {isLoading || error || !hasApiKey ? (
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+          {Array.from({ length: showAll ? 8 : 4 }).map((_, i) => (
+            <MediaCardSkeleton key={`loading-${i}`} />
+          ))}
+        </div>
+      ) : error || !hasApiKey ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
           {Array.from({ length: showAll ? 8 : 4 }).map((_, i) => (
             <div
@@ -72,12 +85,7 @@ export function RecommendationsSection({
             >
               <div className="absolute inset-0">
                 <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
-                  {error ? "ERROR" : !hasApiKey ? "NO API KEY" : "LOADING"}
-                </div>
-                <div className="absolute top-2 left-2">
-                  <span className="bg-white/10 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-lg animate-pulse">
-                    AI
-                  </span>
+                  {error ? "ERROR" : "NO API KEY"}
                 </div>
                 <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0f1115]/90 border border-white/10 shadow-sm">
                   <span className="text-[10px] font-bold text-white">AI</span>
@@ -85,11 +93,6 @@ export function RecommendationsSection({
                 <div className="absolute bottom-0 inset-x-0 p-3">
                   <div className="w-3/4 h-3 bg-white/10 rounded mb-2 animate-pulse" />
                   <div className="w-1/2 h-2 bg-white/5 rounded animate-pulse" />
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-[#0f1115]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                  <Sparkles className="w-4 h-4 text-black" />
                 </div>
               </div>
             </div>
@@ -121,9 +124,13 @@ export function RecommendationsSection({
                 transition={{ duration: 0.3, ease: "easeInOut" }}
               >
                 <MediaCard
-                  item={item}
+                  title={item.title}
+                  posterUrl={getPosterUrl(item.poster_path)}
+                  year={getYear(item.release_date)}
+                  type={item.media_type}
+                  rating={item.vote_average}
+                  seasons={item.number_of_seasons}
                   onClick={() => onItemClick(item)}
-                  variant="recommendation"
                 />
               </motion.div>
             ))}

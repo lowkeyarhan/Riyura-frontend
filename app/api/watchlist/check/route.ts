@@ -1,8 +1,27 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/src/lib/auth/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { WatchlistCheckResponse } from "@/src/dto/media";
 
 export const dynamic = "force-dynamic";
+
+function createAuthedSupabaseClient(authHeader: string) {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  );
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -23,11 +42,11 @@ export async function GET(request: Request) {
     return NextResponse.json(response);
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser(token);
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     const response: WatchlistCheckResponse = { exists: false };

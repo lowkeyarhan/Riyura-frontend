@@ -11,8 +11,12 @@ export default function WatchlistSkeleton() {
       <div className="relative min-h-screen bg-black font-sans pt-24 md:pt-32 px-4 md:px-16 pb-12">
         {/* Header Section */}
         <div className="text-center mb-10 md:mb-12">
-          <Skeleton width="70%" height={48} className="mb-3 mx-auto" />
-          <Skeleton width="80%" height={18} className="mx-auto" />
+          <Skeleton
+            width="20%"
+            height={48}
+            className="mb-3 mx-auto rounded-xl"
+          />
+          <Skeleton width="30%" height={18} className="mx-auto rounded-xl" />
         </div>
 
         {/* Filter Tabs */}
@@ -23,7 +27,7 @@ export default function WatchlistSkeleton() {
         </div>
 
         {/* Media Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 15 }).map((_, i) => (
             <MediaCardSkeleton key={i} />
           ))}

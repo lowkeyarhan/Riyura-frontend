@@ -1,5 +1,6 @@
 import { TMDBSearchResult } from "@/src/dto/tmdb/lists";
 import { SearchResultCard } from "./SearchResultCard";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 interface SearchResultsSectionProps {
   results: TMDBSearchResult[];
@@ -10,6 +11,27 @@ interface SearchResultsSectionProps {
 }
 
 const FONT_STYLE = { fontFamily: "Be Vietnam Pro, sans-serif" };
+
+// Card variants with fade only (no scale)
+const cardVariants = {
+  initial: {
+    opacity: 0,
+  },
+  animate: {
+    opacity: 1,
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.25, // Faster disappear animation
+    },
+  },
+};
+
+// Layout transition config with smooth motion
+const layoutTransition = {
+  duration: 0.3,
+};
 
 export function SearchResultsSection({
   results,
@@ -23,10 +45,7 @@ export function SearchResultsSection({
   return (
     <div>
       <div className="mb-8 text-center">
-        <h2
-          className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 via-pink-500 to-red-400 bg-clip-text text-transparent"
-          style={FONT_STYLE}
-        >
+        <h2 className="text-3xl md:text-4xl font-bold mb-2" style={FONT_STYLE}>
           Search Results
         </h2>
         {(lastQuery || searchQuery) && (
@@ -39,16 +58,33 @@ export function SearchResultsSection({
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-        {results.map((item) => (
-          <SearchResultCard
-            key={item.id}
-            item={item}
-            onClick={() => onCardClick(item)}
-            formatDate={formatDate}
-          />
-        ))}
-      </div>
+      <LayoutGroup>
+        <motion.div
+          layout
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
+        >
+          <AnimatePresence mode="sync">
+            {results.map((item) => (
+              <motion.div
+                layout
+                layoutId={`search-card-${item.id}`}
+                key={item.id}
+                variants={cardVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={layoutTransition}
+              >
+                <SearchResultCard
+                  item={item}
+                  onClick={() => onCardClick(item)}
+                  formatDate={formatDate}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      </LayoutGroup>
     </div>
   );
 }

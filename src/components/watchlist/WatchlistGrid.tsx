@@ -26,7 +26,7 @@ export function WatchlistGrid({
   if (loading) {
     return (
       <div className="bg-[#3c3c3c17] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
@@ -70,8 +70,8 @@ export function WatchlistGrid({
     releaseDate ? new Date(releaseDate).getFullYear() : undefined;
 
   return (
-    <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+    <div className="">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
         {items.map((item) => (
           <MediaCard
             key={item.tmdb_id}

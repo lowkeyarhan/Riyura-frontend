@@ -15,60 +15,78 @@ export function SearchResultCard({
   onClick,
   formatDate,
 }: SearchResultCardProps) {
+  const getMediaTypeLabel = () => {
+    if (item.media_type === "movie") return "Movie";
+    if (item.media_type === "tv") return "TV Series";
+    return "Media";
+  };
+
+  const getYear = () => {
+    const date = item.release_date || item.first_air_date;
+    if (!date) return "";
+    return new Date(date).getFullYear().toString();
+  };
+
+  const getRating = () => {
+    const rating = item.vote_average ?? 0;
+    return rating > 0 ? `${rating.toFixed(1)}` : "";
+  };
+
+  const metadataItems = [getMediaTypeLabel(), getYear(), getRating()]
+    .filter(Boolean)
+    .join(" • ");
+
   return (
     <div
-      className="group flex flex-col bg-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-102 hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer"
+      className="group flex flex-col rounded-2xl overflow-hidden bg-[#0f1115]
+        border border-white/5 
+        transition-colors duration-300 
+        shadow-md hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
       onClick={onClick}
     >
-      <div className="relative aspect-[2/3]">
+      {/* Poster Image Section */}
+      <div className="relative aspect-[2/3] bg-[#0f1115] overflow-hidden">
         {item.poster_path ? (
-          <Image
-            src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
-            alt={item.title || item.name || ""}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-          />
+          <>
+            <Image
+              src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
+              alt={item.title || item.name || ""}
+              fill
+              className="object-cover transition-transform duration-500"
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+            />
+            {/* Gradient Overlay */}
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
+          </>
         ) : (
-          <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-500">
+          <div className="w-full h-full bg-[#1a1d26] flex items-center justify-center text-gray-500">
             No Poster
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-sm rounded p-1.5">
-          {item.media_type === "movie" ? <MovieIcon /> : <TVIcon />}
-        </div>
       </div>
 
-      <div className="p-2 md:p-4 flex flex-col gap-2 md:gap-3">
+      {/* Info Section */}
+      <div className="flex-1 flex flex-col gap-2 p-4 md:p-5">
+        {/* Title */}
         <h3
-          className="text-white text-sm md:text-lg font-semibold line-clamp-1"
-          style={FONT_STYLE}
+          className="text-white text-lg md:text-xl font-bold line-clamp-2"
+          style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
           {item.title || item.name}
         </h3>
 
-        <div className="flex items-center justify-between text-sm">
-          <div
-            className="flex items-center gap-1.5 text-gray-400"
-            style={FONT_STYLE}
-          >
-            <CalendarIcon />
-            <span>{formatDate(item.release_date || item.first_air_date)}</span>
-          </div>
-          {(item.vote_average ?? 0) > 0 && (
-            <div className="flex items-center gap-1 text-yellow-400">
-              <StarIcon />
-              <span className="font-semibold" style={FONT_STYLE}>
-                {(item.vote_average ?? 0).toFixed(1)}
-              </span>
-            </div>
-          )}
-        </div>
+        {/* Metadata */}
+        <p
+          className="text-gray-400 text-xs md:text-sm font-semibold tracking-wide"
+          style={FONT_STYLE}
+        >
+          {metadataItems}
+        </p>
 
+        {/* Overview */}
         {item.overview && (
           <p
-            className="text-gray-400 text-xs md:text-sm line-clamp-2 leading-relaxed"
+            className="text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1"
             style={FONT_STYLE}
           >
             {item.overview}

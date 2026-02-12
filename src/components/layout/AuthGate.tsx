@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import Navbar from "@/src/components/layout/Navbar";
@@ -40,7 +40,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (!loading) {
       checkOnboarded();
       if (!user && !isPublic) {
-        router.replace("/auth");
+        router.prefetch("/auth");
+        startTransition(() => {
+          router.replace("/auth");
+        });
       }
     }
   }, [loading, user, isPublic, router]);
@@ -48,11 +51,18 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && user && onboarded !== null) {
       if (isPublic) {
-        if (!onboarded) {
-          router.replace("/onboarding");
-        } else {
-          router.replace("/home");
-        }
+        const targetRoute = !onboarded ? "/onboarding" : "/home";
+
+        // Prefetch the target route first
+        router.prefetch(targetRoute);
+
+        // Use startTransition to avoid race conditions during navigation
+        startTransition(() => {
+          // Add a small delay to ensure chunks are loaded
+          setTimeout(() => {
+            router.replace(targetRoute);
+          }, 100);
+        });
       }
     }
   }, [loading, user, onboarded, isPublic, router]);

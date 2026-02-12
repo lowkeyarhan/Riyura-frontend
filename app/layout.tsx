@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthGate from "@/src/components/layout/AuthGate";
+import { ChunkErrorBoundary } from "@/src/components/layout/ChunkErrorBoundary";
+import { ChunkErrorHandler } from "@/src/components/layout/ChunkErrorHandler";
 import { NotificationProvider } from "@/src/lib/contexts/NotificationContext";
 import Notification from "@/src/components/ui/Notification";
 import { Analytics } from "@vercel/analytics/next";
@@ -31,10 +33,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NotificationProvider>
-          <AuthGate>{children}</AuthGate>
-          <Notification />
-        </NotificationProvider>
+        <ChunkErrorHandler />
+        <ChunkErrorBoundary>
+          <NotificationProvider>
+            <AuthGate>{children}</AuthGate>
+            <Notification />
+          </NotificationProvider>
+        </ChunkErrorBoundary>
         <Analytics />
       </body>
     </html>

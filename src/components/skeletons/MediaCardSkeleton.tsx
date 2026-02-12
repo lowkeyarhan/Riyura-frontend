@@ -1,25 +1,34 @@
 "use client";
 
 import React from "react";
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import { Play } from "lucide-react";
 
 export const MediaCardSkeleton = () => {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-[#1a1d26]">
-        <Skeleton
-          height="100%"
-          className="absolute inset-0"
-          containerClassName="h-full block"
-        />
+    <div
+      className="
+        group relative cursor-pointer rounded-xl overflow-hidden 
+        bg-[#0f1115]
+        border border-white/5 
+        transition-colors duration-300 
+        shadow-md
+      "
+    >
+      {/* Image Container */}
+      <div className="relative aspect-[2/3] overflow-hidden bg-[#0f1115]">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 animate-pulse" />
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
       </div>
-      <div className="space-y-2">
-        <Skeleton width="85%" height={24} />
-        <div className="flex items-center gap-3">
-          <Skeleton width={40} height={16} />
-          <Skeleton width={16} height={16} circle />
-          <Skeleton width={60} height={16} />
+
+      {/* Content Info */}
+      <div className="p-3 md:p-4">
+        <div className="h-4 md:h-5 bg-white/10 rounded w-3/4 mb-2 animate-pulse" />
+        <div className="flex items-center justify-between">
+          <div className="h-3 bg-white/5 rounded w-16 animate-pulse" />
+          <div className="h-3 bg-white/5 rounded w-12 animate-pulse" />
         </div>
       </div>
     </div>

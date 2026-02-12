@@ -1,26 +1,51 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/src/lib/auth/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { MediaType, WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
 
+function createAuthedSupabaseClient(authHeader: string) {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  );
+}
+
 export async function GET(request: Request) {
+  console.log("[API /api/watchlist GET] Request received");
+
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type") as MediaType | "all" | null;
 
   // Get auth token from header
   const authHeader = request.headers.get("Authorization");
   if (!authHeader) {
+    console.error("[API /api/watchlist GET] No Authorization header");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser(token);
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
+    console.error("[API /api/watchlist GET] Auth error:", authError?.message);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  console.log("[API /api/watchlist GET] User authenticated:", user.id);
 
   let query = supabase
     .from("watchlist")
@@ -35,8 +60,15 @@ export async function GET(request: Request) {
   const { data, error } = await query;
 
   if (error) {
+    console.error("[API /api/watchlist GET] Database error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  console.log(
+    "[API /api/watchlist GET] Success: found",
+    data?.length || 0,
+    "items",
+  );
 
   // Return as WatchlistItem[] - no mapping needed, already in correct format
   const items: WatchlistItem[] = data;
@@ -49,11 +81,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser(token);
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -101,8 +133,9 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -112,11 +145,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser(token);
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -144,7 +177,8 @@ export async function DELETE(request: Request) {
     if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

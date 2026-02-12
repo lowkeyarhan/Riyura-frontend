@@ -5,33 +5,54 @@ import { WatchlistItem } from "@/src/dto/media";
 export function useWatchlist(userId: string | undefined) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWatchlist = async () => {
       if (!userId) {
+        console.log("[useWatchlist] No userId provided, skipping fetch");
         setLoading(false);
+        setItems([]);
         return;
       }
+
+      console.log("[useWatchlist] Fetching watchlist for userId:", userId);
+      setLoading(true);
+      setError(null);
 
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
-        if (session) {
-          const res = await fetch("/api/watchlist", {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
+        if (!session) {
+          console.error("[useWatchlist] No session found");
+          setError("No active session");
+          setLoading(false);
+          return;
+        }
 
-          if (res.ok) {
-            const data = await res.json();
-            setItems(data || []);
-          } else {
-            throw new Error("Failed to fetch watchlist");
-          }
+        console.log("[useWatchlist] Session found, making API request");
+        const res = await fetch("/api/watchlist", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        console.log("[useWatchlist] API response status:", res.status);
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log("[useWatchlist] Fetched items:", data?.length || 0);
+          setItems(Array.isArray(data) ? data : []);
+        } else {
+          const errorText = await res.text();
+          console.error("[useWatchlist] API error:", res.status, errorText);
+          setError(`Failed to fetch watchlist: ${res.status}`);
+          setItems([]);
         }
       } catch (err) {
-        console.error("Error loading watchlist:", err);
+        console.error("[useWatchlist] Error loading watchlist:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -86,6 +107,7 @@ export function useWatchlist(userId: string | undefined) {
   return {
     items,
     loading,
+    error,
     removeItem,
   };
 }

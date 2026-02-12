@@ -25,7 +25,7 @@ export function SearchBar({
 }: SearchBarProps) {
   return (
     <div className="max-w-3xl mx-auto mb-16">
-      <div className="flex items-center gap-4 rounded-full bg-[#1a2332]/80 border border-white/10 px-4 py-3 md:px-6 md:py-4 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_25px_60px_rgba(0,255,255,0.15)]">
+      <div className="flex items-center gap-4 rounded-full bg-[#1a2332]/80 border border-white/10 px-4 py-3 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_25px_60px_rgba(0,255,255,0.15)]">
         <Search className="w-5 h-5 text-cyan-400" />
         <div className="relative flex-1">
           <input

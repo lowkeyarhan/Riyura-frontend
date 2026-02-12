@@ -1,5 +1,6 @@
 import { ChevronRight, Film } from "lucide-react";
-import { MediaCard } from "./MediaCard";
+import MediaCard from "@/src/components/media/MediaCard";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 
 interface WatchlistSectionProps {
   items: any[];
@@ -14,6 +15,12 @@ export function WatchlistSection({
   onItemClick,
   onViewAll,
 }: WatchlistSectionProps) {
+  const getPosterUrl = (posterPath: string | null) =>
+    posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
+
+  const getYear = (releaseDate: string | null) =>
+    releaseDate ? new Date(releaseDate).getFullYear() : undefined;
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4 md:mb-5">
@@ -33,7 +40,7 @@ export function WatchlistSection({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <MediaCard key={`loading-${i}`} />
+            <MediaCardSkeleton key={`loading-${i}`} />
           ))
         ) : items.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-400">
@@ -52,7 +59,12 @@ export function WatchlistSection({
             .map((item) => (
               <MediaCard
                 key={item.id}
-                item={item}
+                title={item.title}
+                posterUrl={getPosterUrl(item.poster_path)}
+                year={getYear(item.release_date)}
+                type={item.media_type}
+                rating={item.vote_average}
+                seasons={item.number_of_seasons}
                 onClick={() => onItemClick(item)}
               />
             ))

@@ -118,7 +118,7 @@ export async function GET(req: Request) {
           stats,
         };
       },
-      { ttl: 300 }, // 5 minutes
+      { ttl: 86400 }, // 24 hours
     );
 
     return NextResponse.json(

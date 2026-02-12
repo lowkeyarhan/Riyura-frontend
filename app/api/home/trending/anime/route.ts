@@ -34,7 +34,7 @@ export async function GET(request: Request) {
           if (!response.ok) throw new Error("Failed to fetch anime TV");
           return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
         },
-        { ttl: 3600 },
+        { ttl: 86400 },
       ),
       getCachedData(
         `anime:movie:discover`,
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
           if (!response.ok) throw new Error("Failed to fetch anime movies");
           return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
         },
-        { ttl: 3600 },
+        { ttl: 86400 },
       ),
     ]);
 

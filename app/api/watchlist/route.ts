@@ -71,7 +71,7 @@ export async function GET(request: Request) {
 
       return data as WatchlistItem[];
     },
-    { ttl: 120 }, // 2 minutes
+    { ttl: 86400 }, // 24 hours
   );
 
   return NextResponse.json(items);

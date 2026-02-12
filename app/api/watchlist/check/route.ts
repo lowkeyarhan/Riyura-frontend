@@ -74,7 +74,7 @@ export async function GET(request: Request) {
 
       return !!data;
     },
-    { ttl: 30 }, // 30 seconds
+    { ttl: 86400 }, // 24 hours
   );
 
   const response: WatchlistCheckResponse = { exists };

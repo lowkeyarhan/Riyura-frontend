@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         if (error) throw error;
         return data as WatchHistoryItem[];
       },
-      { ttl: 120 }, // 2 minutes
+      { ttl: 86400 }, // 24 hours
     );
 
     // Use ApiResponse wrapper for consistent response format

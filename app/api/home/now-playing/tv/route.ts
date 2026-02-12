@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
         return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
       },
-      { ttl: 3600 },
+      { ttl: 86400 },
     );
 
     // Data is already parsed from cache or fetch

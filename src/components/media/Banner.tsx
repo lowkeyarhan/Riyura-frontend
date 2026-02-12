@@ -236,7 +236,7 @@ export default function Banner({ initialItems }: BannerProps) {
 
         if (cached) {
           const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < 60 * 60 * 1000) {
+          if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
             setItems(data.items || []);
             setLoading(false);
             return;
@@ -314,7 +314,10 @@ export default function Banner({ initialItems }: BannerProps) {
       }
 
       // Deduplication: If there's an ongoing fetch for this user, reuse it
-      if (fetchCacheRef.current.promise && fetchCacheRef.current.userId === user.id) {
+      if (
+        fetchCacheRef.current.promise &&
+        fetchCacheRef.current.userId === user.id
+      ) {
         try {
           const cachedResult = await fetchCacheRef.current.promise;
           if (isActive) setContinueWatching(cachedResult);
@@ -353,9 +356,9 @@ export default function Banner({ initialItems }: BannerProps) {
 
           return Array.isArray(payload.data)
             ? payload.data
-              .map(mapWatchHistoryItem)
-              .filter((item) => item.progress <= 95)
-              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+                .map(mapWatchHistoryItem)
+                .filter((item) => item.progress <= 95)
+                .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
             : [];
         })();
 
@@ -384,7 +387,7 @@ export default function Banner({ initialItems }: BannerProps) {
     return () => {
       isActive = false;
     };
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 1024px)");
@@ -411,10 +414,10 @@ export default function Banner({ initialItems }: BannerProps) {
   // Get the metadata parts
   const metadataParts = currentItem
     ? [
-      getMediaTypeLabel(currentItem.contentType),
-      currentItem.date,
-      ...itemGenres,
-    ].filter((part): part is string => Boolean(part))
+        getMediaTypeLabel(currentItem.contentType),
+        currentItem.date,
+        ...itemGenres,
+      ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
@@ -632,10 +635,11 @@ export default function Banner({ initialItems }: BannerProps) {
                           ? "Remove from watchlist"
                           : "Add to watchlist"
                       }
-                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
-                        ? "bg-white/35 text-white"
-                        : "bg-white/20 text-white hover:bg-white/30"
-                        } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${
+                        isWatchlisted
+                          ? "bg-white/35 text-white"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />
                     </button>
@@ -695,8 +699,9 @@ export default function Banner({ initialItems }: BannerProps) {
                   width: index === currentSlide ? 32 : 8,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`h-2 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"
-                  }`}
+                className={`h-2 rounded-full ${
+                  index === currentSlide ? "bg-white" : "bg-white/50"
+                }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

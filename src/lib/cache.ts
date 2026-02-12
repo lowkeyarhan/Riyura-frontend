@@ -7,7 +7,7 @@ type CacheOptions = {
 export async function getCachedData<T>(
   key: string,
   fetcher: () => Promise<T>,
-  options: CacheOptions = { ttl: 3600 }, // Default 1 hour
+  options: CacheOptions = { ttl: 86400 }, // Default 24 hours
 ): Promise<T> {
   const { ttl } = options;
 
@@ -58,7 +58,7 @@ export async function invalidateCache(key: string) {
 export async function setCachedData<T>(
   key: string,
   data: T,
-  ttl: number = 3600,
+  ttl: number = 86400,
 ) {
   try {
     console.log(`[CACHE PUT] ${key} (TTL: ${ttl}s)`);

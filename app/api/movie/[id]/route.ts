@@ -58,7 +58,7 @@ export async function GET(
           similar,
         };
       },
-      { ttl: 3600 },
+      { ttl: 86400 },
     );
 
     if (!movieData) {

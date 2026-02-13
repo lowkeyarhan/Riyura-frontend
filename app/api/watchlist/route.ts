@@ -214,34 +214,10 @@ export async function DELETE(request: Request) {
 
     if (error) throw error;
 
-    // Instead of invalidating, fetch fresh data and update cache
-    const { data: allWatchlist, error: fetchError } = await supabase
-      .from("watchlist")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("added_at", { ascending: false });
-
-    if (!fetchError && allWatchlist) {
-      // Update 'all' cache
-      await setCachedData(
-        `watchlist:${user.id}:all`,
-        allWatchlist as WatchlistItem[],
-        120, // 2 minutes TTL
-      );
-
-      // Update media-type-specific cache
-      const typeFiltered = allWatchlist.filter(
-        (item: any) => item.media_type === mediaType,
-      );
-      await setCachedData(
-        `watchlist:${user.id}:${mediaType}`,
-        typeFiltered as WatchlistItem[],
-        120,
-      );
-    }
-
-    // Profile cache still needs invalidation as it has more complex data
+    // Invalidate caches to force a fresh fetch on next request
     await invalidateMultipleCaches([
+      `watchlist:${user.id}:all`,
+      `watchlist:${user.id}:${mediaType}`,
       `profile:${user.id}`,
       `watchlist_check:${user.id}:${tmdbId}:${mediaType}`,
     ]);

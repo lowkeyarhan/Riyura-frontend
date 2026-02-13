@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/src/lib/auth/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { invalidateMultipleCaches } from "@/src/lib/cache";
+
+const createAuthedSupabaseClient = (authHeader: string) => {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    },
+  );
+};
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization");
@@ -9,6 +21,8 @@ export async function GET(request: Request) {
   }
 
   const token = authHeader.replace("Bearer ", "");
+
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,
@@ -38,6 +52,8 @@ export async function POST(request: Request) {
   }
 
   const token = authHeader.replace("Bearer ", "");
+
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,
@@ -74,6 +90,8 @@ export async function DELETE(request: Request) {
   }
 
   const token = authHeader.replace("Bearer ", "");
+
+  const supabase = createAuthedSupabaseClient(authHeader);
   const {
     data: { user },
     error: authError,

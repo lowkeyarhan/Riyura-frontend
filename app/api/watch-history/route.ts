@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
 import { ApiResponse } from "@/src/dto/api";
-import { getCachedData, invalidateCache, setCachedData } from "@/src/lib/cache";
+import {
+  getCachedDataOnly,
+  invalidateCache,
+  setCachedData,
+} from "@/src/lib/cache";
 
 const VALID_STREAMS = new Set([
   "syntherionmovie",
@@ -41,21 +45,19 @@ export async function GET(req: Request) {
 
     // Cache watch history for 2 minutes (same TTL as watchlist)
     const cacheKey = `watch-history:${user.id}`;
-    const data = await getCachedData(
-      cacheKey,
-      async () => {
-        const { data, error } = await supabase
-          .from("watch_history")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("watched_at", { ascending: false })
-          .limit(10);
+    let data = await getCachedDataOnly<WatchHistoryItem[]>(cacheKey);
 
-        if (error) throw error;
-        return data as WatchHistoryItem[];
-      },
-      { ttl: 86400 }, // 24 hours
-    );
+    if (!data) {
+      const { data: dbData, error } = await supabase
+        .from("watch_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("watched_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      data = dbData as WatchHistoryItem[];
+    }
 
     // Use ApiResponse wrapper for consistent response format
     const response: ApiResponse<WatchHistoryItem[]> = {

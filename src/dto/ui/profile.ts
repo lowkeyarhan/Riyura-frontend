@@ -68,6 +68,7 @@ export interface GeminiRecommendationResponse {
   vote_average: number;
   release_date: string | null;
   number_of_seasons: number | null;
+  number_of_episodes: number | null;
   reason: string;
   genre: string;
 }

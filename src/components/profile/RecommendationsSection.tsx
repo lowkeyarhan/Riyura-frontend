@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
+import RecommendationCard from "@/src/components/media/RecommendationCard";
 import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 
 interface RecommendationsSectionProps {
@@ -22,12 +23,20 @@ export function RecommendationsSection({
   onItemClick,
 }: RecommendationsSectionProps) {
   const [showAll, setShowAll] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const getPosterUrl = (posterPath: string | null) =>
     posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
 
   const getYear = (releaseDate: string | null) =>
     releaseDate ? new Date(releaseDate).getFullYear() : undefined;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await onRefresh();
+    // Small delay to show animation
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   return (
     <section>
@@ -41,12 +50,13 @@ export function RecommendationsSection({
         <div className="flex items-center gap-3">
           {hasApiKey && !isLoading && (
             <button
-              onClick={onRefresh}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Refresh recommendations"
             >
               <svg
-                className="w-4 h-4 text-gray-400 hover:text-white"
+                className={`w-4 h-4 text-gray-400 hover:text-white transition-transform ${isRefreshing ? "animate-spin" : ""}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -123,20 +133,23 @@ export function RecommendationsSection({
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
               >
-                <MediaCard
+                <RecommendationCard
                   title={item.title}
                   posterUrl={getPosterUrl(item.poster_path)}
                   year={getYear(item.release_date)}
                   type={item.media_type}
                   rating={item.vote_average}
                   seasons={item.number_of_seasons}
+                  episodes={item.number_of_episodes}
+                  reason={item.reason}
                   onClick={() => onItemClick(item)}
                 />
               </motion.div>
             ))}
           </AnimatePresence>
-        </motion.div>
-      )}
-    </section>
+        </motion.div >
+      )
+      }
+    </section >
   );
 }

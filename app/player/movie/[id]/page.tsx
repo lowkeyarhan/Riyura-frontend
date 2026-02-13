@@ -4,37 +4,10 @@ import { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useMoviePlayer } from "@/src/hooks/useMoviePlayer";
+import { useStreamUrls } from "@/src/hooks/useStreamUrls";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { MoviePlayerSidebar } from "@/src/components/player/MoviePlayerSidebar";
-
-// --- Stream Links ---
-const generateStreamLinks = (tmdbId: string) => [
-  {
-    id: "ironlinkmovie",
-    name: "IronLink",
-    quality: "1080p • Fast",
-    link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/movie/${tmdbId}`,
-  },
-  {
-    id: "syntherionmovie",
-    name: "Syntherion",
-    quality: "1080p • Subs",
-    link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/movie/${tmdbId}`,
-  },
-  {
-    id: "dormannumovie",
-    name: "Dormannu",
-    quality: "4K • Ads",
-    link: `${process.env.NEXT_PUBLIC_VIDEASY_BASE_URL}/movie/${tmdbId}`,
-  },
-  {
-    id: "nanovuemovie",
-    name: "Nanovue",
-    quality: "1080p • Backup",
-    link: `${process.env.NEXT_PUBLIC_YTHD_BASE_URL}/movie/${tmdbId}`,
-  },
-];
 
 export default function MoviePlayer() {
   const params = useParams();
@@ -44,7 +17,7 @@ export default function MoviePlayer() {
 
   const {
     movie,
-    loading,
+    loading: movieLoading,
     activeServerIndex,
     setActiveServerIndex,
     saveWatchHistoryOnUnmount,
@@ -53,18 +26,21 @@ export default function MoviePlayer() {
     userId: user?.id,
   });
 
-  const servers = generateStreamLinks(movieId);
+  const { generateMovieLinks, loading: streamsLoading } =
+    useStreamUrls("movie");
+  const servers = generateMovieLinks(movieId);
+  const loading = movieLoading || streamsLoading;
 
   // Set initial server based on stream parameter
   useEffect(() => {
     const streamParam = searchParams.get("stream");
-    if (streamParam) {
+    if (streamParam && servers.length > 0) {
       const serverIndex = servers.findIndex((s) => s.id === streamParam);
       if (serverIndex !== -1) {
         setActiveServerIndex(serverIndex);
       }
     }
-  }, [searchParams]); // Only run when searchParams changes
+  }, [searchParams, servers]); // Only run when searchParams changes
 
   // Save watch history on unmount
   useEffect(() => {

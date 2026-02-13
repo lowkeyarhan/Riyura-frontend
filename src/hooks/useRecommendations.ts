@@ -37,13 +37,20 @@ export function useRecommendations(
         } = await supabase.auth.getSession();
 
         if (session) {
-          const res = await fetch("/api/gemini/recommendations", {
+          const url = forceRefresh
+            ? "/api/gemini/recommendations?refresh=true"
+            : "/api/gemini/recommendations";
+
+          const res = await fetch(url, {
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
 
           if (res.ok) {
             const data = await res.json();
             setRecommendations(data.recommendations || []);
+            console.log(
+              `✅ [Recommendations] Loaded from ${data.source || "API"}`,
+            );
           } else {
             const errorData = await res.json();
             setError(errorData.error || "Failed to load recommendations");

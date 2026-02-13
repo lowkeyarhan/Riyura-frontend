@@ -71,3 +71,19 @@ export async function setCachedData<T>(
     console.error(`[CACHE SET ERROR] ${key}`, error);
   }
 }
+
+// Helper to manually get cache data (without fetcher)
+export async function getCachedDataOnly<T>(key: string): Promise<T | null> {
+  try {
+    const cachedData = await redis.get(key);
+    if (cachedData) {
+      console.log(`[CACHE HIT] ${key}`);
+      return JSON.parse(cachedData) as T;
+    }
+    console.log(`[CACHE MISS] ${key}`);
+    return null;
+  } catch (error) {
+    console.error(`[CACHE GET ERROR] ${key}`, error);
+    return null;
+  }
+}

@@ -39,10 +39,11 @@ export default function WatchlistPage() {
   // Filter and Sort Logic
   const visibleItems = useMemo(() => {
     if (!Array.isArray(items)) return [];
-    
+
     // Filter
-    let filtered = filter === "all" ? items : items.filter((i) => i.media_type === filter);
-    
+    let filtered =
+      filter === "all" ? items : items.filter((i) => i.media_type === filter);
+
     // Sort
     const sorted = [...filtered];
     if (sortBy === "recent") {
@@ -55,12 +56,16 @@ export default function WatchlistPage() {
       sorted.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === "year") {
       sorted.sort((a, b) => {
-        const yearA = a.release_date ? new Date(a.release_date).getFullYear() : 0;
-        const yearB = b.release_date ? new Date(b.release_date).getFullYear() : 0;
+        const yearA = a.release_date
+          ? new Date(a.release_date).getFullYear()
+          : 0;
+        const yearB = b.release_date
+          ? new Date(b.release_date).getFullYear()
+          : 0;
         return yearB - yearA;
       });
     }
-    
+
     return sorted;
   }, [items, filter, sortBy]);
 
@@ -93,7 +98,8 @@ export default function WatchlistPage() {
     }
   }, [user, authLoading, loading, router]);
 
-  if (loading) {
+  // Show skeleton when auth or watchlist is loading
+  if (authLoading || loading) {
     return <WatchlistSkeleton />;
   }
 

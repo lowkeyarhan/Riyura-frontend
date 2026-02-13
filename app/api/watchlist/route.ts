@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { MediaType, WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
-import { getCachedData, invalidateCache, setCachedData } from "@/src/lib/cache";
+import {
+  getCachedData,
+  invalidateMultipleCaches,
+  setCachedData,
+} from "@/src/lib/cache";
 
 function createAuthedSupabaseClient(authHeader: string) {
   return createClient(
@@ -161,10 +165,10 @@ export async function POST(request: Request) {
     }
 
     // Profile cache still needs invalidation as it has more complex data
-    await invalidateCache(`profile:${user.id}`);
-    await invalidateCache(
+    await invalidateMultipleCaches([
+      `profile:${user.id}`,
       `watchlist_check:${user.id}:${tmdb_id}:${media_type}`,
-    );
+    ]);
 
     return NextResponse.json(data);
   } catch (error: unknown) {
@@ -237,8 +241,10 @@ export async function DELETE(request: Request) {
     }
 
     // Profile cache still needs invalidation as it has more complex data
-    await invalidateCache(`profile:${user.id}`);
-    await invalidateCache(`watchlist_check:${user.id}:${tmdbId}:${mediaType}`);
+    await invalidateMultipleCaches([
+      `profile:${user.id}`,
+      `watchlist_check:${user.id}:${tmdbId}:${mediaType}`,
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

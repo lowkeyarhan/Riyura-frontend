@@ -54,6 +54,18 @@ export async function invalidateCache(key: string) {
   }
 }
 
+// Helper to invalidate multiple cache keys at once
+export async function invalidateMultipleCaches(keys: string[]) {
+  try {
+    if (keys.length === 0) return;
+    
+    await Promise.all(keys.map(key => redis.del(key)));
+    console.log(`[CACHE EVICT] Multiple keys: ${keys.join(", ")}`);
+  } catch (error) {
+    console.error(`[CACHE EVICT ERROR] Multiple keys:`, error);
+  }
+}
+
 // Helper to manually set cache data
 export async function setCachedData<T>(
   key: string,

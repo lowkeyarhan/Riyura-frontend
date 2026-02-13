@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/src/lib/auth/supabase";
+import { invalidateMultipleCaches } from "@/src/lib/cache";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization");
@@ -97,6 +98,12 @@ export async function DELETE(request: Request) {
       .eq("id", id);
 
     if (error) throw error;
+
+    // Invalidate all caches that might contain this watch history data
+    await invalidateMultipleCaches([
+      `profile:${user.id}`,
+      `watch-history:${user.id}`,
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

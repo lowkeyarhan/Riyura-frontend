@@ -26,6 +26,7 @@ export interface WatchHistoryItem {
   media_type: "movie" | "tv";
   title: string;
   poster_path?: string | null;
+  backdrop_path?: string | null;
   duration_sec?: number | null;
   episode_length?: number | null;
   season_number?: number | null;
@@ -41,6 +42,7 @@ export interface WatchHistoryRecord {
   stream_id: string;
   title: string;
   poster_path?: string | null;
+  backdrop_path?: string | null;
   release_date?: string | null;
   season_number?: number | null;
   episode_number?: number | null;

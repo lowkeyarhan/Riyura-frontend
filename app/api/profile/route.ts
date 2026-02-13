@@ -70,9 +70,11 @@ export async function GET(req: Request) {
             tmdbId: item.tmdb_id,
             title: item.title,
             progress,
-            image: item.poster_path
-              ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-              : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+            image: item.backdrop_path
+              ? `https://image.tmdb.org/t/p/w500${item.backdrop_path}`
+              : item.poster_path
+                ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
             type:
               item.media_type === "movie"
                 ? "Movie"

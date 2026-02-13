@@ -135,7 +135,7 @@ const mapWatchHistoryItem = (
     id: item.id,
     tmdbId: item.tmdb_id,
     title: item.title || "Untitled",
-    image: getCardImageUrl(item.poster_path),
+    image: getCardImageUrl(item.backdrop_path || item.poster_path),
     progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
     meta:
       item.media_type === "movie"

@@ -85,6 +85,7 @@ export function useMoviePlayer({
         media_type: "movie" as const,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentMovie.poster_path,
+        backdrop_path: currentMovie.backdrop_path,
         release_date: currentMovie.release_date,
         duration_sec: watchDuration.current,
         episode_length: currentMovie.runtime ? currentMovie.runtime * 60 : null,

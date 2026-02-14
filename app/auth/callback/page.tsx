@@ -7,94 +7,94 @@ import { ensureUserProfile } from "@/src/lib/db/database";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState("Authenticating...");
   const hasRun = useRef(false);
 
   useEffect(() => {
-    // Prevent double execution in React strict mode
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const handleCallback = async () => {
+    const finalizeAuth = async () => {
       try {
-        // Wait a moment for the session to be fully established
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // 1. Listen for the auth state change (More reliable than getSession + timeout)
+        const { data: { session } } = await supabase.auth.getSession();
 
-        // Get the session from Supabase
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          setError(`Error: ${sessionError.message}`);
-          setTimeout(() => router.push("/auth"), 3000);
+        if (session) {
+          await handleSession(session);
           return;
         }
 
-        if (!session) {
-          setError("No session found. Redirecting to sign in...");
-          setTimeout(() => router.push("/auth"), 2000);
-          return;
-        }
-
-        // Wait a bit more for the database trigger to create the profile
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Fetch the profile (should be created by trigger)
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("❌ Profile fetch error:", profileError);
-          // If profile doesn't exist, try to create it manually
-          const manualProfile = await ensureUserProfile({
-            uid: session.user.id,
-            email: session.user.email!,
-            displayName:
-              session.user.user_metadata?.full_name ||
-              session.user.user_metadata?.name ||
-              null,
-            photoURL:
-              session.user.user_metadata?.avatar_url ||
-              session.user.user_metadata?.picture ||
-              null,
-          });
-
-          if (manualProfile && !manualProfile.onboarded) {
-            router.replace("/onboarding");
-          } else {
-            router.replace("/home");
+        // If no session yet, setup a listener for the event that fires after code exchange
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === "SIGNED_IN" && session) {
+            await handleSession(session);
+          } else if (event === "SIGNED_OUT") {
+            // Only redirect if we are sure it failed after a grace period
+            setTimeout(() => {
+              setStatus("Authentication failed. Redirecting...");
+              router.replace("/auth");
+            }, 3000);
           }
-          return;
-        }
+        });
 
-        // Check if user needs onboarding
-        if (profile && !profile.onboarded) {
-          router.replace("/onboarding");
-        } else {
-          router.replace("/home");
-        }
+        // Fallback: If nothing happens after 5 seconds, redirect
+        setTimeout(() => {
+          if (!supabase.auth.getSession().then(({ data }) => data.session)) {
+            setStatus("No session detected. Please try again.");
+            setTimeout(() => router.replace("/auth"), 2000);
+          }
+        }, 5000);
+
       } catch (error: any) {
-        console.error("❌ Auth callback error:", error);
-        setError(`Error: ${error.message}`);
-        setTimeout(() => router.push("/auth"), 3000);
+        console.error("Auth Error:", error);
+        setStatus(`Error: ${error.message}`);
       }
     };
 
-    handleCallback();
+    finalizeAuth();
   }, [router]);
 
+  const handleSession = async (session: any) => {
+    setStatus("Finalizing profile...");
+
+    // Check/Create Profile
+    try {
+      // Wait a tiny bit for triggers (optional but helps)
+      await new Promise(r => setTimeout(r, 500));
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profile) {
+        // Manual fallback if trigger failed
+        await ensureUserProfile({
+          uid: session.user.id,
+          email: session.user.email!,
+          displayName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+          photoURL: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+        });
+        router.replace("/onboarding");
+      } else if (!profile.onboarded) {
+        router.replace("/onboarding");
+      } else {
+        router.replace("/home");
+      }
+    } catch (e) {
+      console.error("Profile check failed", e);
+      // Even if profile check fails, let them in, AuthGate will handle the rest
+      router.replace("/home");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      {error && (
-        <div className="text-center">
-          <p className="text-xl">{error}</p>
-        </div>
-      )}
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-gray-400 font-medium tracking-wide animate-pulse">
+        {status}
+      </p>
     </div>
   );
 }

@@ -71,7 +71,7 @@ async function fetchMedia(
 
 function NowPlayingCardSkeleton() {
   return (
-    <div className="min-w-[285px] sm:min-w-[330px] lg:min-w-[360px] aspect-[16/9] rounded-xl overflow-hidden bg-[#1a1d26]">
+    <div className="min-w-[285px] sm:min-w-[330px] lg:min-w-[360px] aspect-video rounded-xl overflow-hidden bg-[#1a1d26]">
       <Skeleton height="100%" containerClassName="h-full block" />
     </div>
   );
@@ -147,17 +147,13 @@ export default function HomePage() {
     const controller = new AbortController();
 
     const loadMoviesData = async () => {
-      const [
-        nowPlayingMovies,
-        trendingMovies,
-        popularMovies,
-        upcomingMovies,
-      ] = await Promise.all([
-        fetchMedia("/api/home/now-playing/movies?limit=6", controller.signal),
-        fetchMedia("/api/home/trending/movies", controller.signal),
-        fetchMedia("/api/home/popular/movies", controller.signal),
-        fetchMedia("/api/home/upcoming/movies", controller.signal),
-      ]);
+      const [nowPlayingMovies, trendingMovies, popularMovies, upcomingMovies] =
+        await Promise.all([
+          fetchMedia("/api/home/now-playing/movies?limit=6", controller.signal),
+          fetchMedia("/api/home/trending/movies", controller.signal),
+          fetchMedia("/api/home/popular/movies", controller.signal),
+          fetchMedia("/api/home/upcoming/movies", controller.signal),
+        ]);
 
       setHomeData({
         nowPlaying: {
@@ -271,9 +267,9 @@ export default function HomePage() {
   const hasSectionContent = isAnime
     ? homeData.trending.anime.results.length > 0
     : nowPlayingItems.length > 0 ||
-    trendingItems.length > 0 ||
-    popularItems.length > 0 ||
-    comingSoonItems.length > 0;
+      trendingItems.length > 0 ||
+      popularItems.length > 0 ||
+      comingSoonItems.length > 0;
 
   const handleCardClick = (item: MediaGridItem) => {
     router.push(getDetailsPath(item));
@@ -303,10 +299,11 @@ export default function HomePage() {
                   key={tab.id}
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
-                  className={`relative shrink-0 pb-2.5 text-base md:text-lg font-semibold transition-all duration-200 ${isActive
-                    ? "text-white"
-                    : "text-white/50 hover:text-white/75"
-                    }`}
+                  className={`relative shrink-0 pb-2.5 text-base md:text-lg font-semibold transition-all duration-200 ${
+                    isActive
+                      ? "text-white"
+                      : "text-white/50 hover:text-white/75"
+                  }`}
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
                   {tab.label}

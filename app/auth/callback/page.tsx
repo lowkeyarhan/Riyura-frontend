@@ -8,46 +8,66 @@ import { ensureUserProfile } from "@/src/lib/db/database";
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [status, setStatus] = useState("Authenticating...");
-  const hasRun = useRef(false);
+  const processedRef = useRef(false);
 
   useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
+    // Prevent double-execution in React Strict Mode
+    if (processedRef.current) return;
+    processedRef.current = true;
 
     const finalizeAuth = async () => {
       try {
-        // 1. Listen for the auth state change (More reliable than getSession + timeout)
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log("🔍 Checking for existing session...");
+
+        // 1. Immediate check: Handles cases where the session is already processed from the URL
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) throw error;
 
         if (session) {
+          console.log("✅ Session found immediately.");
           await handleSession(session);
           return;
         }
 
-        // If no session yet, setup a listener for the event that fires after code exchange
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        // 2. Event Listener: Listens for the SIGNED_IN event triggered by the OAuth code exchange
+        console.log(
+          "⏳ No session found yet, waiting for auth state change...",
+        );
+
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log(`📣 Auth Event Received: ${event}`);
           if (event === "SIGNED_IN" && session) {
+            subscription.unsubscribe(); // Clean up immediately after success
             await handleSession(session);
           } else if (event === "SIGNED_OUT") {
-            // Only redirect if we are sure it failed after a grace period
-            setTimeout(() => {
-              setStatus("Authentication failed. Redirecting...");
-              router.replace("/auth");
-            }, 3000);
+            setStatus("Authentication failed. Redirecting...");
+            setTimeout(() => router.replace("/auth"), 2000);
           }
         });
 
-        // Fallback: If nothing happens after 5 seconds, redirect
-        setTimeout(() => {
-          if (!supabase.auth.getSession().then(({ data }) => data.session)) {
-            setStatus("No session detected. Please try again.");
-            setTimeout(() => router.replace("/auth"), 2000);
+        // 3. Robust Fallback Timeout: Fixes the "stuck" issue by properly awaiting the session check
+        setTimeout(async () => {
+          const {
+            data: { session: currentSession },
+          } = await supabase.auth.getSession();
+          if (!currentSession) {
+            console.warn(
+              "⚠️ Auth timeout: No session detected after 5 seconds.",
+            );
+            setStatus("Session not found. Please try again.");
+            setTimeout(() => router.replace("/auth"), 1500);
           }
         }, 5000);
-
       } catch (error: any) {
-        console.error("Auth Error:", error);
-        setStatus(`Error: ${error.message}`);
+        console.error("❌ Auth Callback Critical Error:", error);
+        setStatus(`Error: ${error.message || "Something went wrong"}`);
+        setTimeout(() => router.replace("/auth"), 3000);
       }
     };
 
@@ -55,36 +75,42 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   const handleSession = async (session: any) => {
-    setStatus("Finalizing profile...");
+    setStatus("Finalizing your profile...");
+    console.log("👤 User ID:", session.user.id);
 
-    // Check/Create Profile
     try {
-      // Wait a tiny bit for triggers (optional but helps)
-      await new Promise(r => setTimeout(r, 500));
+      // Short delay to ensure database triggers have finished creating the profile row
+      await new Promise((r) => setTimeout(r, 800));
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", session.user.id)
         .single();
 
-      if (!profile) {
-        // Manual fallback if trigger failed
+      if (error || !profile) {
+        console.log("🆕 Profile not found, performing manual profile sync...");
         await ensureUserProfile({
           uid: session.user.id,
           email: session.user.email!,
-          displayName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-          photoURL: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          displayName:
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            "User",
+          photoURL:
+            session.user.user_metadata?.avatar_url ||
+            session.user.user_metadata?.picture,
         });
         router.replace("/onboarding");
       } else if (!profile.onboarded) {
         router.replace("/onboarding");
       } else {
+        console.log("🚀 Profile ready, heading home.");
         router.replace("/home");
       }
     } catch (e) {
-      console.error("Profile check failed", e);
-      // Even if profile check fails, let them in, AuthGate will handle the rest
+      console.error("⚠️ Profile verification warning:", e);
+      // Fallback: If profile check fails, we still let them in as they ARE authenticated
       router.replace("/home");
     }
   };

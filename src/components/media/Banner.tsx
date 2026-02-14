@@ -8,7 +8,7 @@ import { Play, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
 import { BannerItem, ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
-import { WatchHistoryItem } from "@/src/dto/ui/profile";
+import { WatchHistoryItem } from "@/src/dto/media";
 import { useAuth } from "@/src/hooks/useAuth";
 import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
 import { SkeletonTheme } from "react-loading-skeleton";
@@ -148,6 +148,7 @@ const mapWatchHistoryItem = (
     mediaType: item.media_type,
     seasonNumber: item.season_number || 1,
     episodeNumber: item.episode_number || 1,
+    streamId: item.stream_id,
   };
 };
 
@@ -495,16 +496,29 @@ export default function Banner({ initialItems }: BannerProps) {
     }
   };
 
-  const handleContinueWatchingPlay = (item: ContinueWatchingOverlayItem) => {
-    if (item.mediaType === "movie") {
-      router.push(`/player/movie/${item.tmdbId}`);
-      return;
-    }
-
-    router.push(
-      `/player/tvshow/${item.tmdbId}?season=${item.seasonNumber || 1}&episode=${item.episodeNumber || 1}`,
-    );
-  };
+  const handlePlayClick = useCallback(
+    (item: any) => {
+      if (item.mediaType === "movie") {
+        const url = `/player/movie/${item.tmdbId}${
+          item.streamId ? `?stream=${item.streamId}` : ""
+        }`;
+        router.push(url);
+      } else {
+        const params = new URLSearchParams();
+        if (item.streamId) params.set("stream", item.streamId);
+        if (item.seasonNumber)
+          params.set("season", item.seasonNumber.toString());
+        if (item.episodeNumber)
+          params.set("episode", item.episodeNumber.toString());
+        router.push(
+          `/player/tvshow/${item.tmdbId}${
+            params.toString() ? `?${params.toString()}` : ""
+          }`,
+        );
+      }
+    },
+    [router],
+  );
 
   const continueWatchingVisibleItems = continueWatching.slice(
     0,
@@ -741,7 +755,7 @@ export default function Banner({ initialItems }: BannerProps) {
                   <ContinueWatchingCard
                     key={item.id}
                     item={item}
-                    onClick={handleContinueWatchingPlay}
+                    onClick={handlePlayClick}
                   />
                 ))}
               </div>

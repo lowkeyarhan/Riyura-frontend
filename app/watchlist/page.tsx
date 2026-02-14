@@ -1,312 +1,151 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Trash2, Play, Film, Tv, Star, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
-import { getWatchlist, removeFromWatchlist } from "@/src/lib/database";
-import { useNotification } from "@/src/lib/NotificationContext";
+import { useWatchlist } from "@/src/hooks/useWatchlist";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { WatchlistHeader } from "@/src/components/watchlist/WatchlistHeader";
+import { WatchlistGrid } from "@/src/components/watchlist/WatchlistGrid";
+import WatchlistSkeleton from "@/src/components/skeletons/WatchlistSkeleton";
 
-// --- Types ---
-type MediaType = "movie" | "tv";
-
-interface Item {
-  id: number;
-  dbId: number;
-  type: MediaType;
-  title: string;
-  poster: string;
-  year?: number;
-  rating?: number;
-  seasons?: number;
-  episodes?: number;
-}
-
-// --- Constants ---
-const FONT_FAMILY = "Be Vietnam Pro, sans-serif";
-
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "movie", label: "Movies" },
-  { id: "tv", label: "TV Shows" },
-];
-
-const MovieIcon = () => (
-  <svg
-    className="w-5 h-5 text-white"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
-    />
-  </svg>
-);
-
-const TVIcon = () => (
-  <svg
-    className="w-5 h-5 text-white"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-    />
-  </svg>
-);
-
-// --- Helper Components ---
-const FilterButton = ({ active, onClick, children }: any) => (
-  <button
-    onClick={onClick}
-    className={`px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${
-      active
-        ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] scale-105"
-        : "bg-[#151821] text-gray-400 border border-white/10 hover:border-white/20 hover:text-white hover:bg-white/5"
-    }`}
-    style={{ fontFamily: "Montserrat, sans-serif" }}
-  >
-    {children}
-  </button>
-);
-
-const WatchlistCard = ({
-  item,
-  onRemove,
-  onClick,
-}: {
-  item: Item;
-  onRemove: (e: React.MouseEvent) => void;
-  onClick: () => void;
-}) => {
-  return (
-    <div
-      className="
-        group relative cursor-pointer rounded-xl overflow-hidden 
-        bg-[#0f1115] /* Darker bg for card to contrast with panel */
-        border border-white/5 
-        hover:border-white/20
-        transition-colors duration-300 
-        shadow-md
-      "
-      onClick={onClick}
-    >
-      {/* Image Container */}
-      <div className="relative aspect-[2/3] overflow-hidden bg-[#0f1115]">
-        <Image
-          src={item.poster}
-          alt={item.title}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
-
-        {/* Type Badge */}
-        <span className="absolute top-2 left-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-slate-200 shadow-md">
-          {item.type === "movie" ? <MovieIcon /> : <TVIcon />}
-          {item.type === "movie" ? "Movie" : "TV"}
-        </span>
-
-        {/* Rating Badge */}
-        {item.rating && (
-          <div className="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-[#0f1115]/90 border border-white/10 flex items-center gap-1 shadow-sm z-10">
-            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs text-white font-bold">
-              {item.rating.toFixed(1)}
-            </span>
-          </div>
-        )}
-
-        {/* Hover Action Overlay (Desktop) */}
-        <div className="hidden md:flex absolute inset-0 bg-[#0f1115]/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center gap-4 z-20">
-          <div className="flex flex-col items-center gap-2 scale-0 group-hover:scale-100 transition-transform duration-300 delay-75">
-            <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:scale-110 transition-transform text-black">
-              <Play
-                className="w-5 h-5 ml-1 fill-black"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick();
-                }}
-              />
-            </button>
-            <span className="text-xs font-medium text-white tracking-wide">
-              Watch
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center gap-2 scale-0 group-hover:scale-100 transition-transform duration-300 delay-100">
-            <button
-              className="w-12 h-12 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 hover:border-red-600 hover:scale-110 transition-all text-red-500 hover:text-white"
-              onClick={onRemove}
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-            <span className="text-xs font-medium text-red-400 tracking-wide">
-              Remove
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Info */}
-      <div className="p-3 md:p-4">
-        <h3 className="text-white text-sm md:text-lg font-semibold truncate group-hover:text-orange-500 transition-colors">
-          {item.title}
-        </h3>
-        <div className="flex items-center justify-between mt-1 mb-3 md:mb-0">
-          <span className="text-xs md:text-sm text-gray-400">
-            {item.year || "Unknown Year"}
-          </span>
-          {item.type === "tv" && (item.seasons || item.episodes) && (
-            <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-              {item.seasons ? `${item.seasons}S` : ""}
-              {item.seasons && item.episodes ? " • " : ""}
-              {item.episodes ? `${item.episodes}Ep` : ""}
-            </span>
-          )}
-        </div>
-
-        {/* Mobile Actions (Visible only on mobile) */}
-        <div className="flex md:hidden items-center gap-2 mt-2 pt-2 border-t border-white/5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-white/10 text-white text-xs font-semibold active:bg-white/20 transition-colors"
-          >
-            <Play className="w-3 h-3 fill-current" />
-            Watch
-          </button>
-          <button
-            onClick={onRemove}
-            className="flex items-center justify-center p-1.5 rounded-lg bg-red-500/10 text-red-500 active:bg-red-500/20 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- Main Component ---
 export default function WatchlistPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { addNotification } = useNotification();
+  const { items, loading, error, removeItem } = useWatchlist(user?.id);
 
-  const [items, setItems] = useState<Item[]>([]);
-  const [filter, setFilter] = useState<"all" | MediaType>("all");
-  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "movie" | "tv">("all");
+  const [sortBy, setSortBy] = useState<"recent" | "title" | "year">("recent");
 
-  // Fetch Data
+  // Show error notification
   useEffect(() => {
-    const fetchWatchlist = async () => {
-      if (authLoading) return;
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    if (error) {
+      console.error("[WatchlistPage] Error:", error);
+      addNotification(`Error loading watchlist: ${error}`, "error");
+    }
+  }, [error, addNotification]);
 
-      const cacheKey = `watchlist_${user.id}`;
-      const cached = sessionStorage.getItem(cacheKey);
-
-      if (cached) {
-        try {
-          setItems(JSON.parse(cached));
-          setLoading(false);
-          return;
-        } catch {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
-
-      try {
-        const watchlistData = await getWatchlist(user.id);
-        const formatted: Item[] = watchlistData.map((item) => ({
-          id: item.tmdb_id,
-          dbId: item.id,
-          type: item.media_type,
-          title: item.title,
-          poster: item.poster_path
-            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-            : "/placeholder.jpg",
-          year: item.release_date
-            ? new Date(item.release_date).getFullYear()
-            : undefined,
-          rating: item.vote || undefined,
-          seasons: item.number_of_seasons || undefined,
-          episodes: item.number_of_episodes || undefined,
-        }));
-
-        sessionStorage.setItem(cacheKey, JSON.stringify(formatted));
-        setItems(formatted);
-      } catch (err) {
-        console.error("Error loading watchlist:", err);
-        addNotification("Failed to load watchlist", "error");
-      } finally {
-        setLoading(false);
-      }
+  // Count items by type
+  const counts = useMemo(() => {
+    if (!Array.isArray(items)) return { movie: 0, tv: 0, total: 0 };
+    return {
+      movie: items.filter((i) => i.media_type === "movie").length,
+      tv: items.filter((i) => i.media_type === "tv").length,
+      total: items.length,
     };
+  }, [items]);
 
-    fetchWatchlist();
-  }, [user, authLoading, addNotification]);
+  // Filter and Sort Logic
+  const visibleItems = useMemo(() => {
+    if (!Array.isArray(items)) return [];
 
-  // Filter Logic
-  const visible = useMemo(() => {
-    if (!Array.isArray(items)) {
-      return [];
+    // Filter
+    let filtered =
+      filter === "all" ? items : items.filter((i) => i.media_type === filter);
+
+    // Sort
+    const sorted = [...filtered];
+    if (sortBy === "recent") {
+      sorted.sort((a, b) => {
+        const dateA = a.added_at ? new Date(a.added_at).getTime() : 0;
+        const dateB = b.added_at ? new Date(b.added_at).getTime() : 0;
+        return dateB - dateA;
+      });
+    } else if (sortBy === "title") {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy === "year") {
+      sorted.sort((a, b) => {
+        const yearA = a.release_date
+          ? new Date(a.release_date).getFullYear()
+          : 0;
+        const yearB = b.release_date
+          ? new Date(b.release_date).getFullYear()
+          : 0;
+        return yearB - yearA;
+      });
     }
-    return filter === "all" ? items : items.filter((i) => i.type === filter);
-  }, [items, filter]);
 
-  // Remove Logic
-  const removeItem = async (
+    return sorted;
+  }, [items, filter, sortBy]);
+
+  // Remove Handler
+  const handleRemove = async (
     e: React.MouseEvent,
-    id: number,
-    type: MediaType
+    tmdbId: number,
+    mediaType: "movie" | "tv",
   ) => {
-    e.stopPropagation(); // Prevent card click
-    if (!user) return;
-
-    // Optimistic update
-    const previousItems = [...items];
-    const updated = items.filter((i) => i.id !== id);
-    setItems(updated);
-    sessionStorage.setItem(`watchlist_${user.id}`, JSON.stringify(updated));
-
-    try {
-      await removeFromWatchlist(user.id, id, type);
+    e.stopPropagation();
+    const { success } = await removeItem(tmdbId, mediaType);
+    if (success) {
       addNotification("Removed from watchlist", "success");
-    } catch (err) {
-      // Revert on fail
-      setItems(previousItems);
+    } else {
       addNotification("Failed to remove item", "error");
-      console.error("Error removing:", err);
     }
+  };
+
+  // Navigation Handler
+  const handleItemClick = (tmdbId: number, mediaType: "movie" | "tv") => {
+    router.push(
+      `/details/${mediaType === "movie" ? "movie" : "tvshow"}/${tmdbId}`,
+    );
   };
 
   // Auth Redirect
   useEffect(() => {
     if (!authLoading && !loading && !user) {
-      router.push("/auth");
+      // Could redirect to login if needed
     }
   }, [user, authLoading, loading, router]);
 
-  // --- Render ---
+  // Show skeleton when auth or watchlist is loading
+  if (authLoading || loading) {
+    return <WatchlistSkeleton />;
+  }
+
+  // Show error state if there's an error
+  if (error && (!items || items.length === 0)) {
+    return (
+      <div className="relative min-h-screen bg-black font-sans">
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-black" />
+          <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+        </div>
+        <div className="relative z-10 px-4 md:px-16 lg:px-16 pt-24 md:pt-32 pb-12">
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/30">
+              <svg
+                className="w-12 h-12 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+              Error Loading Watchlist
+            </h2>
+            <p className="text-gray-400 text-lg max-w-md px-4 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-black font-sans">
       {/* --- BACKGROUND LAYERS --- */}
@@ -319,100 +158,23 @@ export default function WatchlistPage() {
 
       {/* --- MAIN CONTENT --- */}
       <div className="relative z-10 px-4 md:px-16 lg:px-16 pt-24 md:pt-32 pb-12">
-        {/* Header Section */}
-        <div className="flex flex-col items-center mb-8 md:mb-12 text-center">
-          <h1
-            className="text-3xl md:text-6xl font-bold text-white mb-4 tracking-tight drop-shadow-2xl"
-            style={{ fontFamily: FONT_FAMILY }}
-          >
-            Your Watchlist
-          </h1>
-          <p
-            className="text-gray-400 text-sm md:text-lg max-w-xl"
-            style={{ fontFamily: FONT_FAMILY }}
-          >
-            A personalized collection of movies and shows you want to
-            experience.
-          </p>
-        </div>
+        <WatchlistHeader
+          filter={filter}
+          onFilterChange={setFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          totalItems={counts.total}
+          movieCount={counts.movie}
+          tvCount={counts.tv}
+        />
 
-        {/* Controls */}
-        {!loading && items.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {TABS.map((tab) => (
-              <FilterButton
-                key={tab.id}
-                active={filter === tab.id}
-                onClick={() => setFilter(tab.id as "all" | MediaType)}
-              >
-                {tab.label}
-              </FilterButton>
-            ))}
-          </div>
-        )}
-
-        {/* Content Grid */}
-        {loading ? (
-          // Skeletons inside Results Container
-          <div className="bg-[#3c3c3c17] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl bg-[#0f111562] border border-white/5 aspect-[2/3] relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 animate-pulse" />
-                  <div className="absolute bottom-4 left-4 right-4 space-y-2">
-                    <div className="h-4 bg-white/10 rounded w-3/4" />
-                    <div className="h-3 bg-white/5 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : visible.length === 0 ? (
-          // Empty State
-          <div className="flex flex-col items-center justify-center py-32 text-center border border-white/5 rounded-3xl bg-[#3c3c3c17] shadow-lg">
-            <div className="w-24 h-24 bg-[#0f111564] rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-inner">
-              <LayoutGrid className="w-10 h-10 text-gray-500" />
-            </div>
-            <h2
-              className="text-2xl md:text-3xl font-bold text-white mb-3"
-              style={{ fontFamily: FONT_FAMILY }}
-            >
-              {items.length === 0
-                ? "Your watchlist is empty"
-                : `No ${filter === "movie" ? "movies" : "TV shows"} found`}
-            </h2>
-            <p className="text-gray-400 text-lg max-w-md px-4">
-              {items.length === 0
-                ? "Go explore trending titles and bookmark the ones that catch your eye."
-                : `You haven't added any ${
-                    filter === "movie" ? "movies" : "TV shows"
-                  } to your list yet.`}
-            </p>
-          </div>
-        ) : (
-          // Results Container with "Fake Glass" Style
-          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-              {visible.map((item) => (
-                <WatchlistCard
-                  key={item.id}
-                  item={item}
-                  onRemove={(e) => removeItem(e, item.id, item.type)}
-                  onClick={() =>
-                    router.push(
-                      `/details/${item.type === "movie" ? "movie" : "tvshow"}/${
-                        item.id
-                      }`
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        <WatchlistGrid
+          items={visibleItems}
+          loading={loading}
+          filter={filter}
+          onRemove={handleRemove}
+          onItemClick={handleItemClick}
+        />
       </div>
     </div>
   );

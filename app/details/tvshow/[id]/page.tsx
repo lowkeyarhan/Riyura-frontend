@@ -4,61 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
-import Footer from "@/src/components/footer";
-import LoadingDots from "@/src/components/LoadingDots";
+import Footer from "@/src/components/layout/Footer";
+import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/NotificationContext";
-import {
-  addToWatchlist,
-  removeFromWatchlist,
-  isInWatchlist,
-} from "@/src/lib/database";
-
-interface Season {
-  id: number;
-  name: string;
-  overview: string;
-  poster_path: string;
-  season_number: number;
-  episode_count: number;
-  air_date: string;
-}
-
-interface TVShow {
-  id: number;
-  name: string;
-  backdrop_path: string;
-  poster_path: string;
-  first_air_date: string;
-  last_air_date?: string;
-  vote_average: number;
-  number_of_seasons: number;
-  number_of_episodes: number;
-  episode_run_time: number[];
-  tagline: string;
-  overview: string;
-  genres: { id: number; name: string }[];
-  production_companies: { id: number; name: string; logo_path: string }[];
-  networks: { id: number; name: string; logo_path: string }[];
-  created_by?: { id: number; name: string; profile_path: string }[];
-  seasons: Season[];
-  credits: {
-    cast: {
-      id: number;
-      name: string;
-      character: string;
-      profile_path: string;
-    }[];
-  };
-  similar: {
-    results: {
-      id: number;
-      name: string;
-      poster_path: string;
-      vote_average: number;
-    }[];
-  };
-}
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { supabase } from "@/src/lib/auth/supabase";
+import { TMDBTVShowDetailsResponse } from "@/src/dto/tmdb/details";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
@@ -110,41 +61,17 @@ export default function TVShowDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [tvShow, setTVShow] = useState<TVShow | null>(null);
+  const [tvShow, setTVShow] = useState<TMDBTVShowDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTVShowDetails = async () => {
       try {
-        const cacheKey = `tvshow_details_${params.id}`;
-        const cached = sessionStorage.getItem(cacheKey);
-
-        if (cached) {
-          try {
-            const { data, timestamp } = JSON.parse(cached);
-            if (Date.now() - timestamp < CACHE_TTL) {
-              console.log(`✅ TV show loaded from cache`);
-              setTVShow(data);
-              setLoading(false);
-              return;
-            }
-            sessionStorage.removeItem(cacheKey);
-          } catch {
-            sessionStorage.removeItem(cacheKey);
-          }
-        }
-
-        console.log(`📺 Building TV show details for ID ${params.id}...`);
         const response = await fetch(`/api/tvshow/${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch TV show details");
 
         const data = await response.json();
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
-        );
-        console.log(`✅ TV show built and cached`);
 
         setTVShow(data);
         setError(null);
@@ -165,8 +92,22 @@ export default function TVShowDetails() {
     const checkWatchlistStatus = async () => {
       if (user && tvShow) {
         try {
-          const inWatchlist = await isInWatchlist(user.id, tvShow.id, "tv");
-          setIsWatchlisted(inWatchlist);
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session) {
+            const res = await fetch(
+              `/api/watchlist/check?tmdbId=${tvShow.id}&mediaType=tv`,
+              {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              },
+            );
+            const data = await res.json();
+            setIsWatchlisted(data.inWatchlist);
+          }
         } catch (err) {
           console.error("Error checking watchlist status:", err);
         }
@@ -197,43 +138,76 @@ export default function TVShowDetails() {
     if (!tvShow) return;
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error("No session found");
+        return;
+      }
+
       if (isWatchlisted) {
-        await removeFromWatchlist(user.id, tvShow.id, "tv");
+        const res = await fetch(
+          `/api/watchlist?tmdbId=${tvShow.id}&mediaType=tv`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          },
+        );
+        if (!res.ok) throw new Error("Failed to remove from watchlist");
+
         setIsWatchlisted(false);
-        console.log("✅ Removed from watchlist");
+
       } else {
-        await addToWatchlist(user.id, {
-          tmdb_id: tvShow.id,
-          title: tvShow.name,
-          media_type: "tv",
-          poster_path: tvShow.poster_path,
-          release_date: tvShow.first_air_date,
-          vote: tvShow.vote_average,
-          number_of_seasons: tvShow.number_of_seasons,
-          number_of_episodes: tvShow.number_of_episodes,
+        const res = await fetch("/api/watchlist", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tmdb_id: tvShow.id,
+            title: tvShow.name,
+            media_type: "tv",
+            poster_path: tvShow.poster_path,
+            release_date: tvShow.first_air_date,
+            vote: tvShow.vote_average,
+            number_of_seasons: tvShow.number_of_seasons,
+            number_of_episodes: tvShow.number_of_episodes,
+          }),
         });
+
+        if (!res.ok) throw new Error("Failed to add to watchlist");
+
         setIsWatchlisted(true);
-        console.log("✅ Added to watchlist");
         addNotification(`${tvShow.name} added to watchlist`, "success");
       }
 
-      const cacheKey = `watchlist_${user.id}`;
-      sessionStorage.removeItem(cacheKey);
-      console.log("💾 Watchlist cache cleared");
     } catch (err) {
       console.error("❌ Error:", err);
-      setIsWatchlisted(!isWatchlisted);
+      // setIsWatchlisted(!isWatchlisted); // Same logic as movie details
       addNotification("Failed to update watchlist", "error");
     }
   };
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: BG_COLOR }}
-      >
-        <LoadingDots />
+      <div className="min-h-screen relative">
+        {/* Background Effects */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-black" />
+          <div className="hidden md:block">
+            <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+            <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
+          </div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+        </div>
+        <div className="relative z-10">
+          <DetailsSkeleton />
+        </div>
       </div>
     );
   }
@@ -613,7 +587,7 @@ export default function TVShowDetails() {
         )}
 
         {/* Similar TV Shows Section */}
-        {tvShow.similar?.results?.length > 0 && (
+        {tvShow.similar?.results?.length ? (
           <div className="mb-12">
             <h2
               className="text-2xl md:text-4xl font-semibold mb-6 md:mb-8 text-white"
@@ -631,8 +605,12 @@ export default function TVShowDetails() {
                 >
                   <div className="relative aspect-[2/3]">
                     <Image
-                      src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
-                      alt={similar.name}
+                      src={
+                        similar.poster_path
+                          ? `https://image.tmdb.org/t/p/w500${similar.poster_path}`
+                          : "/placeholder.jpg"
+                      }
+                      alt={similar.name || "Similar show"}
                       fill
                       sizes="(max-width: 768px) 140px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
@@ -653,7 +631,7 @@ export default function TVShowDetails() {
                         className="font-semibold text-sm"
                         style={{ fontFamily: FONT }}
                       >
-                        {similar.vote_average.toFixed(1)}
+                        {(similar.vote_average ?? 0).toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -661,7 +639,7 @@ export default function TVShowDetails() {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
       <Footer />
     </div>

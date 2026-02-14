@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
+import { ApiResponse } from "@/src/dto/api";
+import {
+  getCachedDataOnly,
+  invalidateCache,
+  setCachedData,
+} from "@/src/lib/cache";
 
 const VALID_STREAMS = new Set([
   "syntherionmovie",
@@ -18,14 +25,14 @@ export async function GET(req: Request) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or Invalid Token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -36,21 +43,34 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase
-      .from("watch_history")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("watched_at", { ascending: false })
-      .limit(10);
+    // Cache watch history for 2 minutes (same TTL as watchlist)
+    const cacheKey = `watch-history:${user.id}`;
+    let data = await getCachedDataOnly<WatchHistoryItem[]>(cacheKey);
 
-    if (error) throw error;
+    if (!data) {
+      const { data: dbData, error } = await supabase
+        .from("watch_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("watched_at", { ascending: false })
+        .limit(10);
 
-    return NextResponse.json({ success: true, data }, { status: 200 });
+      if (error) throw error;
+      data = dbData as WatchHistoryItem[];
+    }
+
+    // Use ApiResponse wrapper for consistent response format
+    const response: ApiResponse<WatchHistoryItem[]> = {
+      success: true,
+      data,
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (err: any) {
     console.error("Error fetching watch history:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,28 +80,28 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.warn(
-        "⚠️ Watch History: Blocked request with missing/invalid token"
+        "⚠️ Watch History: Blocked request with missing/invalid token",
       );
       return NextResponse.json(
         { error: "Missing or Invalid Token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
-    const body = await req.json();
+    const body: WatchHistoryAddRequest = await req.json();
     const {
-      user_id,
       tmdb_id,
       media_type,
       stream_id,
       title,
       poster_path,
+      backdrop_path,
       release_date,
       season_number,
       episode_number,
@@ -90,15 +110,22 @@ export async function POST(req: Request) {
       duration_sec = 0,
     } = body;
 
-    console.log(
-      `📥 Watch History: Received update for [${media_type.toUpperCase()}] "${title}" (ID: ${tmdb_id})`
-    );
+    // Get user_id from authenticated user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user_id = user.id;
 
     if (!user_id || !tmdb_id || !title || !media_type || !stream_id) {
       console.error("❌ Watch History: Missing required fields in payload");
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -125,16 +152,9 @@ export async function POST(req: Request) {
 
       if (isSameContext) {
         finalDuration += existing.duration_sec || 0;
-        console.log(
-          `⏱️  Accumulating time: ${existing.duration_sec}s + ${duration_sec}s = ${finalDuration}s`
-        );
       } else {
-        console.log(
-          `🔄 New Episode/Season detected (S${existing.season_number}E${existing.episode_number} -> S${season_number}E${episode_number}). Resetting duration.`
-        );
       }
     } else {
-      console.log("✨ Creating new watch record.");
     }
 
     const payload = {
@@ -144,6 +164,7 @@ export async function POST(req: Request) {
       stream_id,
       title,
       poster_path,
+      backdrop_path,
       release_date,
       season_number,
       episode_number,
@@ -157,14 +178,14 @@ export async function POST(req: Request) {
 
     if (existing?.id) {
       // Update existing record using ID selector
-      console.log(`📝 Updating existing record (ID: ${existing.id})`);
+
       query = supabase
         .from("watch_history")
         .update(payload)
         .eq("id", existing.id);
     } else {
       // Insert new record (ID is generated by DB)
-      console.log("✨ Inserting new record");
+
       query = supabase.from("watch_history").insert(payload);
     }
 
@@ -175,15 +196,32 @@ export async function POST(req: Request) {
       throw error;
     }
 
-    console.log(
-      `✅ Watch History: Successfully saved. Total Duration: ${finalDuration}s`
-    );
+    // Instead of invalidating, fetch fresh data and update cache
+    const { data: freshHistory, error: fetchError } = await supabase
+      .from("watch_history")
+      .select("*")
+      .eq("user_id", user_id)
+      .order("watched_at", { ascending: false })
+      .limit(10);
+
+    if (!fetchError && freshHistory) {
+      // Update watch-history cache with fresh data
+      await setCachedData(
+        `watch-history:${user_id}`,
+        freshHistory as WatchHistoryItem[],
+        120, // 2 minutes TTL
+      );
+    }
+
+    // Profile cache still needs invalidation as it has more complex data
+    await invalidateCache(`profile:${user_id}`);
+
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (err: any) {
     console.error("🔥 Critical Error in Watch History API:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

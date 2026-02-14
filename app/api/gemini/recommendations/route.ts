@@ -1,50 +1,90 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { decryptApiKey } from "@/src/lib/encryption";
+import { decryptApiKey } from "@/src/lib/utils/encryption";
+import {
+  GeminiRecommendationItem,
+  GeminiRecommendationResponse,
+} from "@/src/dto/ui/profile";
+import { setCachedData, getCachedDataOnly } from "@/src/lib/cache";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
-
-// --- Interfaces ---
-
-interface GeminiItem {
-  title: string;
-  type: "movie" | "tv" | "anime";
-  reason: string;
-  genre: string;
-}
-
-interface ProcessedRecommendation {
-  tmdb_id: number;
-  title: string;
-  media_type: "movie" | "tv";
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
-  release_date: string | null;
-  number_of_seasons: number | null;
-  reason: string;
-  genre: string;
-}
+const CACHE_TTL = 604800; // 7 days
 
 // --- Helper Functions ---
 
 /**
- * Generates the prompt string using the ORIGINAL System Prompt
+ * Calculates user watch statistics for the prompt
  */
-function buildGeminiPrompt(history: any[], watchlist: any[]): string {
+function calculateUserAnalytics(history: any[]) {
+  let totalWatchTimeSec = 0;
+  const typeCount = { movie: 0, tv: 0, anime: 0 };
+  const genreCount: Record<string, number> = {};
+
+  history.forEach((item) => {
+    // 1. Duration
+    if (item.duration_sec) {
+      totalWatchTimeSec += item.duration_sec;
+    }
+
+    // 2. Type Distribution
+    // Determine type (simple heuristic, can be refined if DB has precise 'anime' tag)
+    // For now assuming the standard types
+    if (item.media_type === "movie") typeCount.movie++;
+    else if (item.media_type === "tv") {
+      // Check for common anime keywords if we don't have explicit type
+      // But adhering to strict TMDB types 'tv' is used for both
+      // We'll rely on the history items if they have that metadata, otherwise default to TV
+      typeCount.tv++;
+    }
+
+    // 3. Recency (Implicit in the sort order of input history, but good to know)
+  });
+
+  const totalHours = Math.round(totalWatchTimeSec / 3600);
+
+  return {
+    totalHours,
+    typeCount,
+    lastWatched: history[0]?.title || "None",
+  };
+}
+
+/**
+ * Generates the prompt string using the ORIGINAL System Prompt + New Analytics
+ */
+function buildGeminiPrompt(
+  history: any[],
+  watchlist: any[],
+  analytics: { totalHours: number; typeCount: any; lastWatched: string },
+): string {
   const watchedTitles =
-    history.map((i) => `${i.title} (${i.media_type})`).join(", ") || "None";
+    history
+      .map(
+        (i) =>
+          `${i.title} (${i.media_type}) - Watched for ${(
+            (i.duration_sec || 0) / 60
+          ).toFixed(0)} mins`,
+      )
+      .join("\n") || "None";
   const watchlistTitles =
     watchlist.map((i) => `${i.title} (${i.media_type})`).join(", ") || "None";
 
   return `You are an elite cinematic curator and recommendation engine, capable of deep psychographic analysis of media consumption. Your goal is to provide highly personalized, non-generic recommendations by analyzing the "DNA" (pacing, tone, visual style, narrative complexity) of the user's viewing history and watchlist.
 
+**USER ANALYTICS:**
+- Total Watch Time: ~${analytics.totalHours} hours
+- Recent Obsession: ${analytics.lastWatched}
+- Context: User has significant investment in the content listed. High watch time on specific titles indicates deep interest.
+
 **INPUT DATA:**
-User Watch History: ${watchedTitles}
-User Watchlist: ${watchlistTitles}
+User Watch History (with watch duration):
+${watchedTitles}
+
+User Watchlist:
+${watchlistTitles}
 
 **ANALYSIS PROTOCOL:**
-1. **Pattern Recognition:** Identify distinct clusters in the user's taste (e.g., "Dark Psychological Thrillers," "Feel-good Slice of Life," "Hard Scifi").
+1. **Pattern Recognition:** Identify distinct clusters in the user's taste (e.g., "Dark Psychological Thrillers," "Feel-good Slice of Life," "Hard Scifi"). Prioritize genres/styles where the user has high watch time.
 2. **Bridge Strategy:** Do not just match genres. Match *elements*. If they watched "Inception," don't just recommend "Sci-Fi"; recommend movies with "unreliable narrators" or "dream logic."
 3. **Novelty vs. Comfort:** Balance high-fidelity matches (very similar to history) with high-quality adjacencies (expanding their horizon).
 
@@ -61,7 +101,7 @@ Generate EXACTLY 12 recommendations divided strictly as follows:
 
 **FORMATTING RULES:**
 - **Title:** Must match the official TMDB/IMDb listing.
-- **Reason:** Must be hyper-specific and relatable. Avoid generic phrases like "Since you like action." Instead, use: "Since you enjoyed the slow-burn tension of [Insert Watched Title], you will love the atmospheric dread in this."
+- **Reason:** Must be hyper-specific and relatable. Mention watch time if relevant (e.g., "Since you spent 2 hours watching X...").
 - **Genre:** Primary 2-3 genres.
 - Return ONLY the JSON array with exactly 12 items (4 movies, 4 tv shows, 4 anime), no additional text.
 
@@ -83,13 +123,13 @@ Return ONLY the JSON array with exactly 12 items (4 movies, 4 tv shows, 4 anime)
  * Search TMDB for a specific title and format the result
  */
 async function fetchTmdbData(
-  item: GeminiItem
-): Promise<ProcessedRecommendation | null> {
+  item: GeminiRecommendationItem,
+): Promise<GeminiRecommendationResponse | null> {
   try {
     // TMDB classifies Anime as TV
     const searchType = item.type === "anime" ? "tv" : item.type;
     const url = `https://api.themoviedb.org/3/search/${searchType}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
-      item.title
+      item.title,
     )}`;
 
     const res = await fetch(url);
@@ -101,15 +141,18 @@ async function fetchTmdbData(
       return null;
     }
 
-    // Fetch extra details for TV shows (Seasons count)
+    // Fetch extra details for TV shows (Seasons count AND Episodes)
     let seasons = null;
+    let episodes = null;
+
     if (searchType === "tv") {
       const detailsRes = await fetch(
-        `https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}`
+        `https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}`,
       );
       if (detailsRes.ok) {
         const details = await detailsRes.json();
         seasons = details.number_of_seasons;
+        episodes = details.number_of_episodes;
       }
     }
 
@@ -122,6 +165,7 @@ async function fetchTmdbData(
       vote_average: result.vote_average,
       release_date: result.release_date || result.first_air_date || null,
       number_of_seasons: seasons,
+      number_of_episodes: episodes, // Added this field
       reason: item.reason,
       genre: item.genre,
     };
@@ -135,18 +179,21 @@ async function fetchTmdbData(
 
 export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const forceRefresh = searchParams.get("refresh") === "true";
+
     // 1. Auth Check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader)
       return NextResponse.json(
         { error: "Missing Authorization header" },
-        { status: 401 }
+        { status: 401 },
       );
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -155,9 +202,47 @@ export async function GET(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Invalid Token" }, { status: 401 });
 
-    console.log(`🔍 [Gemini] Fetching data for user: ${user.id}`);
+    const cacheKey = `recommendations:${user.id}`;
 
-    // 2. Parallel Data Fetching (Optimized)
+    // 2. Try cache first (if not forcing refresh)
+    if (!forceRefresh) {
+      const cached = await getCachedDataOnly(cacheKey);
+      if (cached) {
+        console.log(
+          `✅ [Recommendations] Serving from cache for user ${user.id}`,
+        );
+        return NextResponse.json({
+          success: true,
+          recommendations: cached,
+          source: "cache",
+        });
+      }
+
+      // Try database if cache miss
+      const { data: dbRecommendations } = await supabase
+        .from("recommendations")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("generated_at", { ascending: false });
+
+      if (dbRecommendations && dbRecommendations.length > 0) {
+        console.log(
+          `✅ [Recommendations] Serving from DB for user ${user.id}, caching...`,
+        );
+        // Cache the DB results
+        await setCachedData(cacheKey, dbRecommendations, CACHE_TTL);
+        return NextResponse.json({
+          success: true,
+          recommendations: dbRecommendations,
+          source: "database",
+        });
+      }
+    }
+
+    // 3. Generate new recommendations
+    console.log(`🔄 [Recommendations] Generating new for user ${user.id}`);
+
+    // Parallel Data Fetching (Optimized)
     const [keyRes, historyRes, watchlistRes] = await Promise.all([
       supabase
         .from("gemini_api_keys")
@@ -166,9 +251,10 @@ export async function GET(req: Request) {
         .maybeSingle(),
       supabase
         .from("watch_history")
-        .select("title, media_type")
+        .select("title, media_type, duration_sec, watched_at")
         .eq("user_id", user.id)
-        .limit(15),
+        .order("watched_at", { ascending: false })
+        .limit(20), // Increased limit for better analysis
       supabase
         .from("watchlist")
         .select("title, media_type")
@@ -179,34 +265,35 @@ export async function GET(req: Request) {
     if (keyRes.error || !keyRes.data) {
       return NextResponse.json(
         { error: "Gemini API key not found in settings." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // 3. Decrypt API Key
+    // 4. Decrypt API Key
     let geminiApiKey = "";
     try {
       geminiApiKey = decryptApiKey(
         keyRes.data.encrypted_key,
         keyRes.data.iv,
-        keyRes.data.auth_tag
+        keyRes.data.auth_tag,
       );
     } catch (e) {
       return NextResponse.json(
         { error: "Failed to decrypt API key." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    // 4. Call Gemini AI
+    // 5. Call Gemini AI
+    const analytics = calculateUserAnalytics(historyRes.data || []);
     const prompt = buildGeminiPrompt(
       historyRes.data || [],
-      watchlistRes.data || []
+      watchlistRes.data || [],
+      analytics,
     );
-    console.log("🤖 [Gemini] Calling AI Model...");
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiApiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,10 +303,11 @@ export async function GET(req: Request) {
             temperature: 0.8,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
           },
         }),
-      }
+      },
     );
 
     // Clear key from memory immediately
@@ -229,45 +317,117 @@ export async function GET(req: Request) {
       console.error(`❌ [Gemini] API Error: ${geminiRes.status}`);
       return NextResponse.json(
         { error: "AI Service Unavailable" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    // 5. Parse Gemini Response
+    // 6. Parse Gemini Response
     const geminiData = await geminiRes.json();
     const textResponse =
       geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    // Extract JSON from potential Markdown formatting
-    const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("Invalid JSON format from AI");
-
-    const geminiRecommendations: GeminiItem[] = JSON.parse(jsonMatch[0]);
+    const finishReason = geminiData.candidates?.[0]?.finishReason;
 
     console.log(
-      `🎬 [Gemini] Received ${geminiRecommendations.length} recommendations. Fetching TMDB details...`
+      `📝 [Gemini] Raw response length: ${textResponse.length} chars`,
     );
 
-    // 6. TMDB Enrichment (Sequential to avoid ECONNRESET)
-    const validResults: ProcessedRecommendation[] = [];
-
-    for (const rec of geminiRecommendations) {
-      const data = await fetchTmdbData(rec);
-      if (data) validResults.push(data);
+    let geminiRecommendations: GeminiRecommendationItem[];
+    try {
+      // Direct JSON parse since we requested responseMimeType: "application/json"
+      geminiRecommendations = JSON.parse(textResponse);
+      console.log(
+        `✅ [Gemini] Parsed ${geminiRecommendations.length} recommendations`,
+      );
+    } catch (parseError) {
+      // Fallback manual parsing if strict JSON mode failed or wasn't supported by model version
+      console.warn(
+        "⚠️ [Gemini] Direct JSON parse failed, attempting cleanup...",
+      );
+      let jsonString = textResponse.replace(/```(?:json)?|```/g, "").trim();
+      try {
+        geminiRecommendations = JSON.parse(jsonString);
+      } catch (e) {
+        console.error("❌ [Gemini] JSON Parse Error");
+        throw new Error("Invalid JSON format from AI");
+      }
     }
 
-    console.log(`✅ [Success] Returned ${validResults.length} recommendations`);
+    if (
+      !Array.isArray(geminiRecommendations) ||
+      geminiRecommendations.length === 0
+    ) {
+      throw new Error("No valid recommendations received from AI");
+    }
+
+    // Warn if we got fewer than expected (might be truncated)
+    if (geminiRecommendations.length < 12) {
+      console.warn(
+        `⚠️ [Gemini] Received ${geminiRecommendations.length}/12 recommendations (may be truncated)`,
+      );
+    }
+
+    // 7. TMDB Enrichment (Parallelized for Speed)
+    const validResults: GeminiRecommendationResponse[] = [];
+    const BATCH_SIZE = 6; // Process 6 requests in parallel
+
+    for (let i = 0; i < geminiRecommendations.length; i += BATCH_SIZE) {
+      const batch = geminiRecommendations.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map((rec) => fetchTmdbData(rec)),
+      );
+
+      for (const res of batchResults) {
+        if (res) validResults.push(res);
+      }
+    }
+
+    // 8. Delete old recommendations and save new ones to DB
+    if (validResults.length > 0) {
+      // Delete old recommendations
+      await supabase.from("recommendations").delete().eq("user_id", user.id);
+
+      // Insert new recommendations
+      const dbRecords = validResults.map((rec) => ({
+        user_id: user.id,
+        tmdb_id: rec.tmdb_id,
+        title: rec.title,
+        media_type: rec.media_type,
+        poster_path: rec.poster_path,
+        backdrop_path: rec.backdrop_path,
+        vote_average: rec.vote_average,
+        release_date: rec.release_date,
+        number_of_seasons: rec.number_of_seasons,
+        number_of_episodes: rec.number_of_episodes, // Added
+        reason: rec.reason,
+        genre: rec.genre,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("recommendations")
+        .insert(dbRecords);
+
+      if (insertError) {
+        console.error("❌ [Recommendations] DB Insert Error:", insertError);
+      } else {
+        console.log(`✅ [Recommendations] Saved ${validResults.length} to DB`);
+      }
+
+      // 9. Save to cache
+      await setCachedData(cacheKey, validResults, CACHE_TTL);
+      console.log(`✅ [Recommendations] Cached for user ${user.id}`);
+    }
 
     return NextResponse.json({
       success: true,
       recommendations: validResults,
       generatedAt: new Date().toISOString(),
+      source: "generated",
     });
   } catch (error: any) {
     console.error("🔥 [Critical Error]", error.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

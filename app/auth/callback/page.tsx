@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/src/lib/supabase";
-import { ensureUserProfile } from "@/src/lib/database";
+import { supabase } from "@/src/lib/auth/supabase";
+import { ensureUserProfile } from "@/src/lib/db/database";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -38,8 +38,6 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        console.log("✅ Session established for user:", session.user.id);
-
         // Wait a bit more for the database trigger to create the profile
         await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -73,8 +71,6 @@ export default function AuthCallbackPage() {
           }
           return;
         }
-
-        console.log("✅ Profile loaded:", profile);
 
         // Check if user needs onboarding
         if (profile && !profile.onboarded) {

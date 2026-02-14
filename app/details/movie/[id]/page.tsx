@@ -4,47 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
-import Footer from "@/src/components/footer";
-import LoadingDots from "@/src/components/LoadingDots";
+import Footer from "@/src/components/layout/Footer";
+import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/NotificationContext";
-import {
-  addToWatchlist,
-  removeFromWatchlist,
-  isInWatchlist,
-} from "@/src/lib/database";
-
-interface Movie {
-  id: number;
-  title: string;
-  backdrop_path: string;
-  poster_path: string;
-  release_date: string;
-  vote_average: number;
-  runtime: number;
-  tagline: string;
-  overview: string;
-  budget: number;
-  revenue: number;
-  genres: { id: number; name: string }[];
-  production_companies: { id: number; name: string; logo_path: string }[];
-  credits: {
-    cast: {
-      id: number;
-      name: string;
-      character: string;
-      profile_path: string;
-    }[];
-  };
-  similar: {
-    results: {
-      id: number;
-      title: string;
-      poster_path: string;
-      vote_average: number;
-    }[];
-  };
-}
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { supabase } from "@/src/lib/auth/supabase";
+import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
@@ -73,41 +38,17 @@ export default function MovieDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [movie, setMovie] = useState<Movie | null>(null);
+  const [movie, setMovie] = useState<TMDBMovieDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        const cacheKey = `movie_details_${params.id}`;
-        const cached = sessionStorage.getItem(cacheKey);
-
-        if (cached) {
-          try {
-            const { data, timestamp } = JSON.parse(cached);
-            if (Date.now() - timestamp < CACHE_TTL) {
-              console.log(`✅ Movie loaded from cache`);
-              setMovie(data);
-              setLoading(false);
-              return;
-            }
-            sessionStorage.removeItem(cacheKey);
-          } catch {
-            sessionStorage.removeItem(cacheKey);
-          }
-        }
-
-        console.log(`📽️ Building movie details for ID ${params.id}...`);
         const response = await fetch(`/api/movie/${params.id}`);
         if (!response.ok) throw new Error("Failed to fetch movie details");
 
         const data = await response.json();
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() })
-        );
-        console.log(`✅ Movie built and cached`);
 
         setMovie(data);
         setError(null);
@@ -127,8 +68,22 @@ export default function MovieDetails() {
     const checkWatchlistStatus = async () => {
       if (user && movie) {
         try {
-          const inWatchlist = await isInWatchlist(user.id, movie.id, "movie");
-          setIsWatchlisted(inWatchlist);
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session) {
+            const res = await fetch(
+              `/api/watchlist/check?tmdbId=${movie.id}&mediaType=movie`,
+              {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              },
+            );
+            const data = await res.json();
+            setIsWatchlisted(data.inWatchlist);
+          }
         } catch (err) {
           console.error("Error checking watchlist status:", err);
         }
@@ -147,39 +102,75 @@ export default function MovieDetails() {
     if (!movie) return;
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error("No session found");
+        return;
+      }
+
       if (isWatchlisted) {
-        await removeFromWatchlist(user.id, movie.id, "movie");
-        console.log("✅ Removed from watchlist");
+        const res = await fetch(
+          `/api/watchlist?tmdbId=${movie.id}&mediaType=movie`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          },
+        );
+        if (!res.ok) throw new Error("Failed to remove from watchlist");
       } else {
-        await addToWatchlist(user.id, {
-          tmdb_id: movie.id,
-          title: movie.title,
-          media_type: "movie",
-          poster_path: movie.poster_path,
-          release_date: movie.release_date,
-          vote: movie.vote_average,
+        const res = await fetch("/api/watchlist", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tmdb_id: movie.id,
+            title: movie.title,
+            media_type: "movie",
+            poster_path: movie.poster_path,
+            release_date: movie.release_date,
+            vote: movie.vote_average,
+          }),
         });
-        console.log("✅ Added to watchlist");
+
+        if (!res.ok) throw new Error("Failed to add to watchlist");
+
         addNotification(`${movie.title} added to watchlist`, "success");
       }
 
       setIsWatchlisted(!isWatchlisted);
-      sessionStorage.removeItem(`watchlist_${user.id}`);
-      console.log("💾 Watchlist cache cleared");
     } catch (err) {
       console.error("❌ Error toggling watchlist:", err);
-      setIsWatchlisted(!isWatchlisted);
+      // setIsWatchlisted(!isWatchlisted); // Don't revert optimistically if we just failed the request? Or maybe we should. The original code toggled after success (or failed to toggle).
+      // Original code: setIsWatchlisted(!isWatchlisted) at the end of try (success), and also in catch (revert).
+      // Here I am toggling at the end of try. If it fails, I should probably NOT toggle, or revert if I did optimistic update.
+      // I am NOT doing optimistic update here. I am waiting for request.
+
       addNotification("Failed to update watchlist", "error");
     }
   };
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: BG_COLOR }}
-      >
-        <LoadingDots />
+      <div className="min-h-screen">
+        {/* Background Effects */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-black" />
+          <div className="hidden md:block">
+            <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f7575] blur-[130px] opacity-40" />
+            <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341264] blur-[130px] opacity-30 mix-blend-screen" />
+          </div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+        </div>
+        <div className="relative z-10">
+          <DetailsSkeleton />
+        </div>
       </div>
     );
   }
@@ -453,7 +444,7 @@ export default function MovieDetails() {
           </div>
         </section>
 
-        {movie.similar?.results?.length > 0 && (
+        {movie.similar?.results?.length ? (
           <section>
             <h2
               className="text-2xl md:text-4xl font-semibold mb-6 md:mb-8 text-white"
@@ -471,8 +462,12 @@ export default function MovieDetails() {
                 >
                   <div className="relative aspect-[2/3]">
                     <Image
-                      src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
-                      alt={similar.title}
+                      src={
+                        similar.poster_path
+                          ? `https://image.tmdb.org/t/p/w500${similar.poster_path}`
+                          : "/placeholder.jpg"
+                      }
+                      alt={similar.title || "Similar movie"}
                       fill
                       sizes="(max-width: 768px) 140px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
@@ -493,7 +488,7 @@ export default function MovieDetails() {
                         className="font-semibold text-sm"
                         style={{ fontFamily: FONT }}
                       >
-                        {similar.vote_average.toFixed(1)}
+                        {(similar.vote_average ?? 0).toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -501,7 +496,7 @@ export default function MovieDetails() {
               ))}
             </div>
           </section>
-        )}
+        ) : null}
       </div>
       <Footer />
     </div>

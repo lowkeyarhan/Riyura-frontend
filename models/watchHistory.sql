@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS watch_history (
   media_type TEXT CHECK (media_type IN ('movie', 'tv')) NOT NULL,
   stream_id stream_id_enum NOT NULL,
   poster_path TEXT,
+  backdrop_path TEXT,
   release_date DATE,
   duration_sec INT,
   season_number INT,

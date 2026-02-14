@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/src/hooks/useAuth";
-import { supabase } from "@/src/lib/supabase";
+import { supabase } from "@/src/lib/auth/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 

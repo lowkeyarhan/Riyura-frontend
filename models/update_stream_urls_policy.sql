@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Allow public read access to stream urls" ON stream_urls;

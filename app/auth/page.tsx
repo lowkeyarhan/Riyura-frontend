@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/src/lib/supabase";
-import { ensureUserProfile } from "@/src/lib/database";
+import { supabase } from "@/src/lib/auth/supabase";
+import { ensureUserProfile } from "@/src/lib/db/database";
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -74,7 +74,7 @@ export default function AuthPage() {
         if (data?.user && !data.session) {
           // Email confirmation required - show message
           setInfo(
-            "Account created! Check your email and click the confirmation link to verify your account."
+            "Account created! Check your email and click the confirmation link to verify your account.",
           );
         } else {
           // Auto-confirmed (should not happen with email confirmation enabled)
@@ -406,8 +406,8 @@ export default function AuthPage() {
                       ? "Creating..."
                       : "Signing in..."
                     : isSignUp
-                    ? "Create Account"
-                    : "Sign In"}
+                      ? "Create Account"
+                      : "Sign In"}
                 </span>
 
                 {/* Hover shine effect */}

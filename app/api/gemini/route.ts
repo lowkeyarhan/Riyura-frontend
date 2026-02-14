@@ -4,7 +4,7 @@ import {
   encryptApiKey,
   getKeyPreview,
   isValidGeminiApiKeyFormat,
-} from "@/src/lib/encryption";
+} from "@/src/lib/utils/encryption";
 
 /**
  * Handles Supabase authentication and client initialization
@@ -17,7 +17,7 @@ async function getAuthenticatedUser(req: Request) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: authHeader } } }
+    { global: { headers: { Authorization: authHeader } } },
   );
 
   const {
@@ -37,8 +37,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { supabase, user } = auth;
-    console.log(`🔍 [Gemini API] Fetching status for user: ${user.id}`);
-
     const { data, error } = await supabase
       .from("gemini_api_keys")
       .select("key_preview, created_at")
@@ -60,7 +58,7 @@ export async function GET(req: Request) {
     console.error("🔥 [Gemini API] GET Error:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -82,17 +80,16 @@ export async function POST(req: Request) {
     if (!body.apiKey)
       return NextResponse.json(
         { error: "API key is required" },
-        { status: 400 }
+        { status: 400 },
       );
     if (!isValidGeminiApiKeyFormat(body.apiKey)) {
       return NextResponse.json(
         { error: "Invalid API key format. Must start with 'AIza'." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 2. Encryption
-    console.log(`🔐 [Gemini API] Encrypting key for user: ${user.id}`);
     const { encryptedKey, iv, authTag } = encryptApiKey(body.apiKey);
     const keyPreview = getKeyPreview(body.apiKey);
 
@@ -114,7 +111,6 @@ export async function POST(req: Request) {
     };
 
     if (existing) {
-      console.log(`📝 [Gemini API] Updating existing key ID: ${existing.id}`);
       result = await supabase
         .from("gemini_api_keys")
         .update(payload)
@@ -122,7 +118,6 @@ export async function POST(req: Request) {
         .select("key_preview")
         .single();
     } else {
-      console.log(`✨ [Gemini API] Inserting new key`);
       result = await supabase
         .from("gemini_api_keys")
         .insert(payload)
@@ -141,7 +136,7 @@ export async function POST(req: Request) {
     console.error("🔥 [Gemini API] POST Error:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -157,8 +152,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { supabase, user } = auth;
-    console.log(`🗑️  [Gemini API] Deleting key for user: ${user.id}`);
-
     const { error } = await supabase
       .from("gemini_api_keys")
       .delete()
@@ -174,7 +167,7 @@ export async function DELETE(req: Request) {
     console.error("🔥 [Gemini API] DELETE Error:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

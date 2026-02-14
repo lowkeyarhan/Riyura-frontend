@@ -40,6 +40,7 @@ export interface ContinueWatchingOverlayItem {
   mediaType: "movie" | "tv";
   seasonNumber?: number;
   episodeNumber?: number;
+  streamId?: string;
 }
 
 // RECOMMENDATION CARD: Used for AI Suggestions

@@ -30,8 +30,8 @@ export default function WatchlistPage() {
   const counts = useMemo(() => {
     if (!Array.isArray(items)) return { movie: 0, tv: 0, total: 0 };
     return {
-      movie: items.filter((i) => i.media_type === "movie").length,
-      tv: items.filter((i) => i.media_type === "tv").length,
+      movie: items.filter((i) => i.media_type === "Movie").length,
+      tv: items.filter((i) => i.media_type === "TV").length,
       total: items.length,
     };
   }, [items]);
@@ -40,9 +40,13 @@ export default function WatchlistPage() {
   const visibleItems = useMemo(() => {
     if (!Array.isArray(items)) return [];
 
-    // Filter
-    let filtered =
-      filter === "all" ? items : items.filter((i) => i.media_type === filter);
+    // Filter - convert UI filter values to database format
+    let filtered = items;
+    if (filter === "movie") {
+      filtered = items.filter((i) => i.media_type === "Movie");
+    } else if (filter === "tv") {
+      filtered = items.filter((i) => i.media_type === "TV");
+    }
 
     // Sort
     const sorted = [...filtered];

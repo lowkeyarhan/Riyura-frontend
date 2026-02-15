@@ -61,9 +61,9 @@ export function ContinueWatchingCard({
         </h4>
         <p className="text-xs font-medium text-gray-400 mb-2 md:mb-3 flex items-center gap-2">
           <span className="bg-white/10 px-2 py-0.5 rounded text-gray-300">
-            {item.type}
+            {item.mediaType === "Movie" ? "Movie" : item.type}
           </span>
-          {item.type?.toLowerCase().includes("movie") && item.year && (
+          {item.mediaType === "Movie" && item.year && (
             <span className="text-gray-600">• {item.year}</span>
           )}
         </p>
@@ -86,3 +86,4 @@ export function ContinueWatchingCard({
     </motion.div>
   );
 }
+

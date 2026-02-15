@@ -82,7 +82,7 @@ export function useMoviePlayer({
       const watchData = {
         tmdb_id: parseInt(movieId),
         title: currentMovie.title,
-        media_type: "movie" as const,
+        media_type: "Movie" as const,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentMovie.poster_path,
         backdrop_path: currentMovie.backdrop_path,
@@ -90,6 +90,12 @@ export function useMoviePlayer({
         duration_sec: watchDuration.current,
         episode_length: currentMovie.runtime ? currentMovie.runtime * 60 : null,
       };
+
+      console.log("💾 Saving movie watch history:", {
+        title: currentMovie.title,
+        duration: watchDuration.current,
+        media_type: "Movie"
+      });
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
@@ -101,7 +107,10 @@ export function useMoviePlayer({
           },
           body: JSON.stringify(watchData),
           keepalive: true,
-        }).catch((err) => console.error("Failed to save watch history", err));
+        })
+          .then(res => res.json())
+          .then(data => console.log("✅ Movie watch history saved:", data))
+          .catch((err) => console.error("❌ Failed to save movie watch history:", err));
       });
     },
     [userId, movieId],

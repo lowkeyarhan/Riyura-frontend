@@ -70,7 +70,7 @@ export default function ProfilePage() {
 
   const handlePlayClick = useCallback(
     (item: any) => {
-      if (item.mediaType === "movie") {
+      if (item.mediaType === "Movie") {
         const url = `/player/movie/${item.tmdbId}${
           item.streamId ? `?stream=${item.streamId}` : ""
         }`;
@@ -109,7 +109,7 @@ export default function ProfilePage() {
 
   const handleWatchlistItemClick = (item: any) => {
     router.push(
-      item.media_type === "movie"
+      item.media_type === "Movie"
         ? `/details/movie/${item.tmdb_id}`
         : `/details/tvshow/${item.tmdb_id}`,
     );
@@ -117,7 +117,7 @@ export default function ProfilePage() {
 
   const handleRecommendationClick = (item: any) => {
     router.push(
-      item.media_type === "movie"
+      item.media_type === "Movie"
         ? `/details/movie/${item.tmdb_id}`
         : `/details/tvshow/${item.tmdb_id}`,
     );

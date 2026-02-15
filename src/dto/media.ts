@@ -3,7 +3,7 @@
 // ============================================
 
 // Media Types
-export type MediaType = "movie" | "tv";
+export type MediaType = "Movie" | "TV";
 
 // ============================================
 // MEDIA ITEM - Common DTO for all media cards/grids

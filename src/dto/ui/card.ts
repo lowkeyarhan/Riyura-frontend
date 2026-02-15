@@ -37,7 +37,7 @@ export interface ContinueWatchingOverlayItem {
   progress: number;
   meta: string;
   remaining: string;
-  mediaType: "movie" | "tv";
+  mediaType: "Movie" | "TV";
   seasonNumber?: number;
   episodeNumber?: number;
   streamId?: string;

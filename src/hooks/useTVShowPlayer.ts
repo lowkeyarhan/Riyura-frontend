@@ -117,7 +117,7 @@ export function useTVShowPlayer({
       const watchData = {
         tmdb_id: parseInt(tvShowId),
         title: `${currentTvShow.name}`,
-        media_type: "tv" as const,
+        media_type: "TV" as const,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentTvShow.poster_path,
         backdrop_path: currentTvShow.backdrop_path,
@@ -131,6 +131,14 @@ export function useTVShowPlayer({
           : null,
       };
 
+      console.log("💾 Saving TV show watch history (interval):", {
+        title: currentTvShow.name,
+        season: currentSeason,
+        episode: currentEpisodeNum,
+        duration: watchDuration.current,
+        media_type: "TV"
+      });
+
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
         fetch("/api/watch-history", {
@@ -141,7 +149,10 @@ export function useTVShowPlayer({
           },
           body: JSON.stringify(watchData),
           keepalive: true,
-        }).catch((err) => console.error("Failed to save watch history", err));
+        })
+          .then(res => res.json())
+          .then(data => console.log("✅ TV show watch history saved (interval):", data))
+          .catch((err) => console.error("❌ Failed to save TV show watch history (interval):", err));
       });
     };
 
@@ -175,7 +186,7 @@ export function useTVShowPlayer({
       const watchData = {
         tmdb_id: parseInt(tvShowId),
         title: `${currentTvShow.name}`,
-        media_type: "tv" as const,
+        media_type: "TV" as const,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentTvShow.poster_path,
         backdrop_path: currentTvShow.backdrop_path,
@@ -189,6 +200,14 @@ export function useTVShowPlayer({
           : null,
       };
 
+      console.log("💾 Saving TV show watch history (unmount):", {
+        title: currentTvShow.name,
+        season: currentSeason,
+        episode: currentEpisodeNum,
+        duration: watchDuration.current,
+        media_type: "TV"
+      });
+
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
         fetch("/api/watch-history", {
@@ -199,7 +218,10 @@ export function useTVShowPlayer({
           },
           body: JSON.stringify(watchData),
           keepalive: true,
-        }).catch((err) => console.error("Failed to save watch history", err));
+        })
+          .then(res => res.json())
+          .then(data => console.log("✅ TV show watch history saved (unmount):", data))
+          .catch((err) => console.error("❌ Failed to save TV show watch history (unmount):", err));
       });
     },
     [userId, tvShowId],

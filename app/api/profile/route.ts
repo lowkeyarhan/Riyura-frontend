@@ -76,7 +76,7 @@ export async function GET(req: Request) {
                 ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
                 : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
             type:
-              item.media_type === "movie"
+              item.media_type === "Movie"
                 ? "Movie"
                 : item.episode_name
                   ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
@@ -94,11 +94,11 @@ export async function GET(req: Request) {
 
         // Calculate stats using ProfileStat DTO
         const moviesCount = (watchHistoryData || []).filter(
-          (i: any) => i.media_type === "movie",
+          (i: any) => i.media_type === "Movie",
         ).length;
         const seriesCount = new Set(
           (watchHistoryData || [])
-            .filter((i: any) => i.media_type !== "movie")
+            .filter((i: any) => i.media_type !== "Movie")
             .map((i: any) => i.tmdb_id),
         ).size;
         const totalSeconds = (watchHistoryData || []).reduce(

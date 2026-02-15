@@ -123,10 +123,15 @@ const contentVariants: Variants = {
   exit: { opacity: 0, y: -20 },
 };
 
+// Helper function to convert TMDB format to database format
+const toMediaType = (contentType: "movie" | "tv"): "Movie" | "TV" => {
+  return contentType === "movie" ? "Movie" : "TV";
+};
+
 const mapWatchHistoryItem = (
   item: WatchHistoryItem,
 ): ContinueWatchingOverlayItem => {
-  const fallbackLength = item.media_type === "movie" ? 7200 : 2700;
+  const fallbackLength = item.media_type === "Movie" ? 7200 : 2700;
   const totalLength = Math.max(60, item.episode_length || fallbackLength);
   const watchedSeconds = Math.max(0, item.duration_sec || 0);
   const remainingSeconds = Math.max(0, totalLength - watchedSeconds);
@@ -138,7 +143,7 @@ const mapWatchHistoryItem = (
     image: getCardImageUrl(item.backdrop_path || item.poster_path),
     progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
     meta:
-      item.media_type === "movie"
+      item.media_type === "Movie"
         ? "Movie"
         : `S${item.season_number || 1} E${item.episode_number || 1}`,
     remaining:
@@ -287,7 +292,7 @@ export default function Banner({ initialItems }: BannerProps) {
         const inWatchlist = await isInWatchlist(
           user.id,
           currentItemId,
-          currentContentType,
+          toMediaType(currentContentType),
         );
         setIsWatchlisted(inWatchlist);
       } catch {
@@ -447,7 +452,7 @@ export default function Banner({ initialItems }: BannerProps) {
         await removeFromWatchlist(
           user.id,
           currentItem.id,
-          currentItem.contentType,
+          toMediaType(currentItem.contentType),
         );
         setIsWatchlisted(false);
         addNotification(`${mediaTitle} removed from watchlist`, "success");
@@ -455,7 +460,7 @@ export default function Banner({ initialItems }: BannerProps) {
         await addToWatchlist(user.id, {
           tmdb_id: currentItem.id,
           title: mediaTitle,
-          media_type: currentItem.contentType,
+          media_type: toMediaType(currentItem.contentType),
           poster_path:
             currentItem.poster_path || currentItem.backdrop_path || null,
           release_date: currentItem.date || null,
@@ -498,7 +503,7 @@ export default function Banner({ initialItems }: BannerProps) {
 
   const handlePlayClick = useCallback(
     (item: any) => {
-      if (item.mediaType === "movie") {
+      if (item.mediaType === "Movie") {
         const url = `/player/movie/${item.tmdbId}${
           item.streamId ? `?stream=${item.streamId}` : ""
         }`;

@@ -127,7 +127,7 @@ export function WatchlistGrid({
             posterUrl={posterUrl(item.poster_path)}
             year={getYear(item.release_date)}
             rating={item.vote ?? undefined}
-            type={item.media_type === "Movie" ? "movie" : "tv"}
+            type={item.media_type}
             seasons={item.number_of_seasons ?? undefined}
             episodes={item.number_of_episodes ?? undefined}
             onClick={() => onItemClick(item.tmdb_id, item.media_type === "Movie" ? "movie" : "tv")}

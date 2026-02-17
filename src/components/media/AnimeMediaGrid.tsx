@@ -54,7 +54,7 @@ export default function AnimeMediaGrid({
               posterUrl={posterUrl}
               year={getYearNumber(item)}
               rating={item.vote_average}
-              type="anime"
+              type={item.media_type === "movie" ? "Movie" : "TV"}
               onClick={() => onCardClick(item)}
             />
           );

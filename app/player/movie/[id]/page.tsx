@@ -57,6 +57,19 @@ export default function MoviePlayer() {
 
   if (loading) return <PlayerSkeleton />;
 
+  if (servers.length === 0) {
+    return (
+      <PlayerLayout>
+        <div className="min-h-screen flex flex-col items-center justify-center px-4">
+          <p className="text-xl text-white/90 mb-2">Unable to play any content</p>
+          <p className="text-white/60 text-sm text-center max-w-md">
+            No stream sources are configured. Please add stream URLs for movies in the admin settings.
+          </p>
+        </div>
+      </PlayerLayout>
+    );
+  }
+
   return (
     <PlayerLayout>
       <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4">

@@ -26,8 +26,9 @@ export function useStreamUrls(mediaType: "movie" | "tv") {
     const fetchStreamUrls = async () => {
       try {
         setLoading(true);
+        const dbMediaType = mediaType === "movie" ? "Movie" : "TV";
         const response = await fetch(
-          `/api/stream-urls?media_type=${mediaType}`,
+          `/api/stream-urls?media_type=${dbMediaType}`,
         );
 
         if (!response.ok) {

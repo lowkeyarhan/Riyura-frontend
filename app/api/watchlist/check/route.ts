@@ -27,14 +27,17 @@ function createAuthedSupabaseClient(authHeader: string) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tmdbId = searchParams.get("tmdbId");
-  const mediaType = searchParams.get("mediaType");
+  const mediaTypeParam = searchParams.get("mediaType");
 
-  if (!tmdbId || !mediaType) {
+  if (!tmdbId || !mediaTypeParam) {
     return NextResponse.json(
       { error: "Missing tmdbId or mediaType" },
       { status: 400 },
     );
   }
+
+  const mediaType =
+    mediaTypeParam === "movie" || mediaTypeParam === "Movie" ? "Movie" : "TV";
 
   // Get auth token from header
   const authHeader = request.headers.get("Authorization");

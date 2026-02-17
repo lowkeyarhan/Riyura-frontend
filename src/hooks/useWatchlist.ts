@@ -75,8 +75,9 @@ export function useWatchlist(userId: string | undefined) {
           return { success: false };
         }
 
+        const dbMediaType = mediaType === "movie" ? "Movie" : "TV";
         const res = await fetch(
-          `/api/watchlist?tmdbId=${tmdbId}&mediaType=${mediaType}`,
+          `/api/watchlist?tmdbId=${tmdbId}&mediaType=${dbMediaType}`,
           {
             method: "DELETE",
             headers: {

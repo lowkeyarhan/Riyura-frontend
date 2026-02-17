@@ -159,7 +159,8 @@ async function fetchTmdbData(
     return {
       tmdb_id: result.id,
       title: result.title || result.name || item.title,
-      media_type: item.type === "anime" ? "tv" : (item.type as "movie" | "tv"),
+      media_type:
+        item.type === "anime" ? "TV" : item.type === "movie" ? "Movie" : "TV",
       poster_path: result.poster_path,
       backdrop_path: result.backdrop_path,
       vote_average: result.vote_average,

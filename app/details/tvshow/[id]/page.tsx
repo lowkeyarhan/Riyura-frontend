@@ -98,7 +98,7 @@ export default function TVShowDetails() {
 
           if (session) {
             const res = await fetch(
-              `/api/watchlist/check?tmdbId=${tvShow.id}&mediaType=tv`,
+              `/api/watchlist/check?tmdbId=${tvShow.id}&mediaType=TV`,
               {
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -149,7 +149,7 @@ export default function TVShowDetails() {
 
       if (isWatchlisted) {
         const res = await fetch(
-          `/api/watchlist?tmdbId=${tvShow.id}&mediaType=tv`,
+          `/api/watchlist?tmdbId=${tvShow.id}&mediaType=TV`,
           {
             method: "DELETE",
             headers: {
@@ -171,7 +171,7 @@ export default function TVShowDetails() {
           body: JSON.stringify({
             tmdb_id: tvShow.id,
             title: tvShow.name,
-            media_type: "tv",
+            media_type: "TV",
             poster_path: tvShow.poster_path,
             release_date: tvShow.first_air_date,
             vote: tvShow.vote_average,

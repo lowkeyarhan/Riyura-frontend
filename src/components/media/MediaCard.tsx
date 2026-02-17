@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Play, Sparkles } from "lucide-react";
+import { Play } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { MediaCardDTO } from "@/src/dto/ui/card";
 
@@ -54,9 +54,8 @@ const TYPE_CONFIG: Record<
   MediaCardDTO["mediaType"],
   { label: string; icon: React.ReactNode }
 > = {
-  movie: { label: "Movie", icon: <MovieIcon /> },
-  tv: { label: "TV", icon: <TVIcon /> },
-  anime: { label: "Anime", icon: <Sparkles className="w-5 h-5 text-white" /> },
+  Movie: { label: "Movie", icon: <MovieIcon /> },
+  TV: { label: "TV", icon: <TVIcon /> },
 };
 
 export default function MediaCard({
@@ -69,7 +68,9 @@ export default function MediaCard({
   onContextMenu,
   onLongPress,
 }: MediaCardProps) {
-  const typeConfig = TYPE_CONFIG[type];
+  const normalizedType =
+    (type as string).toLowerCase() === "movie" ? "Movie" : "TV";
+  const typeConfig = TYPE_CONFIG[normalizedType] ?? TYPE_CONFIG.Movie;
   const hasRemove = typeof onRemove === "function";
 
   // Long-press detection for mobile

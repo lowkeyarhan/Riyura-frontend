@@ -28,7 +28,16 @@ function createAuthedSupabaseClient(authHeader: string) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type") as MediaType | "all" | null;
+  const typeParam = searchParams.get("type");
+  // Normalize to DB enum (Movie, TV)
+  const type: MediaType | "all" | null =
+    typeParam === "movie" || typeParam === "Movie"
+      ? "Movie"
+      : typeParam === "tv" || typeParam === "TV"
+        ? "TV"
+        : typeParam === "all"
+          ? "all"
+          : null;
 
   // Get auth token from header
   const authHeader = request.headers.get("Authorization");
@@ -98,11 +107,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body: WatchlistAddRequest = await request.json();
+    const body = await request.json();
     const {
       tmdb_id,
       title,
-      media_type,
+      media_type: mediaTypeParam,
       poster_path,
       release_date,
       vote,
@@ -110,12 +119,17 @@ export async function POST(request: Request) {
       number_of_episodes,
     } = body;
 
-    if (!tmdb_id || !title || !media_type) {
+    if (!tmdb_id || !title || !mediaTypeParam) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
     }
+
+    const media_type: MediaType =
+      mediaTypeParam === "movie" || mediaTypeParam === "Movie"
+        ? "Movie"
+        : "TV";
 
     const { data, error } = await supabase
       .from("watchlist")
@@ -196,14 +210,19 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const tmdbId = searchParams.get("tmdbId");
-    const mediaType = searchParams.get("mediaType");
+    const mediaTypeParam = searchParams.get("mediaType");
 
-    if (!tmdbId || !mediaType) {
+    if (!tmdbId || !mediaTypeParam) {
       return NextResponse.json(
         { error: "Missing tmdbId or mediaType" },
         { status: 400 },
       );
     }
+
+    const mediaType: MediaType =
+      mediaTypeParam === "movie" || mediaTypeParam === "Movie"
+        ? "Movie"
+        : "TV";
 
     const { error } = await supabase
       .from("watchlist")

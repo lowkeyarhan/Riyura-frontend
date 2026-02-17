@@ -74,7 +74,7 @@ export default function MovieDetails() {
 
           if (session) {
             const res = await fetch(
-              `/api/watchlist/check?tmdbId=${movie.id}&mediaType=movie`,
+              `/api/watchlist/check?tmdbId=${movie.id}&mediaType=Movie`,
               {
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -113,7 +113,7 @@ export default function MovieDetails() {
 
       if (isWatchlisted) {
         const res = await fetch(
-          `/api/watchlist?tmdbId=${movie.id}&mediaType=movie`,
+          `/api/watchlist?tmdbId=${movie.id}&mediaType=Movie`,
           {
             method: "DELETE",
             headers: {
@@ -132,7 +132,7 @@ export default function MovieDetails() {
           body: JSON.stringify({
             tmdb_id: movie.id,
             title: movie.title,
-            media_type: "movie",
+            media_type: "Movie",
             poster_path: movie.poster_path,
             release_date: movie.release_date,
             vote: movie.vote_average,
@@ -282,11 +282,10 @@ export default function MovieDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${
-                    isWatchlisted
+                  className={`p-3 rounded-full transition ${isWatchlisted
                       ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
                       : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
+                    }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"

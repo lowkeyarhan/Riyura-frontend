@@ -1,4 +1,4 @@
-export type UIMediaType = "movie" | "tv" | "anime";
+export type UIMediaType = "Movie" | "TV";
 
 // Base DTO for all card types, used in various UI components like media grids, banners, and recommendations.
 export interface MediaCardDTO {

@@ -64,7 +64,7 @@ export interface GeminiRecommendationItem {
 export interface GeminiRecommendationResponse {
   tmdb_id: number;
   title: string;
-  media_type: "movie" | "tv";
+  media_type: "Movie" | "TV";
   poster_path: string | null;
   backdrop_path: string | null;
   vote_average: number;

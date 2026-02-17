@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const mediaType = searchParams.get("media_type"); // 'movie' or 'tv'
+    const mediaTypeParam = searchParams.get("media_type"); // 'movie', 'tv', 'Movie', or 'TV'
 
     // Use service role key to bypass RLS and keep table private
     const supabase = createClient(
@@ -24,9 +24,15 @@ export async function GET(request: NextRequest) {
       .eq("is_active", true)
       .order("priority", { ascending: true });
 
-    // Filter by media type if specified
-    if (mediaType && (mediaType === "movie" || mediaType === "tv")) {
-      query = query.or(`media_type.eq.${mediaType},media_type.eq.both`);
+    // Normalize to DB enum values (Movie, TV) and filter if specified
+    const dbMediaType =
+      mediaTypeParam === "movie" || mediaTypeParam === "Movie"
+        ? "Movie"
+        : mediaTypeParam === "tv" || mediaTypeParam === "TV"
+          ? "TV"
+          : null;
+    if (dbMediaType) {
+      query = query.or(`media_type.eq.${dbMediaType},media_type.eq.both`);
     }
 
     const { data, error } = await query;

@@ -132,7 +132,7 @@ function GridSection({
               posterUrl={posterUrl}
               year={getYearNumber(item)}
               rating={item.vote_average}
-              type={mediaType}
+              type={mediaType === "movie" ? "Movie" : "TV"}
               onClick={() => onCardClick(item)}
             />
           );

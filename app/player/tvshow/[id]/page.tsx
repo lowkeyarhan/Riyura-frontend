@@ -47,7 +47,7 @@ export default function TVShowPlayer() {
   const servers = generateTVLinks(tvShowId, selectedSeason, selectedEpisode);
   const loading = tvShowLoading || streamsLoading;
 
-  // Set initial server based on stream parameter
+  // Set initial server based on stream parameter (only on mount or when stream param changes)
   useEffect(() => {
     if (streamParam && servers.length > 0) {
       const serverIndex = servers.findIndex((s) => s.id === streamParam);
@@ -55,7 +55,8 @@ export default function TVShowPlayer() {
         setActiveServerIndex(serverIndex);
       }
     }
-  }, [streamParam, servers]); // Only run when streamParam changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamParam, servers.length, setActiveServerIndex]); // Stable deps: don't include servers array itself (new ref every render)
 
   // Save watch history on unmount
   useEffect(() => {

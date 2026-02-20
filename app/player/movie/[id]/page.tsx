@@ -31,16 +31,16 @@ export default function MoviePlayer() {
   const servers = generateMovieLinks(movieId);
   const loading = movieLoading || streamsLoading;
 
-  // Set initial server based on stream parameter
+  // Set initial server based on stream parameter (only on mount or when stream param changes)
+  const streamParam = searchParams.get("stream");
   useEffect(() => {
-    const streamParam = searchParams.get("stream");
     if (streamParam && servers.length > 0) {
       const serverIndex = servers.findIndex((s) => s.id === streamParam);
       if (serverIndex !== -1) {
         setActiveServerIndex(serverIndex);
       }
     }
-  }, [searchParams, servers]); // Only run when searchParams changes
+  }, [streamParam, servers.length, setActiveServerIndex]); // Stable deps: run when stream param or server count changes, NOT every render
 
   // Save watch history on unmount
   useEffect(() => {

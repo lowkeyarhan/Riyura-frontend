@@ -1,8 +1,14 @@
+"use client";
+
+import { useVideasyPlayerMessages } from "@/src/hooks/useVideasyPlayerMessages";
+
 interface PlayerLayoutProps {
   children: React.ReactNode;
 }
 
 export function PlayerLayout({ children }: PlayerLayoutProps) {
+  useVideasyPlayerMessages();
+
   return (
     <div className="w-full bg-black text-white font-sans">
       {/* --- ATMOSPHERE --- */}

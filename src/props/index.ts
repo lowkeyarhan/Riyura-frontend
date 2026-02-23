@@ -3,7 +3,7 @@ export type { BannerProp } from "./banner/banner";
 export type { MediaCardProp } from "./global/mediaCard";
 export type { SearchProp } from "./search/search";
 export type { ExploreProp } from "./explore/explore";
-export type { StreamUrlProp } from "./global/streamUrl";
+export type { StreamUrlProp } from "./global/provider";
 export type { HistoryProp } from "./profile/history";
 export type {
   MovieDetailProp,

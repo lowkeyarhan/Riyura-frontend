@@ -1,4 +1,4 @@
-export interface StreamUrlProp {
+export interface ProviderProp {
   id: string;
   name: string;
   url: string;

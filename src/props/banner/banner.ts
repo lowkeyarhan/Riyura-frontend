@@ -7,7 +7,6 @@ export interface BannerProp {
   backdrop_path: string;
   contentType: MediaType;
   genres: string[];
-  adult: boolean;
-  maturityRating: string;
+  adult: string;
   year: string;
 }

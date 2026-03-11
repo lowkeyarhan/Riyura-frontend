@@ -306,8 +306,8 @@ export default function HomePage() {
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
                   className={`relative shrink-0 pb-2.5 text-base md:text-lg font-semibold transition-all duration-200 ${isActive
-                      ? "text-white"
-                      : "text-white/50 hover:text-white/75"
+                    ? "text-white"
+                    : "text-white/50 hover:text-white/75"
                     }`}
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >

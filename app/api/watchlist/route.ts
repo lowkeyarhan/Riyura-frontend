@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { MediaType, WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
-import {
-  getCachedData,
-  invalidateMultipleCaches,
-  setCachedData,
-} from "@/src/lib/cache";
-
 function createAuthedSupabaseClient(authHeader: string) {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,37 +51,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Cache watchlist data for 2 minutes
-  const cacheKey = `watchlist:${user.id}:${type || "all"}`;
-  const items = await getCachedData(
-    cacheKey,
-    async () => {
-      let query = supabase
-        .from("watchlist")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("added_at", { ascending: false });
+  let query = supabase
+    .from("watchlist")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("added_at", { ascending: false });
 
-      if (type && type !== "all") {
-        query = query.eq("media_type", type);
-      }
+  if (type && type !== "all") {
+    query = query.eq("media_type", type);
+  }
 
-      const { data, error } = await query;
+  const { data, error } = await query;
 
-      if (error) {
-        console.error(
-          "[API /api/watchlist GET] Database error:",
-          error.message,
-        );
-        throw error;
-      }
+  if (error) {
+    console.error("[API /api/watchlist GET] Database error:", error.message);
+    throw error;
+  }
 
-      return data as WatchlistItem[];
-    },
-    { ttl: 86400 }, // 24 hours
-  );
-
-  return NextResponse.json(items);
+  return NextResponse.json(data as WatchlistItem[]);
 }
 
 export async function POST(request: Request) {
@@ -127,9 +108,7 @@ export async function POST(request: Request) {
     }
 
     const media_type: MediaType =
-      mediaTypeParam === "movie" || mediaTypeParam === "Movie"
-        ? "Movie"
-        : "TV";
+      mediaTypeParam === "movie" || mediaTypeParam === "Movie" ? "Movie" : "TV";
 
     const { data, error } = await supabase
       .from("watchlist")
@@ -151,38 +130,6 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
-
-    // Instead of invalidating, fetch fresh data and update cache
-    const { data: allWatchlist, error: fetchError } = await supabase
-      .from("watchlist")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("added_at", { ascending: false });
-
-    if (!fetchError && allWatchlist) {
-      // Update 'all' cache
-      await setCachedData(
-        `watchlist:${user.id}:all`,
-        allWatchlist as WatchlistItem[],
-        120, // 2 minutes TTL
-      );
-
-      // Update media-type-specific cache
-      const typeFiltered = allWatchlist.filter(
-        (item: any) => item.media_type === media_type,
-      );
-      await setCachedData(
-        `watchlist:${user.id}:${media_type}`,
-        typeFiltered as WatchlistItem[],
-        120,
-      );
-    }
-
-    // Profile cache still needs invalidation as it has more complex data
-    await invalidateMultipleCaches([
-      `profile:${user.id}`,
-      `watchlist_check:${user.id}:${tmdb_id}:${media_type}`,
-    ]);
 
     return NextResponse.json(data);
   } catch (error: unknown) {
@@ -220,9 +167,7 @@ export async function DELETE(request: Request) {
     }
 
     const mediaType: MediaType =
-      mediaTypeParam === "movie" || mediaTypeParam === "Movie"
-        ? "Movie"
-        : "TV";
+      mediaTypeParam === "movie" || mediaTypeParam === "Movie" ? "Movie" : "TV";
 
     const { error } = await supabase
       .from("watchlist")
@@ -232,14 +177,6 @@ export async function DELETE(request: Request) {
       .eq("media_type", mediaType);
 
     if (error) throw error;
-
-    // Invalidate caches to force a fresh fetch on next request
-    await invalidateMultipleCaches([
-      `watchlist:${user.id}:all`,
-      `watchlist:${user.id}:${mediaType}`,
-      `profile:${user.id}`,
-      `watchlist_check:${user.id}:${tmdbId}:${mediaType}`,
-    ]);
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

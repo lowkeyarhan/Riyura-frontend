@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCachedData } from "@/src/lib/cache";
 import { MediaGridItem } from "@/src/dto/ui/card";
 import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
 
@@ -20,28 +19,20 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await getCachedData(
-      `trending:movies:week`,
-      async () => {
-        const response = await fetch(
-          `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`,
-          {
-            headers: { accept: "application/json" },
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch trending movies: ${response.status}`,
-          );
-        }
-
-        return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
+    const response = await fetch(
+      `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}&language=en-US`,
+      {
+        headers: { accept: "application/json" },
       },
-      { ttl: 86400 },
     );
 
-    // Data is already parsed from cache or fetch
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch trending movies: ${response.status}`,
+      );
+    }
+
+    const data = (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
 
     // Map to MediaGridItem and sanitize
     const items: MediaGridItem[] = Array.isArray(data?.results)

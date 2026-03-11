@@ -2,8 +2,6 @@
 
 A movie & TV streaming-style web application built with Next.js, TypeScript and Supabase for authentication, data storage and per‑user personalization.
 
-> Note: This project is for learning and portfolio purposes. You are responsible for complying with copyright and content laws in your jurisdiction.
-
 ## Project Overview
 
 Riyura 2.0 is a modernised version of the original Riyura project. It focuses on:
@@ -20,7 +18,7 @@ Riyura 2.0 is a modernised version of the original Riyura project. It focuses on
 - **Styling**: Tailwind CSS
 - **Auth & DB**: Supabase (Auth + Postgres) with Row Level Security (RLS)
 - **Client SDKs**: `@supabase/supabase-js`, `@supabase/ssr`
-- **Caching**: Browser `sessionStorage` / `localStorage` + (optionally) Redis for selected server‑side routes
+- **Caching**: Browser `sessionStorage` / `localStorage`
 - **Animation**: Framer Motion
 
 ---

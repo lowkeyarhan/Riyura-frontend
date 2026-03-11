@@ -8,7 +8,6 @@ import {
   TMDBTrendingTV,
 } from "@/src/dto/tmdb/lists";
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
 type TMDBBannerMovie = TMDBTrendingMovie & { adult?: boolean };
@@ -59,20 +58,40 @@ const shuffleItems = (items: BannerItem[]) => {
 };
 
 export async function GET() {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "Missing TMDB_API_KEY in environment variables" },
+      { status: 500 },
+    );
+  }
+
   try {
     const [moviesResponse, tvResponse] = await Promise.all([
-      fetch(`${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}`, {
+      fetch(`${TMDB_BASE_URL}/trending/movie/week?api_key=${apiKey}`, {
         headers: { accept: "application/json" },
         cache: "no-store",
       }),
-      fetch(`${TMDB_BASE_URL}/trending/tv/week?api_key=${TMDB_API_KEY}`, {
+      fetch(`${TMDB_BASE_URL}/trending/tv/week?api_key=${apiKey}`, {
         headers: { accept: "application/json" },
         cache: "no-store",
       }),
     ]);
 
     if (!moviesResponse.ok || !tvResponse.ok) {
-      throw new Error("Failed to fetch trending content");
+      const movieStatus = moviesResponse.status;
+      const tvStatus = tvResponse.status;
+      const [movieBody, tvBody] = await Promise.all([
+        moviesResponse.text(),
+        tvResponse.text(),
+      ]);
+      console.error("Banner API TMDB errors:", {
+        movies: { status: movieStatus, body: movieBody.slice(0, 200) },
+        tv: { status: tvStatus, body: tvBody.slice(0, 200) },
+      });
+      throw new Error(
+        `Failed to fetch trending content (movies: ${movieStatus}, tv: ${tvStatus})`,
+      );
     }
 
     const [moviesData, tvData] = await Promise.all([

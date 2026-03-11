@@ -2,12 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
 import { ApiResponse } from "@/src/dto/api";
-import {
-  getCachedDataOnly,
-  invalidateCache,
-  setCachedData,
-} from "@/src/lib/cache";
-
 const VALID_STREAMS = new Set([
   "syntherionmovie",
   "ironlinkmovie",
@@ -43,21 +37,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Cache watch history for 2 minutes (same TTL as watchlist)
-    const cacheKey = `watch-history:${user.id}`;
-    let data = await getCachedDataOnly<WatchHistoryItem[]>(cacheKey);
+    const { data: dbData, error } = await supabase
+      .from("watch_history")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("watched_at", { ascending: false })
+      .limit(10);
 
-    if (!data) {
-      const { data: dbData, error } = await supabase
-        .from("watch_history")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("watched_at", { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      data = dbData as WatchHistoryItem[];
-    }
+    if (error) throw error;
+    const data = dbData as WatchHistoryItem[];
 
     // Use ApiResponse wrapper for consistent response format
     const response: ApiResponse<WatchHistoryItem[]> = {
@@ -223,26 +211,6 @@ export async function POST(req: Request) {
       media_type: data.media_type,
       duration_sec: data.duration_sec,
     });
-
-    // Instead of invalidating, fetch fresh data and update cache
-    const { data: freshHistory, error: fetchError } = await supabase
-      .from("watch_history")
-      .select("*")
-      .eq("user_id", user_id)
-      .order("watched_at", { ascending: false })
-      .limit(10);
-
-    if (!fetchError && freshHistory) {
-      // Update watch-history cache with fresh data
-      await setCachedData(
-        `watch-history:${user_id}`,
-        freshHistory as WatchHistoryItem[],
-        120, // 2 minutes TTL
-      );
-    }
-
-    // Profile cache still needs invalidation as it has more complex data
-    await invalidateCache(`profile:${user_id}`);
 
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (err: any) {

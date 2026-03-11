@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCachedData } from "@/src/lib/cache";
 import { TMDBCreditsResponse } from "@/src/dto/tmdb/common";
 import {
   TMDBMovieDetails,
@@ -22,51 +21,38 @@ export async function GET(
 
   try {
     const { id: movieId } = await params;
-    const cacheKey = `movie:${movieId}`;
 
-    // valid for 1 hour
-    const movieData = await getCachedData(
-      cacheKey,
-      async () => {
-        // Fetch movie details, credits, and similar movies in parallel
-        const [detailsResponse, creditsResponse, similarResponse] =
-          await Promise.all([
-            fetch(
-              `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`,
-            ),
-            fetch(
-              `https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${apiKey}&language=en-US`,
-            ),
-            fetch(
-              `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}&language=en-US&page=1`,
-            ),
-          ]);
+    // Fetch movie details, credits, and similar movies in parallel
+    const [detailsResponse, creditsResponse, similarResponse] =
+      await Promise.all([
+        fetch(
+          `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=en-US`,
+        ),
+        fetch(
+          `https://api.themoviedb.org/3/movie/${movieId}/credits?api_key=${apiKey}&language=en-US`,
+        ),
+        fetch(
+          `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}&language=en-US&page=1`,
+        ),
+      ]);
 
-        if (!detailsResponse.ok) {
-          return null; // Return null to indicate failure to cache/fetch
-        }
-
-        const details = (await detailsResponse.json()) as TMDBMovieDetails;
-        const credits = (await creditsResponse.json()) as TMDBCreditsResponse;
-        const similar =
-          (await similarResponse.json()) as TMDBSimilarResponse<TMDBSimilarMovie>;
-
-        // Combine all data
-        return {
-          ...details,
-          credits,
-          similar,
-        };
-      },
-      { ttl: 86400 },
-    );
-
-    if (!movieData) {
+    if (!detailsResponse.ok) {
       return NextResponse.json(
         { error: "Failed to fetch movie details" },
-        { status: 404 }, // Or appropriate error status
+        { status: 404 },
       );
     }
+
+    const details = (await detailsResponse.json()) as TMDBMovieDetails;
+    const credits = (await creditsResponse.json()) as TMDBCreditsResponse;
+    const similar =
+      (await similarResponse.json()) as TMDBSimilarResponse<TMDBSimilarMovie>;
+
+    const movieData = {
+      ...details,
+      credits,
+      similar,
+    };
 
     return NextResponse.json(movieData);
   } catch (error) {

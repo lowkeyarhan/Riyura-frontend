@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCachedData } from "@/src/lib/cache";
 import {
   TMDBListResponse,
   TMDBMultiSearchResult,
@@ -66,10 +65,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] }, { status: 200 });
     }
 
-    const results = await getCachedData(
-      `search:${type}:${q}`,
-      async () => {
-        const endpoint =
+    const endpoint =
           type === "movie"
             ? "search/movie"
             : type === "tv"
@@ -174,11 +170,6 @@ export async function GET(request: NextRequest) {
           // Sort newest first (descending)
           return dateB.localeCompare(dateA);
         });
-
-        return results;
-      },
-      { ttl: 43200 },
-    );
 
     return NextResponse.json({ results }, { status: 200 });
   } catch (e) {

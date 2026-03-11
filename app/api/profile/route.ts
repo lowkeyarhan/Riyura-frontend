@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
-  ProfileData,
   ContinueWatchingItem,
   ProfileStat,
 } from "@/src/dto/media";
-import { getCachedData } from "@/src/lib/cache";
-
 export async function GET(req: Request) {
   try {
     const authHeader = req.headers.get("Authorization");
@@ -31,31 +28,27 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Cache profile data for 5 minutes
-    const responseData = await getCachedData(
-      `profile:${user.id}`,
-      async () => {
-        // Fetch watch history
-        const { data: watchHistoryData, error: historyError } = await supabase
+    // Fetch watch history
+    const { data: watchHistoryData, error: historyError } = await supabase
           .from("watch_history")
           .select("*")
           .eq("user_id", user.id)
           .order("watched_at", { ascending: false })
           .limit(10);
 
-        if (historyError) throw historyError;
+    if (historyError) throw historyError;
 
-        // Fetch watchlist
-        const { data: watchlistData, error: watchlistError } = await supabase
+    // Fetch watchlist
+    const { data: watchlistData, error: watchlistError } = await supabase
           .from("watchlist")
           .select("*")
           .eq("user_id", user.id)
           .order("added_at", { ascending: false });
 
-        if (watchlistError) throw watchlistError;
+    if (watchlistError) throw watchlistError;
 
-        // Format watch history for Continue Watching using ContinueWatchingItem DTO
-        const continueWatching: ContinueWatchingItem[] = (
+    // Format watch history for Continue Watching using ContinueWatchingItem DTO
+    const continueWatching: ContinueWatchingItem[] = (
           watchHistoryData || []
         ).map((item: any) => {
           const totalLength = item.episode_length || 7200;
@@ -92,36 +85,33 @@ export async function GET(req: Request) {
           };
         });
 
-        // Calculate stats using ProfileStat DTO
-        const moviesCount = (watchHistoryData || []).filter(
+    // Calculate stats using ProfileStat DTO
+    const moviesCount = (watchHistoryData || []).filter(
           (i: any) => i.media_type === "Movie",
         ).length;
-        const seriesCount = new Set(
+    const seriesCount = new Set(
           (watchHistoryData || [])
             .filter((i: any) => i.media_type !== "Movie")
             .map((i: any) => i.tmdb_id),
         ).size;
-        const totalSeconds = (watchHistoryData || []).reduce(
+    const totalSeconds = (watchHistoryData || []).reduce(
           (acc: number, item: any) => acc + (item.duration_sec || 0),
           0,
         );
-        const hoursCount = Math.round(totalSeconds / 3600);
+    const hoursCount = Math.round(totalSeconds / 3600);
 
-        const stats: ProfileStat[] = [
+    const stats: ProfileStat[] = [
           { label: "Movies", value: moviesCount.toString() },
           { label: "Series", value: seriesCount.toString() },
-          { label: "Hours", value: hoursCount.toString() },
-        ];
+      { label: "Hours", value: hoursCount.toString() },
+    ];
 
-        // Build response data using ProfileData DTO
-        return {
-          continueWatching,
-          watchlist: watchlistData || [],
-          stats,
-        };
-      },
-      { ttl: 86400 }, // 24 hours
-    );
+    // Build response data using ProfileData DTO
+    const responseData = {
+      continueWatching,
+      watchlist: watchlistData || [],
+      stats,
+    };
 
     return NextResponse.json(
       {

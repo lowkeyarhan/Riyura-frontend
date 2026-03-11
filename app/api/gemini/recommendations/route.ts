@@ -5,10 +5,7 @@ import {
   GeminiRecommendationItem,
   GeminiRecommendationResponse,
 } from "@/src/dto/ui/profile";
-import { setCachedData, getCachedDataOnly } from "@/src/lib/cache";
-
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const CACHE_TTL = 604800; // 7 days
 
 // --- Helper Functions ---
 
@@ -203,23 +200,8 @@ export async function GET(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Invalid Token" }, { status: 401 });
 
-    const cacheKey = `recommendations:${user.id}`;
-
-    // 2. Try cache first (if not forcing refresh)
+    // 2. Try database first (if not forcing refresh)
     if (!forceRefresh) {
-      const cached = await getCachedDataOnly(cacheKey);
-      if (cached) {
-        console.log(
-          `✅ [Recommendations] Serving from cache for user ${user.id}`,
-        );
-        return NextResponse.json({
-          success: true,
-          recommendations: cached,
-          source: "cache",
-        });
-      }
-
-      // Try database if cache miss
       const { data: dbRecommendations } = await supabase
         .from("recommendations")
         .select("*")
@@ -228,10 +210,8 @@ export async function GET(req: Request) {
 
       if (dbRecommendations && dbRecommendations.length > 0) {
         console.log(
-          `✅ [Recommendations] Serving from DB for user ${user.id}, caching...`,
+          `✅ [Recommendations] Serving from DB for user ${user.id}`,
         );
-        // Cache the DB results
-        await setCachedData(cacheKey, dbRecommendations, CACHE_TTL);
         return NextResponse.json({
           success: true,
           recommendations: dbRecommendations,
@@ -412,10 +392,6 @@ export async function GET(req: Request) {
       } else {
         console.log(`✅ [Recommendations] Saved ${validResults.length} to DB`);
       }
-
-      // 9. Save to cache
-      await setCachedData(cacheKey, validResults, CACHE_TTL);
-      console.log(`✅ [Recommendations] Cached for user ${user.id}`);
     }
 
     return NextResponse.json({

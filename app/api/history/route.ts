@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { invalidateMultipleCaches } from "@/src/lib/cache";
 
 const createAuthedSupabaseClient = (authHeader: string) => {
   return createClient(
@@ -116,12 +115,6 @@ export async function DELETE(request: Request) {
       .eq("id", id);
 
     if (error) throw error;
-
-    // Invalidate all caches that might contain this watch history data
-    await invalidateMultipleCaches([
-      `profile:${user.id}`,
-      `watch-history:${user.id}`,
-    ]);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

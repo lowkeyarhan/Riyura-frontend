@@ -4,14 +4,10 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import type { MouseEvent } from "react";
-import type { MediaCardDTO } from "@/src/dto/ui/card";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
-type MediaCardProps = Pick<MediaCardDTO, "title" | "posterUrl"> & {
-  rating?: MediaCardDTO["rating"];
-  year?: number | MediaCardDTO["year"];
-  type: MediaCardDTO["mediaType"];
-  seasons?: number;
-  episodes?: number;
+type MediaCardProps = {
+  item: MediaCardProp;
   onClick: () => void;
   onRemove?: (e: MouseEvent<HTMLButtonElement>) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -51,7 +47,7 @@ const TVIcon = () => (
 );
 
 const TYPE_CONFIG: Record<
-  MediaCardDTO["mediaType"],
+  MediaCardProp["media_type"],
   { label: string; icon: React.ReactNode }
 > = {
   Movie: { label: "Movie", icon: <MovieIcon /> },
@@ -59,18 +55,15 @@ const TYPE_CONFIG: Record<
 };
 
 export default function MediaCard({
-  title,
-  posterUrl,
-  year,
-  type,
+  item,
   onClick,
   onRemove,
   onContextMenu,
   onLongPress,
 }: MediaCardProps) {
-  const normalizedType =
-    (type as string).toLowerCase() === "movie" ? "Movie" : "TV";
-  const typeConfig = TYPE_CONFIG[normalizedType] ?? TYPE_CONFIG.Movie;
+  const { title, poster_path, year, media_type } = item;
+  const posterUrl = poster_path || "/placeholder-image.jpg";
+  const typeConfig = TYPE_CONFIG[media_type] ?? TYPE_CONFIG.Movie;
   const hasRemove = typeof onRemove === "function";
 
   // Long-press detection for mobile
@@ -153,7 +146,7 @@ export default function MediaCard({
             {typeConfig.label}
           </span>
           <span className="text-xs md:text-sm text-gray-400">
-            {year || "Unknown Year"}
+            {year ?? "Unknown Year"}
           </span>
         </div>
       </div>

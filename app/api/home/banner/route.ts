@@ -1,13 +1,19 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
+import { normalizeBannerItem } from "@/src/lib/tmdb-images";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const response = await backendClient.get("/banner");
-    return NextResponse.json(response.data);
+    const data = response.data;
+    if (Array.isArray(data?.items) && data.items.length > 0) {
+      const normalizedItems = data.items.map(normalizeBannerItem);
+      return NextResponse.json({ ...data, items: normalizedItems });
+    }
+    return NextResponse.json(data ?? { items: [] });
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error(

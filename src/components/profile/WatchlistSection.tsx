@@ -1,11 +1,22 @@
 import { ChevronRight, Film } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
 import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@/src/props/global/mediaType";
+
+interface WatchlistItemShape {
+  id: number;
+  tmdb_id?: number;
+  title: string;
+  poster_path: string | null;
+  release_date: string | null;
+  media_type: MediaType | "Movie" | "TV";
+}
 
 interface WatchlistSectionProps {
-  items: any[];
+  items: WatchlistItemShape[];
   isLoading: boolean;
-  onItemClick: (item: any) => void;
+  onItemClick: (item: WatchlistItemShape) => void;
   onViewAll: () => void;
 }
 
@@ -15,11 +26,17 @@ export function WatchlistSection({
   onItemClick,
   onViewAll,
 }: WatchlistSectionProps) {
-  const getPosterUrl = (posterPath: string | null) =>
-    posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
-
-  const getYear = (releaseDate: string | null) =>
-    releaseDate ? new Date(releaseDate).getFullYear() : undefined;
+  const toMediaCardProp = (item: WatchlistItemShape): MediaCardProp => ({
+    tmdbId: item.tmdb_id ?? item.id,
+    title: item.title,
+    poster_path: item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : "",
+    year: item.release_date
+      ? new Date(item.release_date).getFullYear().toString()
+      : "N/A",
+    media_type: item.media_type as MediaType,
+  });
 
   return (
     <section>
@@ -59,12 +76,7 @@ export function WatchlistSection({
             .map((item) => (
               <MediaCard
                 key={item.id}
-                title={item.title}
-                posterUrl={getPosterUrl(item.poster_path)}
-                year={getYear(item.release_date)}
-                type={item.media_type}
-                rating={item.vote_average}
-                seasons={item.number_of_seasons}
+                item={toMediaCardProp(item)}
                 onClick={() => onItemClick(item)}
               />
             ))

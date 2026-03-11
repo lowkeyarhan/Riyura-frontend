@@ -1,19 +1,9 @@
 import { TrendingCardSkeleton } from "../skeletons/TrendingCardSkeleton";
 import { TrendingCard } from "./TrendingCard";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface TrendingSectionProps {
-  items: Array<{
-    id: number;
-    title?: string;
-    name?: string;
-    overview?: string;
-    poster_path?: string | null;
-    backdrop_path?: string | null;
-    vote_average?: number;
-    release_date?: string;
-    first_air_date?: string;
-    mediaCategory: "movie" | "tv";
-  }>;
+  items: MediaCardProp[];
   isLoading: boolean;
   onCardClick: (href: string) => void;
   formatDate: (date: string | null | undefined) => string;
@@ -49,14 +39,14 @@ export function TrendingSection({
             <TrendingCardSkeleton key={`skeleton-${i}`} />
           ))
           : items.map((item) => {
-            const isMovie = item.mediaCategory === "movie";
+            const isMovie = item.media_type === "Movie";
             const href = isMovie
-              ? `/details/movie/${item.id}`
-              : `/details/tvshow/${item.id}`;
+              ? `/details/movie/${item.tmdbId}`
+              : `/details/tvshow/${item.tmdbId}`;
 
             return (
               <TrendingCard
-                key={`${item.id}-${item.mediaCategory}`}
+                key={`${item.tmdbId}-${item.media_type}`}
                 item={item}
                 onClick={() => onCardClick(href)}
                 formatDate={formatDate}

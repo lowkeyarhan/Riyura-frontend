@@ -2,6 +2,8 @@ import { LayoutGrid } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
 import { WatchlistItem } from "@/src/dto/media";
 import { ContextMenu } from "@/src/components/media/ContextMenu";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@/src/props/global/mediaType";
 import { useState } from "react";
 
 const FONT_FAMILY = "Be Vietnam Pro, sans-serif";
@@ -111,11 +113,17 @@ export function WatchlistGrid({
     );
   }
 
-  const posterUrl = (posterPath: string | null) =>
-    posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
-
-  const getYear = (releaseDate: string | null) =>
-    releaseDate ? new Date(releaseDate).getFullYear() : undefined;
+  const toMediaCardProp = (item: WatchlistItem): MediaCardProp => ({
+    tmdbId: item.tmdb_id,
+    title: item.title,
+    poster_path: item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : "",
+    year: item.release_date
+      ? new Date(item.release_date).getFullYear().toString()
+      : "N/A",
+    media_type: item.media_type as MediaType,
+  });
 
   return (
     <>
@@ -123,13 +131,7 @@ export function WatchlistGrid({
         {items.map((item) => (
           <MediaCard
             key={item.tmdb_id}
-            title={item.title}
-            posterUrl={posterUrl(item.poster_path)}
-            year={getYear(item.release_date)}
-            rating={item.vote ?? undefined}
-            type={item.media_type}
-            seasons={item.number_of_seasons ?? undefined}
-            episodes={item.number_of_episodes ?? undefined}
+            item={toMediaCardProp(item)}
             onClick={() => onItemClick(item.tmdb_id, item.media_type === "Movie" ? "movie" : "tv")}
             onContextMenu={(e) => handleContextMenu(e, item)}
             onLongPress={() => handleLongPress(item)}

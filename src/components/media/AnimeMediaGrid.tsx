@@ -2,24 +2,12 @@
 
 import React from "react";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaGridItem } from "@/src/dto/ui/card";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface AnimeMediaGridProps {
-  trending: MediaGridItem[];
-  onCardClick: (item: MediaGridItem) => void;
+  trending: MediaCardProp[];
+  onCardClick: (item: MediaCardProp) => void;
 }
-
-const POSTER_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
-
-const getTitle = (item: MediaGridItem) => item.title || item.name || "Untitled";
-
-const getYearNumber = (item: MediaGridItem) => {
-  const rawDate = item.release_date || item.first_air_date;
-  if (!rawDate) return undefined;
-  const date = new Date(rawDate);
-  const year = date.getFullYear();
-  return Number.isNaN(year) ? undefined : year;
-};
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -42,23 +30,13 @@ export default function AnimeMediaGrid({
     <section className="mt-10 md:mt-12">
       <SectionHeader title="Trending Now" />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
-        {trending.map((item) => {
-          const posterUrl = item.poster_path
-            ? `${POSTER_IMAGE_BASE_URL}${item.poster_path}`
-            : "/placeholder-image.jpg";
-
-          return (
-            <MediaCard
-              key={`${item.id}-anime`}
-              title={getTitle(item)}
-              posterUrl={posterUrl}
-              year={getYearNumber(item)}
-              rating={item.vote_average}
-              type={item.media_type === "movie" ? "Movie" : "TV"}
-              onClick={() => onCardClick(item)}
-            />
-          );
-        })}
+        {trending.map((item) => (
+          <MediaCard
+            key={`${item.tmdbId}-${item.media_type}-anime`}
+            item={item}
+            onClick={() => onCardClick(item)}
+          />
+        ))}
       </div>
     </section>
   );

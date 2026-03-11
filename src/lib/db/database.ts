@@ -101,7 +101,6 @@ export async function removeFromWatchlist(
     console.error("❌ [removeFromWatchlist] Error:", error.message);
     throw error;
   }
-
 }
 
 // Get user's watchlist

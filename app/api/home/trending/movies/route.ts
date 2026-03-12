@@ -5,10 +5,15 @@ import { normalizeMediaCardPoster } from "@/src/lib/tmdb-images";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(
+      20,
+      Math.max(1, parseInt(searchParams.get("limit") ?? "12", 10) || 12),
+    );
     const response = await backendClient.get("/movies/trending", {
-      params: { limit: 12 },
+      params: { limit },
     });
     const data = response.data;
     const raw = Array.isArray(data) ? data : (data?.results ?? []);

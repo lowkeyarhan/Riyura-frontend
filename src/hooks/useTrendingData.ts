@@ -16,18 +16,10 @@ export function useTrendingData(): TrendingData {
   const fetchTrending = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [moviesRes, tvRes] = await Promise.all([
-        fetch("/api/home/trending/movies?limit=12"),
-        fetch("/api/home/trending/tv?limit=12"),
-      ]);
-      const moviesData = await moviesRes.json();
-      const tvData = await tvRes.json();
-
-      const movies = moviesData.results || [];
-      const tv = tvData.results || [];
-
-      const combined: MediaCardProp[] = [...movies, ...tv].slice(0, 6);
-      setTrendingHighlights(combined);
+      const res = await fetch("/api/home/trending/movies?limit=6");
+      const data = await res.json();
+      const movies = data.results || [];
+      setTrendingHighlights(movies);
     } catch (error) {
       console.error("Error fetching trending:", error);
     } finally {

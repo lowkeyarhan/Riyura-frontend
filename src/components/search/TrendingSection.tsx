@@ -6,7 +6,6 @@ interface TrendingSectionProps {
   items: MediaCardProp[];
   isLoading: boolean;
   onCardClick: (href: string) => void;
-  formatDate: (date: string | null | undefined) => string;
   show: boolean;
 }
 
@@ -14,7 +13,6 @@ export function TrendingSection({
   items,
   isLoading,
   onCardClick,
-  formatDate,
   show,
 }: TrendingSectionProps) {
   if (!show) return null;
@@ -49,7 +47,6 @@ export function TrendingSection({
                 key={`${item.tmdbId}-${item.media_type}`}
                 item={item}
                 onClick={() => onCardClick(href)}
-                formatDate={formatDate}
               />
             );
           })}

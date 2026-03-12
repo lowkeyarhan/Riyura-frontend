@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Film, Tv, Sparkles, Filter } from "lucide-react";
+import { ArrowUp, Film, Tv, Sparkles, Globe } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { TMDBDiscoverItem, TMDBSearchResult } from "@/src/dto/tmdb/lists";
+import type { ExploreProp } from "@/src/props/explore/explore";
+import type { SearchProp } from "@/src/props/search/search";
+import { MediaType } from "@/src/props/global/mediaType";
 import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
 import { SearchResultCard } from "@/src/components/search/SearchResultCard";
-import { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 // --- Constants ---
@@ -32,11 +33,38 @@ const GENRES = [
   "Western",
 ];
 
+const LANGUAGES = [
+  { label: "All", value: "" },
+  { label: "English", value: "en" },
+  { label: "Japanese", value: "ja" },
+  { label: "Spanish", value: "es" },
+  { label: "French", value: "fr" },
+  { label: "German", value: "de" },
+  { label: "Korean", value: "ko" },
+  { label: "Hindi", value: "hi" },
+  { label: "Portuguese", value: "pt" },
+  { label: "Italian", value: "it" },
+];
+
 const MEDIA_TYPES = [
   { label: "All", value: "all", icon: Sparkles },
   { label: "Movies", value: "movie", icon: Film },
   { label: "TV Shows", value: "tv", icon: Tv },
 ];
+
+
+function toSearchProp(item: ExploreProp): SearchProp & { id: number } {
+  return {
+    id: item.tmdbId,
+    tmdbId: item.tmdbId,
+    title: item.title,
+    description: item.description,
+    media_type: item.mediaType as MediaType,
+    original_language: item.originalLanguage,
+    poster_path: item.posterPath,
+    release_year: item.releaseYear,
+  };
+}
 
 // Card variants with fade only (no scale) to match search page
 const cardVariants = {
@@ -58,7 +86,8 @@ export default function ExplorePage() {
   const router = useRouter();
   const [selectedGenres, setSelectedGenres] = useState<string[]>(["Action"]);
   const [mediaType, setMediaType] = useState("all");
-  const [items, setItems] = useState<TMDBSearchResult[]>([]);
+  const [language, setLanguage] = useState("");
+  const [items, setItems] = useState<ExploreProp[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -74,8 +103,12 @@ export default function ExplorePage() {
 
       try {
         const genreParams = selectedGenres.join(",");
-        const url = `/api/explore?page=${page}&genres=${genreParams}&mediaType=${mediaType}`;
-        const res = await fetch(url, { signal });
+        const params = new URLSearchParams({
+          page: String(page),
+          genres: genreParams,
+        });
+        if (language) params.set("language", language);
+        const res = await fetch(`/api/explore?${params.toString()}`, { signal });
         if (!res.ok) {
           let message = "Fetch failed";
           try {
@@ -87,26 +120,18 @@ export default function ExplorePage() {
           throw new Error(message);
         }
         const data = await res.json();
+        const rawResults = (data.results ?? []) as ExploreProp[];
 
-        const normalizedResults: TMDBSearchResult[] = (
-          data.results as TMDBDiscoverItem[]
-        ).map((item) => ({
-          ...item,
-          media_type:
-            item.media_type ||
-            (mediaType === "tv"
-              ? "tv"
-              : mediaType === "movie"
-                ? "movie"
-                : "movie"),
-        })) as TMDBSearchResult[];
-
-        setItems((prev) =>
-          page === 1 ? normalizedResults : [...prev, ...normalizedResults],
-        );
-        setHasMore(data.page < data.total_pages);
-      } catch (error: any) {
-        if (error.name !== "AbortError") console.error(error);
+        setItems((prev) => {
+          if (page === 1) return rawResults;
+          const existingIds = new Set(prev.map((i) => i.tmdbId));
+          const newItems = rawResults.filter((i) => !existingIds.has(i.tmdbId));
+          return [...prev, ...newItems];
+        });
+        setHasMore(rawResults.length > 0);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name !== "AbortError")
+          console.error(error);
       } finally {
         if (!signal.aborted) setLoading(false);
       }
@@ -114,7 +139,7 @@ export default function ExplorePage() {
 
     fetchData();
     return () => controller.abort();
-  }, [page, selectedGenres, mediaType]);
+  }, [page, selectedGenres, language]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -147,14 +172,17 @@ export default function ExplorePage() {
     setMediaType(type);
   };
 
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return "Unknown";
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+  const handleLanguageChange = (lang: string) => {
+    setPage(1);
+    setLanguage(lang);
   };
+
+  const filteredItems = items.filter((item) => {
+    if (mediaType === "all") return true;
+    if (mediaType === "movie") return item.mediaType === MediaType.Movie;
+    if (mediaType === "tv") return item.mediaType === MediaType.TV;
+    return true;
+  });
 
   return (
     <div className="relative min-h-screen bg-black pt-20 md:pt-28 px-4 sm:px-6 md:px-16 lg:px-16 pb-20 md:pb-12 font-sans">
@@ -173,7 +201,7 @@ export default function ExplorePage() {
           </h1>
         </div>
 
-        <div className="mb-6 md:mb-7">
+        <div className="mb-6 md:mb-7 flex flex-wrap items-center justify-between gap-4">
           <div className="inline-flex items-center rounded-xl border border-white/10 bg-[#131722]/80 p-1">
             {MEDIA_TYPES.map((type) => {
               const isActive = mediaType === type.value;
@@ -201,6 +229,27 @@ export default function ExplorePage() {
                 </button>
               );
             })}
+          </div>
+
+          <div className="inline-flex items-center rounded-xl border border-white/10 bg-[#131722]/80 p-1">
+            <Globe className="ml-3 mr-2 w-4 h-4 text-white/55 shrink-0" />
+            <select
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="appearance-none bg-transparent pr-8 py-2 pl-0 text-sm md:text-[15px] font-medium text-white cursor-pointer focus:outline-none focus:ring-0"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255,255,255,0.55)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.5rem center",
+                backgroundSize: "1.25rem",
+              }}
+            >
+              {LANGUAGES.map((lang) => (
+                <option key={lang.value || "all"} value={lang.value} className="bg-[#131722] text-white">
+                  {lang.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -238,30 +287,32 @@ export default function ExplorePage() {
             <AnimatePresence mode="sync">
               {/* Show items if it's NOT the initial load (so we keep them during infinite scroll) */}
               {!(loading && page === 1) &&
-                items.map((item, idx) => (
-                  <motion.div
-                    layout
-                    layoutId={`explore-card-${item.id}`}
-                    key={item.id}
-                    variants={cardVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{ duration: 0.3 }}
-                  >
-                    <SearchResultCard
-                      item={item}
-                      onClick={() =>
-                        router.push(
-                          item.media_type === "movie"
-                            ? `/details/movie/${item.id}`
-                            : `/details/tvshow/${item.id}`,
-                        )
-                      }
-                      formatDate={formatDate}
-                    />
-                  </motion.div>
-                ))}
+                filteredItems.map((item) => {
+                  const searchItem = toSearchProp(item);
+                  return (
+                    <motion.div
+                      layout
+                      layoutId={`explore-card-${item.tmdbId}`}
+                      key={item.tmdbId}
+                      variants={cardVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{ duration: 0.3 }}
+                    >
+                      <SearchResultCard
+                        item={searchItem}
+                        onClick={() =>
+                          router.push(
+                            item.mediaType === MediaType.Movie
+                              ? `/details/movie/${item.tmdbId}`
+                              : `/details/tvshow/${item.tmdbId}`,
+                          )
+                        }
+                      />
+                    </motion.div>
+                  );
+                })}
             </AnimatePresence>
 
             {/* --- Skeleton Loader --- */}

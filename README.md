@@ -1,238 +1,320 @@
-# Riyura 2.0
+# Riyura Frontend
 
-A movie & TV streaming-style web application built with Next.js, TypeScript and Supabase for authentication, data storage and per‑user personalization.
+Next.js (App Router) frontend for **Riyura** — a streaming discovery + playback experience with profiles, watchlist, watch history, and Gemini-powered recommendations.
 
-## Project Overview
+## Contents
 
-Riyura 2.0 is a modernised version of the original Riyura project. It focuses on:
+- [Overview](#overview)
+- [Tech stack](#tech-stack)
+- [Repository structure](#repository-structure)
+- [Architecture (layers)](#architecture-layers)
+  - [UI + routing layer (`app/`)](#ui--routing-layer-app)
+  - [BFF/API layer (`app/api/`)](#bffapi-layer-appapi)
+  - [Hooks layer (`src/hooks/`)](#hooks-layer-srchooks)
+  - [Lib layer (`src/lib/`)](#lib-layer-srclib)
+  - [DTOs + “props” types (`src/dto/`, `src/props/`)](#dtos--props-types-srcdto-srcprops)
+- [Data flow (end-to-end)](#data-flow-end-to-end)
+- [SSR / SSG / CSR behavior](#ssr--ssg--csr-behavior)
+- [Performance optimizations](#performance-optimizations)
+- [Environment variables](#environment-variables)
+- [Running locally](#running-locally)
+- [Key internal routes](#key-internal-routes)
+- [Troubleshooting](#troubleshooting)
 
-- Fast browsing of movies and TV shows (infinite scroll + client caching)
-- Clean, cinematic UI with mobile‑first layouts
-- Per‑user features like watchlist, watch history and onboarding
-- Solid auth and data isolation via Supabase + Row Level Security (RLS)
+## Overview
 
-## Tech Stack
+This project is structured around a simple idea:
 
-- **Framework**: Next.js (App Router)
-- **Language**: React 19 + TypeScript
-- **Styling**: Tailwind CSS
-- **Auth & DB**: Supabase (Auth + Postgres) with Row Level Security (RLS)
-- **Client SDKs**: `@supabase/supabase-js`, `@supabase/ssr`
-- **Caching**: Browser `sessionStorage` / `localStorage`
-- **Animation**: Framer Motion
+- **Client UI** renders pages and components and calls internal Next.js routes.
+- **Internal API routes** act as a BFF (Backend-for-Frontend), proxying to:
+  - a separate backend (`BACKEND_URL`) for home/search/explore lists, and
+  - **TMDB** directly for certain detail endpoints (e.g. movie details),
+  - **Supabase** for user-scoped data (profile, watchlist, watch history, Gemini key storage).
 
----
+Global app concerns (auth gating, notifications, backend health detection, chunk-load error handling) are mounted once in `app/layout.tsx`.
 
-## High‑Level Architecture
+## Tech stack
 
-- **Next.js App Router**
-  - `app/` directory for route segments like `home`, `explore`, `profile`, `watchlist`, `player`, etc.
-  - Server components for static/SSR pieces, client components for interactive pages.
+- **Framework**: Next.js `^16.1.1` (App Router), React `^19.2.0`, TypeScript
+- **Styling**: Tailwind CSS v4 (`tailwindcss`, `tailwindcss-animate`), utility helpers (`clsx`, `tailwind-merge`, `class-variance-authority`)
+- **Data fetching**: `fetch` (client ↔ internal APIs) + `axios` (internal APIs ↔ backend)
+- **Auth & data**: Supabase (`@supabase/supabase-js`)
+- **UI/animation**: `framer-motion`, `lucide-react`, Font Awesome
+- **3D/visuals (where used)**: `three`, `@react-three/fiber`, `@react-three/drei`, `maath`
+- **Analytics**: `@vercel/analytics`
 
-- **Supabase**
-  - `src/lib/supabase.ts` — browser Supabase client (anon key, persisted session).
-  - `models/*.sql` — Postgres schema definition and RLS policies (applied via Supabase SQL editor / migrations).
-  - Auth providers: **Email/password** (with confirmation link) + **Google OAuth**.
+## Repository structure
 
-- **TMDB‑style API layer**
-  - API routes under `app/api/*` (e.g. `trending`, `movies`, `tvshow`, `explore`) act as a thin proxy between the frontend and the external movie API.
-  - These routes normalize and return a consistent `MediaItem` shape to the client.
+High-level:
 
-- **Client data layer**
-  - `src/lib/database.ts` exposes typed helper functions for profiles, watchlist and watch history.
-  - React hooks and pages use these helpers instead of talking to Supabase directly.
+```text
+app/
+  layout.tsx               # global providers + gates
+  page.tsx                 # redirects to /landing
+  home/                    # main authenticated home experience
+  explore/                 # explore catalog
+  search/                  # search UI (URL-driven)
+  details/                 # details pages (movie, tv show)
+  watch/                   # watch pages (movie, tv show)
+  profile/                 # profile page (stats, watchlist, continue watching)
+  onboarding/              # onboarding flow
+  auth/                    # auth + callback
+  api/                     # BFF routes (backend/TMDB/Supabase)
 
----
+src/
+  components/              # UI components, layouts, skeletons
+  hooks/                   # composable data + behavior hooks
+  lib/                     # clients, config, contexts, utilities
+  dto/                     # API/DB response DTOs shared across layers
+  props/                   # UI-focused prop types (cards, explore, search)
+```
 
-## Data Flow: Auth & Profiles
+## Architecture (layers)
 
-### 1. Sign‑up / Sign‑in
+### UI + routing layer (`app/`)
 
-- Handled in `app/auth/page.tsx`.
-- **Sign‑up**:
-  - Calls `supabase.auth.signUp({ email, password, options: { emailRedirectTo, data: { full_name, display_name } } })`.
-  - Supabase sends a **confirmation link** by email (no OTP in the current setup).
-  - When the user clicks the link, Supabase redirects to `/auth/callback` with a verified session.
+- **App Router pages** live under `app/**/page.tsx`.
+- Pages can be **Server Components by default**, but many in this codebase explicitly opt into client rendering via `"use client"` (for router usage, client-side fetching, animations, etc.).
+- **Loading states** are implemented via `app/**/loading.tsx` for route-level skeletons.
 
-- **Sign‑in**:
-  - Calls `supabase.auth.signInWithPassword({ email, password })`.
-  - On success, the user is redirected to `/home`.
+Global composition happens in `app/layout.tsx`:
 
-- **Google OAuth**:
-  - `supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: "/auth/callback" } })`.
-  - Supabase handles the OAuth flow and redirects back with a session.
+- **`ChunkErrorHandler` + `ChunkErrorBoundary`**: handle and surface chunk-load errors.
+- **`NotificationProvider`**: global toasts/notifications.
+- **`BackendHealthProvider`**: pings `/api/test/health` and surfaces server-down UI (via `ServersDownModal`).
+- **`AuthGate`**: protects non-public routes and redirects:
+  - unauthenticated users → `/auth`
+  - authenticated but not onboarded → `/onboarding`
+  - authenticated + onboarded landing/public visits → `/home`
 
-### 2. Auth Callback & Profile Creation
+### BFF/API layer (`app/api/`)
 
-- `app/auth/callback/page.tsx`:
-  - Uses `supabase.auth.getSession()` on the client to wait for a valid session.
-  - Loads or creates a profile using `ensureUserProfile` from `src/lib/database.ts` and/or a database trigger.
-  - If the profile is not onboarded, redirects to `/onboarding`; otherwise to `/home`.
-
-### 3. Supabase Profiles Table & RLS
-
-- Defined in `models/profiles.sql`:
-  - `id UUID PRIMARY KEY REFERENCES auth.users(id)` (1:1 with Supabase `auth.users`).
-  - `display_name`, `email`, `photo_url`, `onboarded`, `last_login`, `created_at`.
-
-- Row Level Security:
-  - `auth.uid() = id` for **SELECT**, **INSERT** and **UPDATE**.
-  - Guarantees that each user can only see and mutate their own profile row.
-
-- Optional trigger (if applied in Supabase SQL editor):
-  - `handle_new_user()` function runs `AFTER INSERT ON auth.users`.
-  - Auto‑inserts a row into `profiles` with data from `raw_user_meta_data`.
-
----
-
-## Data Flow: Watchlist & Watch History
-
-### Tables
-
-Defined under `models/watchlist.sql` and `models/watchHistory.sql` (schema summarized):
-
-- **watchlist**
-  - `id SERIAL PRIMARY KEY`
-  - `user_id UUID REFERENCES auth.users(id)`
-  - `tmdb_id INT`, `title TEXT`, `media_type TEXT`, `poster_path TEXT`, `release_date DATE`, `vote NUMERIC`, plus optional season/episode counts.
-  - RLS: `auth.uid() = user_id` for **SELECT**, **INSERT**, **DELETE**.
-
-- **watch_history**
-  - `id SERIAL PRIMARY KEY`
-  - `user_id UUID`
-  - `tmdb_id`, `title`, `media_type`, `poster_path`, `release_date`, `duration_sec`, `watched_at TIMESTAMPTZ`.
-  - RLS: `auth.uid() = user_id` for **SELECT** and **INSERT**.
-
-### Helper Functions (`src/lib/database.ts`)
-
-- `ensureUserProfile(user)`
-  - Checks if profile exists for `user.uid`.
-  - If not, inserts a profile (unless a trigger already did it).
-  - Updates `last_login` on each sign‑in.
-
-- `addToWatchlist(userId, item)`
-  - Inserts a row into `watchlist` with the current `userId` and media metadata.
-  - On success, invalidates relevant profile caches.
-
-- `getWatchlistByUser(userId, filters?)`
-  - Returns the user’s watchlist, optionally filtered by media type.
-
-- `recordWatchHistory(userId, item)`
-  - Upserts/records a `watch_history` entry whenever a user watches something in the player.
-
----
-
-## Fetching & Caching Strategy
-
-### 1. API Routes (Server‑Side Fetching)
-
-Key API endpoints live in `app/api/*` and proxy the external movie API:
-
-- `app/api/trending/route.ts` — trending content.
-- `app/api/trending-tv/route.ts` — TV lists.
-- `app/api/tvshow/[id]/route.ts` — TV show details.
-- `app/api/explore/route.ts` — discover content with genre + media‑type filters.
+Internal route handlers provide a stable contract to the UI and keep secrets server-side.
 
 Patterns used:
 
-- Use `fetch` with an API key stored in environment variables.
-- Normalize remote data into a consistent `MediaItem` shape (id, title/name, poster, rating, dates, media_type).
-- Handle errors gracefully and return appropriate status codes.
+- **Proxying to the backend** using `backendClient` (Axios) from `src/lib/axios.ts`
+  - Example: `/api/home/trending/movies` → `backendClient.get("/movies/trending")`
+- **Calling TMDB directly** when needed (e.g. `/api/movie/[id]` uses `TMDB_API_KEY`)
+- **Supabase-authenticated routes** for user data
+  - Many routes accept `Authorization: Bearer <access_token>` and use `supabase.auth.getUser()` server-side to resolve the user.
+- **Dynamic rendering for “live” data**:
+  - Several routes export `export const dynamic = "force-dynamic";` to disable caching and ensure fresh data.
 
-Advantages:
+Security notes reflected in code:
 
-- Hides the external API key from the browser.
-- Allows rate‑limit handling and response shaping in one place.
+- **Gemini API key storage** uses AES-256-GCM encryption (`ENCRYPTION_KEY`) before storing in Supabase.
+- **Stream URL retrieval** uses `SUPABASE_SERVICE_ROLE_KEY` so the `stream_urls` table can remain private (bypassing RLS in a controlled server-only route).
 
-### 2. Client‑Side Fetching
+### Hooks layer (`src/hooks/`)
 
-Pages like `app/explore/page.tsx`, `app/home/page.tsx`, and `app/details/*` use React hooks for fetching:
+Hooks centralize reusable behavior and provide a stable interface for components.
 
-- `useEffect` + `fetch('/api/...')` to call the internal API routes.
-- Paginated / infinite scroll patterns using `IntersectionObserver` (e.g. `loadMoreRef` in the Explore page).
-- Local component state (`useState`) to store the current list of `MediaItem`s, filters and loading flags.
+Key hooks:
 
-### 3. Browser Caching (Session/Local Storage)
+- **`useAuth`**: reads initial session + subscribes to auth changes; exposes `user`, `loading`, `firstName`, `avatarUrl`, `signOut`.
+- **`useProfileData`**: fetches `/api/profile` once per user with concurrency locking; returns `continueWatching`, `watchlist`, `stats`, and a `refetch`.
+- **`useWatchlist`**: fetches `/api/watchlist`; provides `removeItem` with **optimistic UI** + revert on failure.
+- **`useWatchHistory`**: deletes history items via `/api/history?id=...`.
+- **Player hooks**
+  - **`useMoviePlayer`** and **`useTVShowPlayer`** fetch details and track watch duration; persist watch history on unmount via `/api/watch-history` using `keepalive: true`.
+- **`useStreamUrls`**: loads stream servers via `/api/stream-urls` and generates playback links.
+- **`useGeminiApiKey`**: reads/saves/deletes the user’s encrypted Gemini key via `/api/gemini`.
+- **`useRecommendations`**: loads Gemini recommendations with a strict “single-flight” lock and supports `refresh()`.
+- **`useSearchData`**: URL-driven search state (query/page/sort/tab) with back/forward restore; fetches `/api/search`.
+- **`useTrendingData`**: fetches a small trending set for highlights.
+- **`usePlaceholderAnimation`**: lightweight animated placeholder cycling.
+- **`useVideasyPlayerMessages`**: listens to `postMessage` events from the Videasy player origin for future progress integration.
 
-The app uses lightweight client‑side caching for frequently visited views to avoid duplicate network calls.
+### Lib layer (`src/lib/`)
 
-#### Profile Page Caching
+- **`src/lib/axios.ts`**
+  - `backendClient`: talks to the separate backend at `BACKEND_URL` (defaults to `http://localhost:8080/api`)
+  - `apiClient`: generic client for relative/internal calls (baseURL `""`)
+- **`src/lib/auth/supabase.ts`**: browser Supabase client using `NEXT_PUBLIC_*` env vars.
+- **`src/lib/contexts/*`**
+  - `NotificationContext`: global notification queue with auto-dismiss
+  - `BackendHealthContext`: checks backend health when the user is authenticated and not on public routes
+- **`src/lib/config.ts`**: image base URL configuration (TMDB by default).
+- **`src/lib/tmdb-images.ts`**: normalizes poster/backdrop paths to avoid malformed TMDB URLs.
+- **`src/lib/utils/encryption.ts`**: AES-256-GCM encryption utilities for server-side key handling.
+- **`src/lib/db/database.ts`**: Supabase table helpers for profiles/watchlist/watch history (used by UI/services where appropriate).
 
-- Uses `sessionStorage` with **user‑specific keys** and a TTL:
-  - Example keys: `profile_watchlist_<userId>`, `profile_watch_history_<userId>`, `profile_stats_<userId>`.
-  - On first load, fetches data from Supabase and writes `{ data, expiresAt }` into storage.
-  - On subsequent loads within the TTL window, reads from storage and skips the network.
+### DTOs + “props” types (`src/dto/`, `src/props/`)
 
-- Sign‑out / profile updates call `invalidateProfileCache(userId)` (in `src/lib/database.ts`) to clear cached values so the UI stays consistent.
+This repo intentionally separates:
 
-#### Explore Page Caching
+- **DTOs (`src/dto/`)**: shapes used across APIs/DB responses and internal route handlers (e.g. `WatchHistoryItem`, `ApiResponse<T>`).
+- **UI props (`src/props/`)**: component/page-level props with UI-friendly naming (e.g. `MediaCardProp`, search/explore prop models).
 
-- Uses `sessionStorage` key `exploreDefaultCache` for the **default explore state**:
-  - Only applies when: `page === 1`, selected genres = `['Action']`, and media type = `all`.
-  - First request caches `{ results, page, total_pages }`.
-  - Later visits with the same default filters reuse cached data instantly and only fetch more pages when the user scrolls.
+This helps keep the BFF and UI layers typed without over-coupling UI components to raw backend payloads.
 
-### 4. Infinite Scroll & Intersection Observer
+## Data flow (end-to-end)
 
-- Many grid pages (e.g. Explore) implement infinite scroll:
-  - A `loadMoreRef` is attached to a sentinel `<div>` at the bottom of the grid.
-  - `IntersectionObserver` watches this element; when it enters the viewport, the `page` state increments.
-  - The `useEffect` hook reacts to `page` changes and fetches the next page from `/api/explore?page=...`.
-  - New items are appended to the existing list, giving a seamless infinite scroll experience.
+Typical flows:
 
----
+- **Home / Explore / Search**
+  - UI pages (often client components) call `/api/home/*`, `/api/explore`, `/api/search`
+  - These route handlers proxy to `BACKEND_URL` and normalize images before returning to the UI.
 
-## Performance & UX Optimizations
+- **Details pages**
+  - For movie details, UI calls `/api/movie/[id]`
+  - That route calls TMDB directly with `TMDB_API_KEY` and merges details + credits + similar into one response.
 
-- **Responsive, mobile‑first layouts**
-  - Tailwind breakpoints (`sm`, `md`, `lg`, `xl`) used heavily in `app/*` and `src/components/*`.
-  - Mobile‑specific nav (`MobileNavbar`) and control bar layouts.
+- **Playback**
+  - Watch pages obtain stream servers via `/api/stream-urls`
+  - Players track local watch duration
+  - On unmount, they `POST /api/watch-history` using the user’s Supabase access token.
 
-- **Optimized images**
-  - Next.js `Image` component with `sizes` and responsive layout.
-  - Uses TMDB‑style `w500` poster URLs for cards.
+- **Profile**
+  - UI calls `/api/profile` (authorized)
+  - Route handler reads watch history and watchlist from Supabase and returns:
+    - “Continue Watching” items with computed progress %
+    - stats aggregates (movies/series/hours)
 
-- **Framer Motion animations**
-  - Used to animate tabs, hero sections and subtle hover or layout transitions.
-  - Improves perceived performance and polish without heavy custom CSS animations.
+- **Gemini personalization**
+  - UI stores an encrypted Gemini key via `/api/gemini` (authorized; encrypted using `ENCRYPTION_KEY`)
+  - Recommendations load from `/api/gemini/recommendations` via `useRecommendations`.
 
-- **Minimal over‑fetching**
-  - Caching with `sessionStorage` and RLS‑safe Supabase queries.
-  - Dedicated helpers for watchlist / history so each route fetches only what it needs.
+## SSR / SSG / CSR behavior
 
-- **Error handling & resilience**
-  - API routes guard against failed upstream requests.
-  - Client pages show skeleton loaders and fallbacks while fetching.
-  - Non‑blocking console logging during development, minimized for production.
+This codebase uses **Next.js App Router**, so “SSR” behavior is a combination of:
 
----
+- **Server Components** (default in `app/`) where no `"use client"` is present
+- **Client Components** where `"use client"` is declared (common here for interactive pages)
+- **Route handlers** in `app/api/**/route.ts` (server-only execution)
 
-## Privacy & Security
+What you’ll see in practice:
 
-- Authentication and user profiles are handled by Supabase; no password or OAuth secrets are stored in the repo.
-- RLS is enabled on `profiles`, `watchlist` and `watch_history` so users can only read/write their own data.
-- Environment variables are used for Supabase keys and movie API keys; `.env*` files are git‑ignored.
-- Only essential logs remain in production builds; most debug logging is restricted to development.
+- Many pages (e.g. `app/home/page.tsx`) are **client-rendered** and fetch data from internal APIs with `cache: "no-store"`, effectively treating most UI data as **runtime/CSR**.
+- Some API routes explicitly opt into runtime freshness with `export const dynamic = "force-dynamic"`.
+- `app/page.tsx` uses `redirect("/landing")`, which is executed on the server at navigation time.
 
----
+If you want more SSR:
 
-## Folder Structure (High‑Level)
+- Move data fetching into Server Components and call internal BFF helpers directly (or call the backend from the server), then pass the result down to client components.
+- Leverage `fetch` caching (`force-cache`, `revalidate`) where data can be safely cached.
 
-- `app/`
-  - `auth/` — sign‑in/sign‑up UI and callback route.
-  - `home/` — main logged‑in landing page.
-  - `explore/` — discover view with genres, media‑type filters, infinite scroll.
-  - `details/movie/[id]` & `details/tvshow/[id]` — media detail pages.
-  - `player/movie/[id]` & `player/tvshow/[id]` — watch experience + history recording.
-  - `profile/` — profile stats, lists, and cached summary data.
-  - `watchlist/`, `search/`, `onboarding/`, `landing/` — additional UX routes.
+## Performance optimizations
 
-- `src/components/` — reusable UI components (navbars, cards, grids, pagination, etc.).
-- `src/lib/`
-  - `supabase.ts` — client initialization.
-  - `database.ts` — typed DB helpers and cache invalidation.
-  - `NotificationContext.tsx` — toast/notification provider.
-  - `hooks/useAuth.ts` — auth state hook on the client.
-- `models/` — SQL schema & RLS policies for Supabase.
+Optimizations already present in the repo:
 
----
+- **Image optimization**
+  - `next.config.ts` configures `images.remotePatterns` for TMDB, Google avatars, Unsplash.
+  - WebP is preferred and `minimumCacheTTL` is set.
+  - `src/lib/tmdb-images.ts` normalizes malformed poster/backdrop paths to reduce 404s and wasted retries.
+
+- **Package import optimization**
+  - `experimental.optimizePackageImports` enabled for `lucide-react` and `framer-motion`.
+
+- **Skeleton-first UX**
+  - Route-level `loading.tsx` plus component skeletons under `src/components/skeletons/` reduce layout shifts and keep perceived performance high.
+
+- **Avoiding duplicate network calls**
+  - Hooks like `useRecommendations`, `useProfileData` use “single-flight” locks via refs to prevent concurrent duplicate fetches.
+
+- **Abortable requests**
+  - Home page uses `AbortController` to cancel in-flight tab switch loads.
+
+- **Optimistic updates**
+  - Watchlist removal updates the UI immediately and reverts on failure.
+
+- **Navigation prefetch + transitions**
+  - `AuthGate` uses `router.prefetch(...)` and `startTransition(...)` to reduce route-change jank and mitigate chunk race conditions.
+
+## Environment variables
+
+Create `.env.local` in the project root.
+
+- **Backend**
+  - `BACKEND_URL` (default in code: `http://localhost:8080/api`)
+
+- **TMDB**
+  - `TMDB_API_KEY` (server-only, used by `/api/movie/[id]` and other TMDB-direct routes)
+
+- **Supabase (public)**
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+- **Supabase (server-only)**
+  - `SUPABASE_SERVICE_ROLE_KEY` (used by `/api/stream-urls`)
+
+- **Gemini key encryption (server-only)**
+  - `ENCRYPTION_KEY` (**required**): 64-character hex string (32 bytes) used for AES-256-GCM.
+
+- **Images (optional)**
+  - `NEXT_PUBLIC_IMAGE_BASE_URL` (defaults to `https://image.tmdb.org/t/p`)
+
+## Running locally
+
+Install deps:
+
+```bash
+npm install
+```
+
+Run dev server:
+
+```bash
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+npm run start
+```
+
+## Key internal routes
+
+Not exhaustive, but the most important ones:
+
+- **Health**
+  - `GET /api/test/health` → proxies to backend `/test/health` (dynamic, no-store in client)
+
+- **Home**
+  - `GET /api/home/*` → proxies to backend list endpoints and normalizes images
+
+- **Search / Explore**
+  - `GET /api/search?q=&page=&sort_by=`
+  - `GET /api/explore?page=&genres=&language=`
+
+- **Details**
+  - `GET /api/movie/[id]` → TMDB details + credits + similar
+  - `GET /api/tvshow/[id]`, `GET /api/tvshow/[id]/season/[seasonId]` (present in repo)
+
+- **Streaming servers**
+  - `GET /api/stream-urls?media_type=Movie|TV` → server-only Supabase (service role)
+
+- **User data (authorized)**
+  - `GET/POST/DELETE /api/watchlist`
+  - `GET/POST /api/watch-history` (duration aggregation + stream ID validation)
+  - `GET/POST/DELETE /api/history`
+  - `GET /api/profile`
+
+- **Gemini (authorized)**
+  - `GET/POST/DELETE /api/gemini` (encrypted key storage)
+  - `GET /api/gemini/recommendations` (present in repo)
+
+## Troubleshooting
+
+- **“Unauthorized” from `/api/*` routes**
+  - Ensure you’re signed in and the client is passing `Authorization: Bearer <token>` (most user-data routes require it).
+  - Ensure `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set correctly.
+
+- **Encryption errors when saving Gemini key**
+  - Set `ENCRYPTION_KEY` to a **64-char hex string**.
+  - Encryption runs server-side in route handlers; missing/invalid key will throw.
+
+- **No stream servers / `/api/stream-urls` fails**
+  - Ensure `SUPABASE_SERVICE_ROLE_KEY` is configured.
+  - Verify the Supabase table `stream_urls` contains active rows (`is_active = true`).
+
+- **Backend “DOWN” modal**
+  - Confirm the backend is running at `BACKEND_URL`.
+  - `/api/test/health` returns `503` with `{ status: "DOWN" }` when the backend is unreachable.
+
+- **TMDB errors on detail pages**
+  - Confirm `TMDB_API_KEY` is set.
+  - TMDB detail routes will return `500` if the key is missing.

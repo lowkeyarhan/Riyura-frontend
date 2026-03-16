@@ -94,7 +94,7 @@ export function useMoviePlayer({
       console.log("💾 Saving movie watch history:", {
         title: currentMovie.title,
         duration: watchDuration.current,
-        media_type: "Movie"
+        media_type: "Movie",
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -108,9 +108,11 @@ export function useMoviePlayer({
           body: JSON.stringify(watchData),
           keepalive: true,
         })
-          .then(res => res.json())
-          .then(data => console.log("✅ Movie watch history saved:", data))
-          .catch((err) => console.error("❌ Failed to save movie watch history:", err));
+          .then((res) => res.json())
+          .then((data) => console.log("✅ Movie watch history saved:", data))
+          .catch((err) =>
+            console.error("❌ Failed to save movie watch history:", err),
+          );
       });
     },
     [userId, movieId],

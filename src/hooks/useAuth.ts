@@ -12,8 +12,6 @@ export function useAuth() {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        // Stale or invalid refresh token — clear it from storage so the
-        // autoRefreshToken timer doesn't keep firing "Refresh Token Not Found".
         supabase.auth.signOut();
         setUser(null);
       } else {

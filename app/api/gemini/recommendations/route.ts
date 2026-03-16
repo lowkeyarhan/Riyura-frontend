@@ -209,9 +209,7 @@ export async function GET(req: Request) {
         .order("generated_at", { ascending: false });
 
       if (dbRecommendations && dbRecommendations.length > 0) {
-        console.log(
-          `✅ [Recommendations] Serving from DB for user ${user.id}`,
-        );
+        console.log(`✅ [Recommendations] Serving from DB for user ${user.id}`);
         return NextResponse.json({
           success: true,
           recommendations: dbRecommendations,

@@ -136,7 +136,7 @@ export function useTVShowPlayer({
         season: currentSeason,
         episode: currentEpisodeNum,
         duration: watchDuration.current,
-        media_type: "TV"
+        media_type: "TV",
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -150,9 +150,16 @@ export function useTVShowPlayer({
           body: JSON.stringify(watchData),
           keepalive: true,
         })
-          .then(res => res.json())
-          .then(data => console.log("✅ TV show watch history saved (interval):", data))
-          .catch((err) => console.error("❌ Failed to save TV show watch history (interval):", err));
+          .then((res) => res.json())
+          .then((data) =>
+            console.log("✅ TV show watch history saved (interval):", data),
+          )
+          .catch((err) =>
+            console.error(
+              "❌ Failed to save TV show watch history (interval):",
+              err,
+            ),
+          );
       });
     };
 
@@ -205,7 +212,7 @@ export function useTVShowPlayer({
         season: currentSeason,
         episode: currentEpisodeNum,
         duration: watchDuration.current,
-        media_type: "TV"
+        media_type: "TV",
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -219,9 +226,16 @@ export function useTVShowPlayer({
           body: JSON.stringify(watchData),
           keepalive: true,
         })
-          .then(res => res.json())
-          .then(data => console.log("✅ TV show watch history saved (unmount):", data))
-          .catch((err) => console.error("❌ Failed to save TV show watch history (unmount):", err));
+          .then((res) => res.json())
+          .then((data) =>
+            console.log("✅ TV show watch history saved (unmount):", data),
+          )
+          .catch((err) =>
+            console.error(
+              "❌ Failed to save TV show watch history (unmount):",
+              err,
+            ),
+          );
       });
     },
     [userId, tvShowId],

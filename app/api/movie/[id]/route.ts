@@ -6,47 +6,22 @@ import type { MovieDetailProp } from "@/src/props/movie/movieDetail";
 
 export const dynamic = "force-dynamic";
 
-/** Normalize backend movie details response for frontend consumption */
-function normalizeMovieDetails(raw: Record<string, unknown>): MovieDetailProp {
-  const casts =
-    (raw.casts as Array<{
-      character?: string;
-      original_name?: string;
-      profile_path?: string | null;
-    }>) ?? [];
-  const genres = (raw.genres as Array<{ id: number; name: string }>) ?? [];
-  const production_companies =
-    (raw.production_companies as Array<{ id: number; name: string }>) ?? [];
-
+/** Normalize image URLs only; backend response is already in MovieDetailProp shape */
+function normalizeImageUrls(data: MovieDetailProp): MovieDetailProp {
   return {
-    id: Number(raw.id) ?? 0,
-    title: String(raw.title ?? ""),
-    overview: String(raw.overview ?? ""),
-    backdrop_path: raw.backdrop_path
-      ? normalizeTmdbImageUrl(String(raw.backdrop_path), "original")
+    ...data,
+    backdrop_path: data.backdrop_path
+      ? normalizeTmdbImageUrl(data.backdrop_path, "original")
       : null,
-    poster_path: raw.poster_path
-      ? normalizeTmdbImageUrl(String(raw.poster_path), "w500")
+    poster_path: data.poster_path
+      ? normalizeTmdbImageUrl(data.poster_path, "w500")
       : null,
-    budget: Number(raw.budget) ?? 0,
-    adult: Boolean(raw.adult),
-    genres,
-    production_companies,
-    release_date: String(raw.release_date ?? ""),
-    original_language: String(raw.original_language ?? ""),
-    revenue: Number(raw.revenue) ?? 0,
-    runtime: Number(raw.runtime) ?? 0,
-    status: String(raw.status ?? ""),
-    tagline: String(raw.tagline ?? ""),
-    vote_average: Number(raw.vote_average) ?? 0,
-    casts: casts.map((c) => ({
-      character: String(c.character ?? ""),
-      original_name: String(c.original_name ?? ""),
+    casts: data.casts.map((c) => ({
+      ...c,
       profile_path: c.profile_path
-        ? normalizeTmdbImageUrl(String(c.profile_path), "w500")
+        ? normalizeTmdbImageUrl(c.profile_path, "w500")
         : null,
     })),
-    is_anime: Boolean(raw.is_anime),
   };
 }
 
@@ -81,10 +56,8 @@ export async function GET(
       return NextResponse.json({ error: message }, { status: response.status });
     }
 
-    const data = response.data as Record<string, unknown>;
-    const normalized = normalizeMovieDetails(data);
-
-    return NextResponse.json(normalized);
+    const data = response.data as MovieDetailProp;
+    return NextResponse.json(normalizeImageUrls(data));
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status ?? 502;

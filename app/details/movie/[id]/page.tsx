@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { Play, Heart, Bookmark, X } from "lucide-react";
+import { Play, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { supabase } from "@/src/lib/auth/supabase";
-import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
+import type { MovieDetailProp } from "@/src/props/movie/movieDetail";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
-const CACHE_TTL = 15 * 60 * 1000;
 
 const formatRuntime = (minutes: number) => {
   const hours = Math.floor(minutes / 60);
@@ -38,31 +37,34 @@ export default function MovieDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [movie, setMovie] = useState<TMDBMovieDetailsResponse | null>(null);
+  const [movie, setMovie] = useState<MovieDetailProp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchMovieDetails = async () => {
-      try {
-        const response = await fetch(`/api/movie/${params.id}`);
-        if (!response.ok) throw new Error("Failed to fetch movie details");
+  const fetchMovieDetails = useCallback(async () => {
+    if (!params.id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/movie/${params.id}`);
+      const data = await response.json();
 
-        const data = await response.json();
-
-        setMovie(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Failed to fetch movie details");
       }
-    };
 
-    if (params.id) {
-      fetchMovieDetails();
+      setMovie(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setMovie(null);
+    } finally {
+      setLoading(false);
     }
   }, [params.id]);
+
+  useEffect(() => {
+    fetchMovieDetails();
+  }, [fetchMovieDetails]);
 
   useEffect(() => {
     const checkWatchlistStatus = async () => {
@@ -133,7 +135,7 @@ export default function MovieDetails() {
             tmdb_id: movie.id,
             title: movie.title,
             media_type: "Movie",
-            poster_path: movie.poster_path,
+            poster_path: movie.poster_path ?? null,
             release_date: movie.release_date,
             vote: movie.vote_average,
           }),
@@ -238,13 +240,18 @@ export default function MovieDetails() {
               "linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)",
           }}
         >
-          <Image
-            src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`}
-            alt={movie.title}
-            fill
-            className="object-cover brightness-50"
-            priority
-          />
+          {movie.backdrop_path ? (
+            <Image
+              src={movie.backdrop_path}
+              alt={movie.title}
+              fill
+              className="object-cover brightness-50"
+              priority
+              sizes="100vw"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-[#1a1d26]" />
+          )}
         </div>
         <div className="relative h-full flex flex-col justify-end px-4 md:px-16 lg:px-20 md:pb-12">
           <div className="max-w-3xl">
@@ -272,7 +279,7 @@ export default function MovieDetails() {
                 Trailer
               </button>
               <button
-                onClick={() => router.push(`/player/movie/${movie.id}`)}
+                onClick={() => router.push(`/watch/movie/${movie.id}`)}
                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-[#3a404f60] hover:bg-white/20 text-white rounded-full transition font-semibold text-sm md:text-base whitespace-nowrap"
                 style={{ fontFamily: FONT }}
               >
@@ -283,8 +290,8 @@ export default function MovieDetails() {
                 <button
                   onClick={toggleWatchlist}
                   className={`p-3 rounded-full transition ${isWatchlisted
-                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                      : "bg-white/10 text-white hover:bg-white/20"
+                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
                     }`}
                 >
                   <Bookmark
@@ -316,15 +323,39 @@ export default function MovieDetails() {
               </p>
             </div>
             <div className="p-4 bg-[#3a404f60] md:bg-[#1518215f] border border-white/5 rounded-2xl space-y-4">
+              {movie.is_anime && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-medium bg-cyan-500/30 text-cyan-300"
+                    style={{ fontFamily: FONT }}
+                  >
+                    Anime
+                  </span>
+                </div>
+              )}
               <InfoRow
                 label="Release Date"
-                value={formatDate(movie.release_date)}
+                value={movie.release_date ? formatDate(movie.release_date) : "N/A"}
               />
-              <InfoRow label="Runtime" value={formatRuntime(movie.runtime)} />
+              <InfoRow
+                label="Runtime"
+                value={
+                  movie.runtime > 0 ? formatRuntime(movie.runtime) : "N/A"
+                }
+              />
               <InfoRow
                 label="IMDb Rating"
                 value={movie.vote_average?.toFixed(1) || "N/A"}
               />
+              {movie.original_language && (
+                <InfoRow
+                  label="Original Language"
+                  value={movie.original_language.toUpperCase()}
+                />
+              )}
+              {movie.status && (
+                <InfoRow label="Status" value={movie.status} />
+              )}
               {movie.production_companies?.length > 0 && (
                 <InfoRow
                   label="Production"
@@ -367,135 +398,97 @@ export default function MovieDetails() {
           >
             Cast
           </h2>
-          {/* Mobile View: Vertical List */}
-          <div className="md:hidden space-y-4">
-            {movie.credits?.cast?.slice(0, 12).map((person) => (
-              <div key={person.id} className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                  {person.profile_path ? (
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w200${person.profile_path}`}
-                      alt={person.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-500">
-                      N/A
+          {movie.casts?.length ? (
+            <>
+              {/* Mobile View: Vertical List */}
+              <div className="md:hidden space-y-4">
+                {movie.casts.slice(0, 12).map((person, index) => (
+                  <div
+                    key={`${person.character}-${person.original_name}-${index}`}
+                    className="flex items-center gap-4"
+                  >
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+                      {person.profile_path ? (
+                        <Image
+                          src={person.profile_path}
+                          alt={person.original_name}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-500">
+                          N/A
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div>
-                  <p
-                    className="text-white font-semibold"
-                    style={{ fontFamily: FONT }}
-                  >
-                    {person.name}
-                  </p>
-                  <p
-                    className="text-white/60 text-sm"
-                    style={{ fontFamily: FONT }}
-                  >
-                    {person.character}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop View: Horizontal Scroll */}
-          <div className="hidden md:block overflow-x-auto scrollbar-hide -mx-4 px-4">
-            <div className="flex gap-6">
-              {movie.credits?.cast?.slice(0, 12).map((person) => (
-                <div key={person.id} className="flex-shrink-0 w-[180px]">
-                  <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden">
-                    {person.profile_path ? (
-                      <Image
-                        src={`https://image.tmdb.org/t/p/w500${person.profile_path}`}
-                        alt={person.name}
-                        fill
-                        sizes="180px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">
-                        No Image
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1 bg-[#1a1a1a] rounded-b-2xl p-4">
-                    <p
-                      className="text-white text-base font-semibold truncate"
-                      style={{ fontFamily: FONT }}
-                    >
-                      {person.name}
-                    </p>
-                    <p
-                      className="text-white/60 text-sm truncate"
-                      style={{ fontFamily: FONT }}
-                    >
-                      {person.character}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {movie.similar?.results?.length ? (
-          <section>
-            <h2
-              className="text-2xl md:text-4xl font-semibold mb-6 md:mb-8 text-white"
-              style={{ fontFamily: FONT }}
-            >
-              More Like This
-            </h2>
-            {/* Mobile: Horizontal Scroll */}
-            <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-              {movie.similar.results.slice(0, 5).map((similar) => (
-                <div
-                  key={similar.id}
-                  className="group relative cursor-pointer rounded-2xl overflow-hidden flex-shrink-0 w-[140px] md:w-auto"
-                  onClick={() => router.push(`/details/movie/${similar.id}`)}
-                >
-                  <div className="relative aspect-[2/3]">
-                    <Image
-                      src={
-                        similar.poster_path
-                          ? `https://image.tmdb.org/t/p/w500${similar.poster_path}`
-                          : "/placeholder.jpg"
-                      }
-                      alt={similar.title || "Similar movie"}
-                      fill
-                      sizes="(max-width: 768px) 140px, (max-width: 1024px) 180px, 200px"
-                      className="object-cover group-hover:brightness-50 transition-all duration-300"
-                    />
-                  </div>
-                  <div className="absolute inset-0 flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <h3
-                      className="text-base font-bold text-white leading-tight mb-2"
-                      style={{ fontFamily: FONT }}
-                    >
-                      {similar.title}
-                    </h3>
-                    <div className="flex items-center gap-1 text-yellow-400">
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                      </svg>
-                      <span
-                        className="font-semibold text-sm"
+                    <div>
+                      <p
+                        className="text-white font-semibold"
                         style={{ fontFamily: FONT }}
                       >
-                        {(similar.vote_average ?? 0).toFixed(1)}
-                      </span>
+                        {person.original_name}
+                      </p>
+                      <p
+                        className="text-white/60 text-sm"
+                        style={{ fontFamily: FONT }}
+                      >
+                        {person.character}
+                      </p>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Desktop View: Horizontal Scroll */}
+              <div className="hidden md:block overflow-x-auto scrollbar-hide -mx-4 px-4">
+                <div className="flex gap-6">
+                  {movie.casts.slice(0, 12).map((person, index) => (
+                    <div
+                      key={`${person.character}-${person.original_name}-${index}`}
+                      className="flex-shrink-0 w-[180px]"
+                    >
+                      <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden">
+                        {person.profile_path ? (
+                          <Image
+                            src={person.profile_path}
+                            alt={person.original_name}
+                            fill
+                            sizes="180px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            No Image
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1 bg-[#1a1a1a] rounded-b-2xl p-4">
+                        <p
+                          className="text-white text-base font-semibold truncate"
+                          style={{ fontFamily: FONT }}
+                        >
+                          {person.original_name}
+                        </p>
+                        <p
+                          className="text-white/60 text-sm truncate"
+                          style={{ fontFamily: FONT }}
+                        >
+                          {person.character}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+              </div>
+            </>
+          ) : (
+            <p className="text-white/50" style={{ fontFamily: FONT }}>
+              No cast information available.
+            </p>
+          )}
+        </section>
+
       </div>
       <Footer />
     </div>

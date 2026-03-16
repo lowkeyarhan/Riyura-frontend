@@ -19,6 +19,7 @@ export interface MovieDetailProp {
   title: string;
   overview: string;
   backdrop_path: string | null;
+  poster_path?: string | null;
   budget: number;
   adult: boolean;
   genres: MovieDetailGenre[];

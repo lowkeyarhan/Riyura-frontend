@@ -35,6 +35,7 @@ export interface TvDetailSeason {
 export interface TvDetailProp {
   adult: boolean;
   backdrop_path: string | null;
+  poster_path?: string | null;
   budget: number | null;
   casts: TvDetailCast[];
   created_by: TvDetailCreatedBy[];
@@ -54,4 +55,6 @@ export interface TvDetailProp {
   status: string;
   tagline: string;
   vote_average: number;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
 }

@@ -54,10 +54,12 @@ export function ServersDownModal() {
             {/* Icon */}
             <div className="mb-10 flex justify-center">
               <div className="relative">
-
                 {/* Icon ring */}
                 <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
-                  <CloudOff className="h-9 w-9 text-white/60" strokeWidth={1.5} />
+                  <CloudOff
+                    className="h-9 w-9 text-white/60"
+                    strokeWidth={1.5}
+                  />
                   {/* Zzz decoration */}
                   <div className="absolute -top-1 -right-1 flex flex-col items-start leading-none opacity-40">
                     <span className="text-[11px] font-bold text-white">z</span>
@@ -75,7 +77,8 @@ export function ServersDownModal() {
                 Resting Briefly
               </h2>
               <p className="text-[14px] leading-relaxed text-white/40 font-light max-w-[260px] mx-auto">
-                Our systems are taking a short breath. We&apos;ll be back to serve you in just a moment.
+                Our systems are taking a short breath. We&apos;ll be back to
+                serve you in just a moment.
               </p>
             </div>
 

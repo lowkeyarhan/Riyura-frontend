@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { MediaType } from "@/src/props/global/mediaType";
 import { WatchlistCheckResponse } from "@/src/dto/media";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,9 @@ export async function GET(request: Request) {
   }
 
   const mediaType =
-    mediaTypeParam === "movie" || mediaTypeParam === "Movie" ? "Movie" : "TV";
+    mediaTypeParam === "movie" || mediaTypeParam === MediaType.Movie
+      ? MediaType.Movie
+      : MediaType.TV;
 
   // Get auth token from header
   const authHeader = request.headers.get("Authorization");

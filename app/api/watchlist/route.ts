@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { MediaType, WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
+import { MediaType } from "@/src/props/global/mediaType";
+import { WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
 function createAuthedSupabaseClient(authHeader: string) {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,10 +26,10 @@ export async function GET(request: Request) {
   const typeParam = searchParams.get("type");
   // Normalize to DB enum (Movie, TV)
   const type: MediaType | "all" | null =
-    typeParam === "movie" || typeParam === "Movie"
-      ? "Movie"
-      : typeParam === "tv" || typeParam === "TV"
-        ? "TV"
+    typeParam === "movie" || typeParam === MediaType.Movie
+      ? MediaType.Movie
+      : typeParam === "tv" || typeParam === MediaType.TV
+        ? MediaType.TV
         : typeParam === "all"
           ? "all"
           : null;
@@ -108,7 +109,9 @@ export async function POST(request: Request) {
     }
 
     const media_type: MediaType =
-      mediaTypeParam === "movie" || mediaTypeParam === "Movie" ? "Movie" : "TV";
+      mediaTypeParam === "movie" || mediaTypeParam === MediaType.Movie
+        ? MediaType.Movie
+        : MediaType.TV;
 
     const { data, error } = await supabase
       .from("watchlist")
@@ -167,7 +170,9 @@ export async function DELETE(request: Request) {
     }
 
     const mediaType: MediaType =
-      mediaTypeParam === "movie" || mediaTypeParam === "Movie" ? "Movie" : "TV";
+      mediaTypeParam === "movie" || mediaTypeParam === MediaType.Movie
+        ? MediaType.Movie
+        : MediaType.TV;
 
     const { error } = await supabase
       .from("watchlist")

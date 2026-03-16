@@ -5,6 +5,7 @@ import {
   GeminiRecommendationItem,
   GeminiRecommendationResponse,
 } from "@/src/dto/ui/profile";
+import { MediaType } from "@/src/props/global/mediaType";
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 
 // --- Helper Functions ---
@@ -157,7 +158,11 @@ async function fetchTmdbData(
       tmdb_id: result.id,
       title: result.title || result.name || item.title,
       media_type:
-        item.type === "anime" ? "TV" : item.type === "movie" ? "Movie" : "TV",
+        item.type === "anime"
+          ? MediaType.TV
+          : item.type === "movie"
+            ? MediaType.Movie
+            : MediaType.TV,
       poster_path: result.poster_path,
       backdrop_path: result.backdrop_path,
       vote_average: result.vote_average,

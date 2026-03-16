@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { MediaType } from "@/src/props/global/mediaType";
 import type { SearchProp } from "@/src/props/search/search";
 import { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -38,12 +39,14 @@ function SearchPageContent() {
     hasMore,
   } = useSearchData();
 
-  const { trendingHighlights, isLoading: isTrendingLoading } = useTrendingData();
-  const { currentPlaceholder, opacity: placeholderOpacity } = usePlaceholderAnimation();
+  const { trendingHighlights, isLoading: isTrendingLoading } =
+    useTrendingData();
+  const { currentPlaceholder, opacity: placeholderOpacity } =
+    usePlaceholderAnimation();
 
   const navigateToDetails = (item: SearchProp) =>
     router.push(
-      item.media_type === "Movie"
+      item.media_type === MediaType.Movie
         ? `/details/movie/${item.tmdbId}`
         : `/details/tvshow/${item.tmdbId}`,
     );
@@ -101,9 +104,10 @@ function SearchPageContent() {
           </SkeletonTheme>
         )}
 
-        {!isLoading && !isLoadingMore && filteredResults.length === 0 && lastQuery && (
-          <EmptyState query={searchQuery} />
-        )}
+        {!isLoading &&
+          !isLoadingMore &&
+          filteredResults.length === 0 &&
+          lastQuery && <EmptyState query={searchQuery} />}
 
         {filteredResults.length > 0 && (
           <SearchResultsSection

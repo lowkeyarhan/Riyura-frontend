@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import MediaCard from "@/src/components/media/MediaCard";
+import { MediaType } from "@/src/props/global/mediaType";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface MoviesTvMediaGridProps {
@@ -15,7 +16,7 @@ interface MoviesTvMediaGridProps {
 }
 
 const getMediaLabel = (mediaType: MoviesTvMediaGridProps["mediaType"]) =>
-  mediaType === "movie" ? "Movie" : "TV Show";
+  mediaType === "movie" ? MediaType.Movie : "TV Show";
 
 const getNowPlayingImageUrl = (item: MediaCardProp) =>
   item.poster_path || "/placeholder-image.jpg";

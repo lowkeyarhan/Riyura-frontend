@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { MediaType } from "@/src/props/global/mediaType";
 import type { SearchProp } from "@/src/props/search/search";
 
 interface SearchResultCardProps {
@@ -15,7 +16,7 @@ const getImageUrl = (posterPath: string) =>
 
 export function SearchResultCard({ item, onClick }: SearchResultCardProps) {
   const getMediaTypeLabel = () =>
-    item.media_type === "Movie" ? "Movie" : "TV";
+    item.media_type === MediaType.Movie ? MediaType.Movie : MediaType.TV;
 
   const getLanguage = () =>
     item.original_language ? item.original_language.toUpperCase() : "";

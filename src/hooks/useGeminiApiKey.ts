@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 
 interface GeminiApiKeyData {
   apiKeyInput: string;
@@ -13,6 +14,7 @@ interface GeminiApiKeyData {
 }
 
 export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
+  const { addNotification } = useNotification();
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyPreview, setApiKeyPreview] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
@@ -89,12 +91,12 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
         } else {
           const error = await res.json();
           console.error(`❌ [API Key] Failed to save:`, error.error);
-          alert(`Failed to save API key: ${error.error}`);
+          addNotification(`Failed to save API key: ${error.error}`, "error");
         }
       }
     } catch (error) {
       console.error(`🔥 [API Key] Error saving API key:`, error);
-      alert("Failed to save API key. Please try again.");
+      addNotification("Failed to save API key. Please try again.", "error");
     } finally {
       setIsSaving(false);
     }

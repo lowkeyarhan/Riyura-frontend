@@ -4,13 +4,13 @@ import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton"
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
 import { MediaType } from "@/src/props/global/mediaType";
 
-interface WatchlistItemShape {
+export interface WatchlistItemShape {
   id: number;
   tmdb_id?: number;
   title: string;
   poster_path: string | null;
   release_date: string | null;
-  media_type: MediaType | "Movie" | "TV";
+  media_type: MediaType;
 }
 
 interface WatchlistSectionProps {

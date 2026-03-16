@@ -1,3 +1,4 @@
+import { MediaType } from "@/src/props/global/mediaType";
 import { MediaCardDTO, ContinueWatchingDTO, RecommendationDTO } from "./card";
 
 export interface UserProfileDTO {
@@ -64,7 +65,7 @@ export interface GeminiRecommendationItem {
 export interface GeminiRecommendationResponse {
   tmdb_id: number;
   title: string;
-  media_type: "Movie" | "TV";
+  media_type: MediaType;
   poster_path: string | null;
   backdrop_path: string | null;
   vote_average: number;

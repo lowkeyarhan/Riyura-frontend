@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { CalendarIcon, PlayIcon } from "./SearchIcons";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@/src/props/global/mediaType";
 
 interface TrendingCardProps {
   item: MediaCardProp;
@@ -11,7 +12,7 @@ const getImageUrl = (posterPath: string) =>
   posterPath.startsWith("http") ? posterPath : `https://image.tmdb.org/t/p/w780${posterPath}`;
 
 export function TrendingCard({ item, onClick }: TrendingCardProps) {
-  const isMovie = item.media_type === "Movie";
+  const isMovie = item.media_type === MediaType.Movie;
   const cardOverview = isMovie
     ? "Experience the cinematic moment everyone is talking about."
     : "Binge the series that is dominating conversations right now.";

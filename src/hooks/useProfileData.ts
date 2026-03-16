@@ -2,6 +2,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
 import { Film, Tv, Clock } from "lucide-react";
 import { Stat } from "@/src/components/profile/StatBadge";
+import {
+  ContinueWatchingItem,
+  WatchlistItem,
+  ProfileStat,
+} from "@/src/dto/media";
 
 const INITIAL_STATS: Stat[] = [
   { label: "Movies", value: "0", icon: Film, color: "text-cyan-400" },
@@ -10,19 +15,23 @@ const INITIAL_STATS: Stat[] = [
 ];
 
 interface ProfileData {
-  continueWatching: any[];
-  watchlist: any[];
+  continueWatching: ContinueWatchingItem[];
+  watchlist: WatchlistItem[];
   stats: Stat[];
   isLoadingHistory: boolean;
   isLoadingWatchlist: boolean;
   dataInitialized: boolean;
   refetch: () => void;
-  setContinueWatching: React.Dispatch<React.SetStateAction<any[]>>;
+  setContinueWatching: React.Dispatch<
+    React.SetStateAction<ContinueWatchingItem[]>
+  >;
 }
 
 export function useProfileData(userId: string | undefined): ProfileData {
-  const [continueWatching, setContinueWatching] = useState<any[]>([]);
-  const [watchlist, setWatchlist] = useState<any[]>([]);
+  const [continueWatching, setContinueWatching] = useState<
+    ContinueWatchingItem[]
+  >([]);
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
@@ -52,7 +61,7 @@ export function useProfileData(userId: string | undefined): ProfileData {
           setContinueWatching(data.continueWatching || []);
           setWatchlist(data.watchlist || []);
           setStats(
-            data.stats.map((stat: any, idx: number) => ({
+            data.stats.map((stat: ProfileStat, idx: number) => ({
               ...INITIAL_STATS[idx],
               value: stat.value,
             })),

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { MediaType } from "@/src/props/global/mediaType";
 import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
 import { ApiResponse } from "@/src/dto/api";
 const VALID_STREAMS = new Set([
@@ -152,7 +153,7 @@ export async function POST(req: Request) {
       });
 
       const isSameContext =
-        media_type === "Movie" ||
+        media_type === MediaType.Movie ||
         (existing.season_number === season_number &&
           existing.episode_number === episode_number);
 

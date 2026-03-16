@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { MediaType } from "@/src/props/global/mediaType";
 import { WatchlistItem } from "@/src/dto/media";
 
 export function useWatchlist(userId: string | undefined) {
@@ -75,7 +76,8 @@ export function useWatchlist(userId: string | undefined) {
           return { success: false };
         }
 
-        const dbMediaType = mediaType === "movie" ? "Movie" : "TV";
+        const dbMediaType =
+          mediaType === "movie" ? MediaType.Movie : MediaType.TV;
         const res = await fetch(
           `/api/watchlist?tmdbId=${tmdbId}&mediaType=${dbMediaType}`,
           {

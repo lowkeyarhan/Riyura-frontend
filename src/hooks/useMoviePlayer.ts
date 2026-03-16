@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
 import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
+import { MediaType } from "@/src/props/global/mediaType";
 
 const MIN_WATCH_DURATION = 60;
 const WATCH_TIMER_INTERVAL = 1000;
@@ -82,7 +83,7 @@ export function useMoviePlayer({
       const watchData = {
         tmdb_id: parseInt(movieId),
         title: currentMovie.title,
-        media_type: "Movie" as const,
+        media_type: MediaType.Movie,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentMovie.poster_path,
         backdrop_path: currentMovie.backdrop_path,
@@ -94,7 +95,7 @@ export function useMoviePlayer({
       console.log("💾 Saving movie watch history:", {
         title: currentMovie.title,
         duration: watchDuration.current,
-        media_type: "Movie",
+        media_type: MediaType.Movie,
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {

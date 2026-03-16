@@ -64,13 +64,13 @@ export function WatchlistGrid({
     if (contextMenu) {
       // Create a mock event with stopPropagation method
       const mockEvent = {
-        stopPropagation: () => { },
+        stopPropagation: () => {},
       } as React.MouseEvent;
 
       onRemove(
         mockEvent,
         contextMenu.item.tmdb_id,
-        contextMenu.item.media_type === "Movie" ? "movie" : "tv",
+        contextMenu.item.media_type === MediaType.Movie ? "movie" : "tv",
       );
       closeContextMenu();
     }
@@ -132,7 +132,12 @@ export function WatchlistGrid({
           <MediaCard
             key={item.tmdb_id}
             item={toMediaCardProp(item)}
-            onClick={() => onItemClick(item.tmdb_id, item.media_type === "Movie" ? "movie" : "tv")}
+            onClick={() =>
+              onItemClick(
+                item.tmdb_id,
+                item.media_type === MediaType.Movie ? "movie" : "tv",
+              )
+            }
             onContextMenu={(e) => handleContextMenu(e, item)}
             onLongPress={() => handleLongPress(item)}
           />

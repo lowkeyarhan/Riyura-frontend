@@ -13,6 +13,10 @@ import { useWatchHistory } from "@/src/hooks/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
+import { MediaType } from "@/src/props/global/mediaType";
+import type { ContinueWatchingItem, WatchlistItem } from "@/src/dto/media";
+import type { GeminiRecommendationResponse } from "@/src/dto/ui/profile";
+import type { WatchlistItemShape } from "@/src/components/profile/WatchlistSection";
 
 import { ProfileHeader } from "@/src/components/profile/ProfileHeader";
 import { SettingsSection } from "@/src/components/profile/SettingsSection";
@@ -69,9 +73,9 @@ export default function ProfilePage() {
   };
 
   const handlePlayClick = useCallback(
-    (item: any) => {
-      if (item.mediaType === "Movie") {
-        const url = `/player/movie/${item.tmdbId}${
+    (item: ContinueWatchingItem) => {
+      if (item.mediaType === MediaType.Movie) {
+        const url = `/watch/movie/${item.tmdbId}${
           item.streamId ? `?stream=${item.streamId}` : ""
         }`;
         router.push(url);
@@ -83,7 +87,7 @@ export default function ProfilePage() {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${
+          `/watch/tvshow/${item.tmdbId}${
             params.toString() ? `?${params.toString()}` : ""
           }`,
         );
@@ -107,17 +111,18 @@ export default function ProfilePage() {
     }
   };
 
-  const handleWatchlistItemClick = (item: any) => {
+  const handleWatchlistItemClick = (item: WatchlistItemShape) => {
+    const id = item.tmdb_id ?? item.id;
     router.push(
-      item.media_type === "Movie"
-        ? `/details/movie/${item.tmdb_id}`
-        : `/details/tvshow/${item.tmdb_id}`,
+      item.media_type === MediaType.Movie
+        ? `/details/movie/${id}`
+        : `/details/tvshow/${id}`,
     );
   };
 
-  const handleRecommendationClick = (item: any) => {
+  const handleRecommendationClick = (item: GeminiRecommendationResponse) => {
     router.push(
-      item.media_type === "Movie"
+      item.media_type === MediaType.Movie
         ? `/details/movie/${item.tmdb_id}`
         : `/details/tvshow/${item.tmdb_id}`,
     );

@@ -1,188 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
-import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import { supabase } from "@/src/lib/auth/supabase";
-import type { TvDetailProp } from "@/src/props/tv/tvDetail";
+import { InfoRow } from "@/src/components/ui/InfoRow";
+import { useTVShowDetails } from "@/src/hooks/useTVShowDetails";
+import { formatRuntime, formatDate } from "@/src/lib/utils/format";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
 
-const formatRuntime = (minutes: number) => {
-  if (!minutes || minutes <= 0) return "N/A";
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-};
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
-const InfoRow = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) => (
-  <>
-    <div className="flex items-start justify-between gap-4">
-      <span
-        className="text-white/60 flex-shrink-0"
-        style={{ fontFamily: FONT }}
-      >
-        {label}
-      </span>
-      <span className="text-white text-right" style={{ fontFamily: FONT }}>
-        {value}
-      </span>
-    </div>
-    <div className="h-px bg-white/10" />
-  </>
-);
-
 export default function TVShowDetails() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
-  const { addNotification } = useNotification();
-  const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [showTrailer, setShowTrailer] = useState(false);
-  const [tvShow, setTVShow] = useState<TvDetailProp | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const id = params.id as string;
 
-  const fetchTVShowDetails = useCallback(async () => {
-    if (!params.id) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/tvshow/${params.id}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error ?? "Failed to fetch TV show details");
-      }
-
-      setTVShow(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      setTVShow(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    fetchTVShowDetails();
-  }, [fetchTVShowDetails]);
-
-  // Check if TV show is in watchlist when it loads
-  useEffect(() => {
-    const checkWatchlistStatus = async () => {
-      if (user && tvShow) {
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-
-          if (session) {
-            const res = await fetch(
-              `/api/watchlist/check?tmdbId=${tvShow.id}&mediaType=TV`,
-              {
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              },
-            );
-            const data = await res.json();
-            setIsWatchlisted(data.inWatchlist);
-          }
-        } catch (err) {
-          console.error("Error checking watchlist status:", err);
-        }
-      }
-    };
-
-    checkWatchlistStatus();
-  }, [user, tvShow]);
-
-  const closeTrailer = () => setShowTrailer(false);
-  const handlePlayTrailer = () => setShowTrailer(true);
-
-  const toggleWatchlist = async () => {
-    if (!user) {
-      router.push("/auth");
-      return;
-    }
-
-    if (!tvShow) return;
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        console.error("No session found");
-        return;
-      }
-
-      if (isWatchlisted) {
-        const res = await fetch(
-          `/api/watchlist?tmdbId=${tvShow.id}&mediaType=TV`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          },
-        );
-        if (!res.ok) throw new Error("Failed to remove from watchlist");
-
-        setIsWatchlisted(false);
-
-      } else {
-        const res = await fetch("/api/watchlist", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            tmdb_id: tvShow.id,
-            title: tvShow.name,
-            media_type: "TV",
-            poster_path: tvShow.poster_path ?? null,
-            release_date: tvShow.first_air_date,
-            vote: tvShow.vote_average,
-            number_of_seasons: tvShow.number_of_seasons,
-            number_of_episodes: tvShow.number_of_episodes,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to add to watchlist");
-
-        setIsWatchlisted(true);
-        addNotification(`${tvShow.name} added to watchlist`, "success");
-      }
-
-    } catch (err) {
-      console.error("❌ Error:", err);
-      // setIsWatchlisted(!isWatchlisted); // Same logic as movie details
-      addNotification("Failed to update watchlist", "error");
-    }
-  };
+  const {
+    tvShow,
+    loading,
+    error,
+    isWatchlisted,
+    showTrailer,
+    setShowTrailer,
+    toggleWatchlist,
+  } = useTVShowDetails(id);
 
   if (loading) {
     return (
@@ -242,7 +85,7 @@ export default function TVShowDetails() {
           <div className="relative w-[90%] max-w-[1200px] aspect-video">
             <button
               className="absolute -top-12 right-0 z-[2001] text-white hover:text-red-500 transition"
-              onClick={closeTrailer}
+              onClick={() => setShowTrailer(false)}
             >
               <X className="w-8 h-8" />
             </button>
@@ -299,7 +142,7 @@ export default function TVShowDetails() {
             )}
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={handlePlayTrailer}
+                onClick={() => setShowTrailer(true)}
                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white rounded-full transition font-semibold text-sm md:text-base whitespace-nowrap"
                 style={{ fontFamily: FONT }}
               >
@@ -320,8 +163,8 @@ export default function TVShowDetails() {
                 <button
                   onClick={toggleWatchlist}
                   className={`p-3 rounded-full transition ${isWatchlisted
-                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                      : "bg-white/10 text-white hover:bg-white/20"
+                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
                     }`}
                 >
                   <Bookmark

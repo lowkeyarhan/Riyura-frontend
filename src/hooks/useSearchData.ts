@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { MediaType } from "@/src/props/global/mediaType";
 import { type SearchProp, SearchSortBy } from "@/src/props/search/search";
 
 const RESULTS_PER_PAGE = 15;
@@ -238,7 +239,8 @@ export function useSearchData(): SearchData {
   const filteredResults = results.filter(
     (item) =>
       activeTab === "all" ||
-      item.media_type === (activeTab === "movies" ? "Movie" : "TV"),
+      item.media_type ===
+        (activeTab === "movies" ? MediaType.Movie : MediaType.TV),
   );
 
   const isLoadingMore = isLoading && results.length > 0;

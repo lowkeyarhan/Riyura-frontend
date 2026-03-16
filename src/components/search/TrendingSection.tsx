@@ -1,6 +1,7 @@
 import { TrendingCardSkeleton } from "../skeletons/TrendingCardSkeleton";
 import { TrendingCard } from "./TrendingCard";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@/src/props/global/mediaType";
 
 interface TrendingSectionProps {
   items: MediaCardProp[];
@@ -37,7 +38,7 @@ export function TrendingSection({
             <TrendingCardSkeleton key={`skeleton-${i}`} />
           ))
           : items.map((item) => {
-            const isMovie = item.media_type === "Movie";
+            const isMovie = item.media_type === MediaType.Movie;
             const href = isMovie
               ? `/details/movie/${item.tmdbId}`
               : `/details/tvshow/${item.tmdbId}`;

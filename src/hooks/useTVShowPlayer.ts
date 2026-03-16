@@ -5,6 +5,7 @@ import {
   TMDBSeasonSummary,
   TMDBTVShowDetailsResponse,
 } from "@/src/dto/tmdb/details";
+import { MediaType } from "@/src/props/global/mediaType";
 
 const MIN_WATCH_DURATION = 60;
 const WATCH_TIMER_INTERVAL = 1000;
@@ -117,7 +118,7 @@ export function useTVShowPlayer({
       const watchData = {
         tmdb_id: parseInt(tvShowId),
         title: `${currentTvShow.name}`,
-        media_type: "TV" as const,
+        media_type: MediaType.TV,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentTvShow.poster_path,
         backdrop_path: currentTvShow.backdrop_path,
@@ -136,7 +137,7 @@ export function useTVShowPlayer({
         season: currentSeason,
         episode: currentEpisodeNum,
         duration: watchDuration.current,
-        media_type: "TV",
+        media_type: MediaType.TV,
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -193,7 +194,7 @@ export function useTVShowPlayer({
       const watchData = {
         tmdb_id: parseInt(tvShowId),
         title: `${currentTvShow.name}`,
-        media_type: "TV" as const,
+        media_type: MediaType.TV,
         stream_id: servers[currentServerIndex]?.id || "unknown",
         poster_path: currentTvShow.poster_path,
         backdrop_path: currentTvShow.backdrop_path,
@@ -212,7 +213,7 @@ export function useTVShowPlayer({
         season: currentSeason,
         episode: currentEpisodeNum,
         duration: watchDuration.current,
-        media_type: "TV",
+        media_type: MediaType.TV,
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {

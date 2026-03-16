@@ -2,6 +2,7 @@ import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
 import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { MediaType } from "@/src/props/global/mediaType";
 import type { ExploreProp } from "@/src/props/explore/explore";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
         title: String(item.title ?? ""),
         mediaType: (item.mediaType ??
           item.media_type ??
-          "Movie") as ExploreProp["mediaType"],
+          MediaType.Movie) as ExploreProp["mediaType"],
         releaseYear: String(
           item.releaseYear ?? item.release_date ?? item.first_air_date ?? "",
         ),

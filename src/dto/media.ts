@@ -2,8 +2,9 @@
 // COMMON DTOs - Used by BOTH Backend and Frontend
 // ============================================
 
-// Media Types
-export type MediaType = "Movie" | "TV";
+// Media Types - re-export from props for DTO compatibility
+import { MediaType } from "@/src/props/global/mediaType";
+export { MediaType };
 
 // ============================================
 // MEDIA ITEM - Common DTO for all media cards/grids

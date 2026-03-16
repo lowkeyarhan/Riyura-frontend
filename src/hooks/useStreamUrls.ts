@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { MediaType } from "@/src/props/global/mediaType";
 
 export interface StreamUrl {
   id: string;
@@ -26,7 +27,8 @@ export function useStreamUrls(mediaType: "movie" | "tv") {
     const fetchStreamUrls = async () => {
       try {
         setLoading(true);
-        const dbMediaType = mediaType === "movie" ? "Movie" : "TV";
+        const dbMediaType =
+          mediaType === "movie" ? MediaType.Movie : MediaType.TV;
         const response = await fetch(
           `/api/stream-urls?media_type=${dbMediaType}`,
         );

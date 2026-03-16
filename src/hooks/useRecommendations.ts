@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { GeminiRecommendationResponse } from "@/src/dto/ui/profile";
 
 interface RecommendationsData {
-  recommendations: any[];
+  recommendations: GeminiRecommendationResponse[];
   isLoading: boolean;
   error: string | null;
   refresh: () => void;
@@ -12,7 +13,9 @@ export function useRecommendations(
   userId: string | undefined,
   hasApiKey: boolean,
 ): RecommendationsData {
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<
+    GeminiRecommendationResponse[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recommendationsFetchingRef = useRef(false);

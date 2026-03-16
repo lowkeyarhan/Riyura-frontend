@@ -77,9 +77,12 @@ export default function TVShowPlayer() {
     return (
       <PlayerLayout>
         <div className="min-h-screen flex flex-col items-center justify-center px-4">
-          <p className="text-xl text-white/90 mb-2">Unable to play any content</p>
+          <p className="text-xl text-white/90 mb-2">
+            Unable to play any content
+          </p>
           <p className="text-white/60 text-sm text-center max-w-md">
-            No stream sources are configured. Please add stream URLs for TV shows in the admin settings.
+            No stream sources are configured. Please add stream URLs for TV
+            shows in the admin settings.
           </p>
         </div>
       </PlayerLayout>

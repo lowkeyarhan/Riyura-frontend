@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import type { MouseEvent } from "react";
+import { MediaType } from "@/src/props/global/mediaType";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 type MediaCardProps = {
@@ -50,8 +51,8 @@ const TYPE_CONFIG: Record<
   MediaCardProp["media_type"],
   { label: string; icon: React.ReactNode }
 > = {
-  Movie: { label: "Movie", icon: <MovieIcon /> },
-  TV: { label: "TV", icon: <TVIcon /> },
+  [MediaType.Movie]: { label: MediaType.Movie, icon: <MovieIcon /> },
+  [MediaType.TV]: { label: MediaType.TV, icon: <TVIcon /> },
 };
 
 export default function MediaCard({
@@ -63,7 +64,7 @@ export default function MediaCard({
 }: MediaCardProps) {
   const { title, poster_path, year, media_type } = item;
   const posterUrl = poster_path || "/placeholder-image.jpg";
-  const typeConfig = TYPE_CONFIG[media_type] ?? TYPE_CONFIG.Movie;
+  const typeConfig = TYPE_CONFIG[media_type] ?? TYPE_CONFIG[MediaType.Movie];
   const hasRemove = typeof onRemove === "function";
 
   // Long-press detection for mobile

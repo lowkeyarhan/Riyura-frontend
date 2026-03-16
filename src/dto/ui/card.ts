@@ -1,4 +1,5 @@
-export type UIMediaType = "Movie" | "TV";
+import { MediaType } from "@/src/props/global/mediaType";
+export type UIMediaType = MediaType;
 
 // Base DTO for all card types, used in various UI components like media grids, banners, and recommendations.
 export interface MediaCardDTO {
@@ -37,7 +38,7 @@ export interface ContinueWatchingOverlayItem {
   progress: number;
   meta: string;
   remaining: string;
-  mediaType: "Movie" | "TV";
+  mediaType: MediaType;
   seasonNumber?: number;
   episodeNumber?: number;
   streamId?: string;

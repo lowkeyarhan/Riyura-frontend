@@ -1,162 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
-import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import { supabase } from "@/src/lib/auth/supabase";
-import type { MovieDetailProp } from "@/src/props/movie/movieDetail";
+import { InfoRow } from "@/src/components/ui/InfoRow";
+import { useMovieDetails } from "@/src/hooks/useMovieDetails";
+import { formatRuntime, formatDate, formatMoney } from "@/src/lib/utils/format";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
 
-const formatRuntime = (minutes: number) => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours}h ${mins}m`;
-};
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
-const formatMoney = (value: number) => `$${(value / 1000000).toFixed(1)}M`;
-
 export default function MovieDetails() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
-  const { addNotification } = useNotification();
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [showTrailer, setShowTrailer] = useState(false);
-  const [movie, setMovie] = useState<MovieDetailProp | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const id = params.id as string;
 
-  const fetchMovieDetails = useCallback(async () => {
-    if (!params.id) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/movie/${params.id}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error ?? "Failed to fetch movie details");
-      }
-
-      setMovie(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      setMovie(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    fetchMovieDetails();
-  }, [fetchMovieDetails]);
-
-  useEffect(() => {
-    const checkWatchlistStatus = async () => {
-      if (user && movie) {
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-
-          if (session) {
-            const res = await fetch(
-              `/api/watchlist/check?tmdbId=${movie.id}&mediaType=Movie`,
-              {
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              },
-            );
-            const data = await res.json();
-            setIsWatchlisted(data.inWatchlist);
-          }
-        } catch (err) {
-          console.error("Error checking watchlist status:", err);
-        }
-      }
-    };
-
-    checkWatchlistStatus();
-  }, [user, movie]);
-
-  const toggleWatchlist = async () => {
-    if (!user) {
-      router.push("/auth");
-      return;
-    }
-
-    if (!movie) return;
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        console.error("No session found");
-        return;
-      }
-
-      if (isWatchlisted) {
-        const res = await fetch(
-          `/api/watchlist?tmdbId=${movie.id}&mediaType=Movie`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          },
-        );
-        if (!res.ok) throw new Error("Failed to remove from watchlist");
-      } else {
-        const res = await fetch("/api/watchlist", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            tmdb_id: movie.id,
-            title: movie.title,
-            media_type: "Movie",
-            poster_path: movie.poster_path ?? null,
-            release_date: movie.release_date,
-            vote: movie.vote_average,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to add to watchlist");
-
-        addNotification(`${movie.title} added to watchlist`, "success");
-      }
-
-      setIsWatchlisted(!isWatchlisted);
-    } catch (err) {
-      console.error("❌ Error toggling watchlist:", err);
-      // setIsWatchlisted(!isWatchlisted); // Don't revert optimistically if we just failed the request? Or maybe we should. The original code toggled after success (or failed to toggle).
-      // Original code: setIsWatchlisted(!isWatchlisted) at the end of try (success), and also in catch (revert).
-      // Here I am toggling at the end of try. If it fails, I should probably NOT toggle, or revert if I did optimistic update.
-      // I am NOT doing optimistic update here. I am waiting for request.
-
-      addNotification("Failed to update watchlist", "error");
-    }
-  };
+  const {
+    movie,
+    loading,
+    error,
+    isWatchlisted,
+    showTrailer,
+    setShowTrailer,
+    toggleWatchlist,
+  } = useMovieDetails(id);
 
   if (loading) {
     return (
@@ -492,27 +361,5 @@ export default function MovieDetails() {
       </div>
       <Footer />
     </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <>
-      <div className="flex items-start justify-between gap-4">
-        <span
-          className="text-white/60 flex-shrink-0"
-          style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-        >
-          {label}
-        </span>
-        <span
-          className="text-white text-right"
-          style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-        >
-          {value}
-        </span>
-      </div>
-      <div className="h-px bg-white/10" />
-    </>
   );
 }

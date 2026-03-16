@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { MediaType } from "@/src/props/global/mediaType";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,10 +27,10 @@ export async function GET(request: NextRequest) {
 
     // Normalize to DB enum values (Movie, TV) and filter if specified
     const dbMediaType =
-      mediaTypeParam === "movie" || mediaTypeParam === "Movie"
-        ? "Movie"
-        : mediaTypeParam === "tv" || mediaTypeParam === "TV"
-          ? "TV"
+      mediaTypeParam === "movie" || mediaTypeParam === MediaType.Movie
+        ? MediaType.Movie
+        : mediaTypeParam === "tv" || mediaTypeParam === MediaType.TV
+          ? MediaType.TV
           : null;
     if (dbMediaType) {
       query = query.or(`media_type.eq.${dbMediaType},media_type.eq.both`);

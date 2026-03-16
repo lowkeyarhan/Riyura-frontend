@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Play, Plus } from "lucide-react";
 import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
+import { MediaType } from "@/src/props/global/mediaType";
 import { BannerProp } from "@/src/props/banner/banner";
 import { apiClient } from "@/src/lib/axios";
 import { ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
@@ -57,7 +58,7 @@ const getDisplayTitle = (item?: BannerProp) =>
   item?.title || "Untitled";
 
 const getMediaTypeLabel = (contentType: BannerProp["contentType"]) =>
-  contentType === "Movie" ? "Movie" : "TV Show";
+  contentType === MediaType.Movie ? MediaType.Movie : "TV Show";
 
 // Image Transition
 const IMAGE_TRANSITION: Transition = {
@@ -114,13 +115,13 @@ const contentVariants: Variants = {
   exit: { opacity: 0, y: -20 },
 };
 
-const toMediaType = (contentType: BannerProp["contentType"]): "Movie" | "TV" =>
-  contentType === "Movie" ? "Movie" : "TV";
+const toMediaType = (contentType: BannerProp["contentType"]): MediaType =>
+  contentType === MediaType.Movie ? MediaType.Movie : MediaType.TV;
 
 const mapWatchHistoryItem = (
   item: WatchHistoryItem,
 ): ContinueWatchingOverlayItem => {
-  const fallbackLength = item.media_type === "Movie" ? 7200 : 2700;
+  const fallbackLength = item.media_type === MediaType.Movie ? 7200 : 2700;
   const totalLength = Math.max(60, item.episode_length || fallbackLength);
   const watchedSeconds = Math.max(0, item.duration_sec || 0);
   const remainingSeconds = Math.max(0, totalLength - watchedSeconds);
@@ -132,8 +133,8 @@ const mapWatchHistoryItem = (
     image: getCardImageUrl(item.backdrop_path || item.poster_path),
     progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
     meta:
-      item.media_type === "Movie"
-        ? "Movie"
+      item.media_type === MediaType.Movie
+        ? MediaType.Movie
         : `S${item.season_number || 1} E${item.episode_number || 1}`,
     remaining:
       remainingSeconds === 0
@@ -263,7 +264,7 @@ export default function Banner({ initialItems }: BannerProps) {
         const inWatchlist = await isInWatchlist(
           user.id,
           currentItemId!,
-          currentContentType as "Movie" | "TV",
+          currentContentType as MediaType,
         );
         setIsWatchlisted(inWatchlist);
       } catch {
@@ -358,7 +359,7 @@ export default function Banner({ initialItems }: BannerProps) {
   // Handle the play button click
   const handlePlay = () => {
     if (!currentItem) return;
-    if (currentItem.contentType === "Movie") {
+    if (currentItem.contentType === MediaType.Movie) {
       router.push(`/player/movie/${currentItem.tmdbId}`);
       return;
     }
@@ -431,7 +432,7 @@ export default function Banner({ initialItems }: BannerProps) {
 
   const handlePlayClick = useCallback(
     (item: any) => {
-      if (item.mediaType === "Movie") {
+      if (item.mediaType === MediaType.Movie) {
         const url = `/player/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
           }`;
         router.push(url);

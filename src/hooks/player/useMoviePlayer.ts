@@ -41,7 +41,7 @@ export function useMoviePlayer({
     const fetchMovie = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/movie/${movieId}`);
+        const res = await fetch(`/api/details/movie/${movieId}`);
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
         setMovie(data);
@@ -100,7 +100,7 @@ export function useMoviePlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        fetch("/api/watch-history", {
+        fetch("/api/profile/history", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -23,7 +23,7 @@ export function useMovieDetails(id: string) {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/movie/${id}`);
+      const response = await fetch(`/api/details/movie/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -53,7 +53,7 @@ export function useMovieDetails(id: string) {
 
           if (session) {
             const res = await fetch(
-              `/api/watchlist/check?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
+              `/api/profile/watchlist/check?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
               {
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -92,7 +92,7 @@ export function useMovieDetails(id: string) {
 
       if (isWatchlisted) {
         const res = await fetch(
-          `/api/watchlist?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
+          `/api/profile/watchlist?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
           {
             method: "DELETE",
             headers: {
@@ -102,7 +102,7 @@ export function useMovieDetails(id: string) {
         );
         if (!res.ok) throw new Error("Failed to remove from watchlist");
       } else {
-        const res = await fetch("/api/watchlist", {
+        const res = await fetch("/api/profile/watchlist", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -23,7 +23,7 @@ export function useTVShowDetails(id: string) {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/tvshow/${id}`);
+      const response = await fetch(`/api/details/tv/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -53,7 +53,7 @@ export function useTVShowDetails(id: string) {
 
           if (session) {
             const res = await fetch(
-              `/api/watchlist/check?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
+              `/api/profile/watchlist/check?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
               {
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -92,7 +92,7 @@ export function useTVShowDetails(id: string) {
 
       if (isWatchlisted) {
         const res = await fetch(
-          `/api/watchlist?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
+          `/api/profile/watchlist?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
           {
             method: "DELETE",
             headers: {
@@ -103,7 +103,7 @@ export function useTVShowDetails(id: string) {
         if (!res.ok) throw new Error("Failed to remove from watchlist");
         setIsWatchlisted(false);
       } else {
-        const res = await fetch("/api/watchlist", {
+        const res = await fetch("/api/profile/watchlist", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

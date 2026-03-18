@@ -49,13 +49,14 @@ const getImageUrl = (path: string) => {
   return path;
 };
 const getCardImageUrl = (path?: string | null) =>
-  path ? `${imageConfig.w780}${path.startsWith("/") ? path : `/${path}`}` : "/placeholder-image.jpg";
+  path
+    ? `${imageConfig.w780}${path.startsWith("/") ? path : `/${path}`}`
+    : "/placeholder-image.jpg";
 
 const truncate = (text: string, maxLength: number) =>
   text?.length > maxLength ? `${text.slice(0, maxLength)}...` : text || "";
 
-const getDisplayTitle = (item?: BannerProp) =>
-  item?.title || "Untitled";
+const getDisplayTitle = (item?: BannerProp) => item?.title || "Untitled";
 
 const getMediaTypeLabel = (contentType: BannerProp["contentType"]) =>
   contentType === MediaType.Movie ? MediaType.Movie : "TV Show";
@@ -228,7 +229,9 @@ export default function Banner({ initialItems }: BannerProps) {
         setLoading(true);
         setError(null);
 
-        const { data } = await apiClient.get<{ items: BannerProp[] }>("/api/home/banner");
+        const { data } = await apiClient.get<{ items: BannerProp[] }>(
+          "/api/home/banner",
+        );
         setItems(data.items || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
@@ -297,7 +300,7 @@ export default function Banner({ initialItems }: BannerProps) {
           return;
         }
 
-        const response = await fetch("/api/watch-history", {
+        const response = await fetch("/api/profile/history?limit=10", {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
@@ -311,9 +314,9 @@ export default function Banner({ initialItems }: BannerProps) {
 
         const mappedItems = Array.isArray(payload.data)
           ? payload.data
-            .map(mapWatchHistoryItem)
-            .filter((item) => item.progress <= 95)
-            .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+              .map(mapWatchHistoryItem)
+              .filter((item) => item.progress <= 95)
+              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
           : [];
 
         if (isActive) setContinueWatching(mappedItems);
@@ -350,10 +353,10 @@ export default function Banner({ initialItems }: BannerProps) {
 
   const metadataParts = currentItem
     ? [
-      getMediaTypeLabel(currentItem.contentType),
-      currentItem.year,
-      ...itemGenres,
-    ].filter((part): part is string => Boolean(part))
+        getMediaTypeLabel(currentItem.contentType),
+        currentItem.year,
+        ...itemGenres,
+      ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
@@ -433,8 +436,9 @@ export default function Banner({ initialItems }: BannerProps) {
   const handlePlayClick = useCallback(
     (item: any) => {
       if (item.mediaType === MediaType.Movie) {
-        const url = `/player/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
-          }`;
+        const url = `/player/movie/${item.tmdbId}${
+          item.streamId ? `?stream=${item.streamId}` : ""
+        }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -444,7 +448,8 @@ export default function Banner({ initialItems }: BannerProps) {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
+          `/player/tvshow/${item.tmdbId}${
+            params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -581,10 +586,11 @@ export default function Banner({ initialItems }: BannerProps) {
                           ? "Remove from watchlist"
                           : "Add to watchlist"
                       }
-                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
-                        ? "bg-white/35 text-white"
-                        : "bg-white/20 text-white hover:bg-white/30"
-                        } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${
+                        isWatchlisted
+                          ? "bg-white/35 text-white"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />
                     </button>
@@ -613,8 +619,9 @@ export default function Banner({ initialItems }: BannerProps) {
                   width: index === currentSlide ? 32 : 8,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`h-2 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"
-                  }`}
+                className={`h-2 rounded-full ${
+                  index === currentSlide ? "bg-white" : "bg-white/50"
+                }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

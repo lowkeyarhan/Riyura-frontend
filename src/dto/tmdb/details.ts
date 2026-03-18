@@ -7,8 +7,7 @@ import {
 } from "./common";
 
 // DTOs for TMDB details/season endpoints.
-// Used by `app/api/movie/[id]`, `app/api/tvshow/[id]`,
-// `app/api/tvshow/[id]/season/[seasonId]`, and the details/player pages.
+// Used by `app/api/details/[type]/[id]`, and the details/player pages.
 
 export interface TMDBSimilarMovie {
   id: number;
@@ -55,7 +54,7 @@ export interface TMDBMovieDetails {
   production_companies: TMDBCompany[];
 }
 
-// API response we return from `/api/movie/[id]`.
+// API response we return from `/api/details/movie/[id]`.
 export interface TMDBMovieDetailsResponse extends TMDBMovieDetails {
   credits?: TMDBCreditsResponse;
   similar?: TMDBSimilarResponse<TMDBSimilarMovie>;
@@ -82,7 +81,7 @@ export interface TMDBTVShowDetails {
   seasons: TMDBSeasonSummary[];
 }
 
-// API response we return from `/api/tvshow/[id]`.
+// API response we return from `/api/details/tv/[id]`.
 export interface TMDBTVShowDetailsResponse extends TMDBTVShowDetails {
   credits?: TMDBCreditsResponse;
   similar?: TMDBSimilarResponse<TMDBSimilarTV>;

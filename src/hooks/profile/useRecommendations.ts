@@ -41,8 +41,8 @@ export function useRecommendations(
 
         if (session) {
           const url = forceRefresh
-            ? "/api/gemini/recommendations?refresh=true"
-            : "/api/gemini/recommendations";
+            ? "/api/profile/recommendations?refresh=true"
+            : "/api/profile/recommendations";
 
           const res = await fetch(url, {
             headers: { Authorization: `Bearer ${session.access_token}` },

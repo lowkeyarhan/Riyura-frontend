@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { MediaType } from "@/src/props/global/mediaType";
 import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
 import { ApiResponse } from "@/src/dto/api";
+
 const VALID_STREAMS = new Set([
   "syntherionmovie",
   "ironlinkmovie",
@@ -14,9 +15,23 @@ const VALID_STREAMS = new Set([
   "nanovuetv",
 ]);
 
-export async function GET(req: Request) {
+function createAuthedSupabaseClient(authHeader: string) {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: { headers: { Authorization: authHeader } },
+    },
+  );
+}
+
+/**
+ * GET /api/profile/history
+ * Fetches watch history. Use ?limit=10 for Continue Watching, no limit for full list.
+ */
+export async function GET(request: Request) {
   try {
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = request.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or Invalid Token" },
@@ -24,12 +39,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
+    const supabase = createAuthedSupabaseClient(authHeader);
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -38,20 +48,28 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: dbData, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
+    let query = supabase
       .from("watch_history")
       .select("*")
       .eq("user_id", user.id)
-      .order("watched_at", { ascending: false })
-      .limit(10);
+      .order("watched_at", { ascending: false });
+
+    if (limit && limit > 0) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
-    const data = dbData as WatchHistoryItem[];
+    const items = (data || []) as WatchHistoryItem[];
 
-    // Use ApiResponse wrapper for consistent response format
     const response: ApiResponse<WatchHistoryItem[]> = {
       success: true,
-      data,
+      data: items,
     };
 
     return NextResponse.json(response, { status: 200 });
@@ -64,9 +82,13 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+/**
+ * POST /api/profile/history
+ * Saves/updates watch progress from players. Supports duration aggregation and stream validation.
+ */
+export async function POST(request: Request) {
   try {
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = request.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.warn(
         "⚠️ Watch History: Blocked request with missing/invalid token",
@@ -77,13 +99,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const body: WatchHistoryAddRequest = await req.json();
+    const supabase = createAuthedSupabaseClient(authHeader);
+    const body: WatchHistoryAddRequest = await request.json();
     const {
       tmdb_id,
       media_type,
@@ -99,7 +116,6 @@ export async function POST(req: Request) {
       duration_sec = 0,
     } = body;
 
-    // Get user_id from authenticated user
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -133,7 +149,6 @@ export async function POST(req: Request) {
       episode: episode_number,
     });
 
-    // 1. Check for existing record first
     const { data: existing } = await supabase
       .from("watch_history")
       .select("id, duration_sec, season_number, episode_number")
@@ -142,7 +157,6 @@ export async function POST(req: Request) {
 
     let finalDuration = duration_sec;
 
-    // --- Duration Logic ---
     if (existing) {
       console.log("🔄 Found existing record, updating:", {
         id: existing.id,
@@ -184,22 +198,20 @@ export async function POST(req: Request) {
       watched_at: new Date().toISOString(),
     };
 
-    let query;
+    let dbQuery;
 
     if (existing?.id) {
-      // Update existing record using ID selector
       console.log("📝 Updating existing record with ID:", existing.id);
-      query = supabase
+      dbQuery = supabase
         .from("watch_history")
         .update(payload)
         .eq("id", existing.id);
     } else {
-      // Insert new record (ID is generated by DB)
       console.log("📝 Inserting new record");
-      query = supabase.from("watch_history").insert(payload);
+      dbQuery = supabase.from("watch_history").insert(payload);
     }
 
-    const { data, error } = await query.select().single();
+    const { data, error } = await dbQuery.select().single();
 
     if (error) {
       console.error("❌ Supabase Write Error:", error.message);
@@ -220,5 +232,47 @@ export async function POST(req: Request) {
       { error: "Internal Server Error" },
       { status: 500 },
     );
+  }
+}
+
+/**
+ * DELETE /api/profile/history?id=...
+ * Removes a watch history item by id.
+ */
+export async function DELETE(request: Request) {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createAuthedSupabaseClient(authHeader);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("watch_history")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("id", id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

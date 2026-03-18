@@ -8,7 +8,7 @@ import { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 import { useSearchData } from "@/src/hooks/useSearchData";
-import { useTrendingData } from "@/src/hooks/useTrendingData";
+import { useTrendingData } from "@/src/hooks/home/useTrendingData";
 import { usePlaceholderAnimation } from "@/src/hooks/usePlaceholderAnimation";
 
 import { SearchHero } from "@/src/components/search/SearchHero";

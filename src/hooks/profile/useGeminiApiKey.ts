@@ -38,7 +38,7 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
         } = await supabase.auth.getSession();
 
         if (session) {
-          const res = await fetch("/api/gemini", {
+          const res = await fetch("/api/profile/gemini", {
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
 
@@ -74,7 +74,7 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
       } = await supabase.auth.getSession();
 
       if (session) {
-        const res = await fetch("/api/gemini", {
+        const res = await fetch("/api/profile/gemini", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -114,7 +114,7 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
       } = await supabase.auth.getSession();
 
       if (session) {
-        const res = await fetch("/api/gemini", {
+        const res = await fetch("/api/profile/gemini", {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${session.access_token}`,

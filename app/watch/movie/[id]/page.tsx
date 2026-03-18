@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useMoviePlayer } from "@/src/hooks/useMoviePlayer";
-import { useStreamUrls } from "@/src/hooks/useStreamUrls";
+import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
+import { useStreamUrls } from "@/src/hooks/player/useStreamUrls";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { MoviePlayerSidebar } from "@/src/components/player/MoviePlayerSidebar";

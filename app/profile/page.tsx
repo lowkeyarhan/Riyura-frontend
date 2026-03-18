@@ -6,9 +6,9 @@ import { LogOut } from "lucide-react";
 
 import Footer from "@/src/components/layout/Footer";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useProfileData } from "@/src/hooks/useProfileData";
-import { useGeminiApiKey } from "@/src/hooks/useGeminiApiKey";
-import { useRecommendations } from "@/src/hooks/useRecommendations";
+import { useProfileData } from "@/src/hooks/profile/useProfileData";
+import { useGeminiApiKey } from "@/src/hooks/profile/useGeminiApiKey";
+import { useRecommendations } from "@/src/hooks/profile/useRecommendations";
 import { useWatchHistory } from "@/src/hooks/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";

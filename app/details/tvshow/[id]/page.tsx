@@ -6,7 +6,7 @@ import { Play, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { InfoRow } from "@/src/components/ui/InfoRow";
-import { useTVShowDetails } from "@/src/hooks/useTVShowDetails";
+import { useTVShowDetails } from "@/src/hooks/details/useTVShowDetails";
 import { formatRuntime, formatDate } from "@/src/lib/utils/format";
 
 const BG_COLOR = "rgb(7, 9, 16)";

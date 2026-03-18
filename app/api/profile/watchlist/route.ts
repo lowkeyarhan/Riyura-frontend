@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { MediaType } from "@/src/props/global/mediaType";
-import { WatchlistItem, WatchlistAddRequest } from "@/src/dto/media";
+import { WatchlistItem } from "@/src/dto/media";
 function createAuthedSupabaseClient(authHeader: string) {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   // Get auth token from header
   const authHeader = request.headers.get("Authorization");
   if (!authHeader) {
-    console.error("[API /api/watchlist GET] No Authorization header");
+    console.error("[API /api/profile/watchlist GET] No Authorization header");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -48,7 +48,10 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    console.error("[API /api/watchlist GET] Auth error:", authError?.message);
+    console.error(
+      "[API /api/profile/watchlist GET] Auth error:",
+      authError?.message,
+    );
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -65,7 +68,10 @@ export async function GET(request: Request) {
   const { data, error } = await query;
 
   if (error) {
-    console.error("[API /api/watchlist GET] Database error:", error.message);
+    console.error(
+      "[API /api/profile/watchlist GET] Database error:",
+      error.message,
+    );
     throw error;
   }
 

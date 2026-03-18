@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useTVShowPlayer } from "@/src/hooks/useTVShowPlayer";
-import { useStreamUrls } from "@/src/hooks/useStreamUrls";
+import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
+import { useStreamUrls } from "@/src/hooks/player/useStreamUrls";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { TVShowPlayerSidebar } from "@/src/components/player/TVShowPlayerSidebar";

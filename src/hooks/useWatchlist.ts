@@ -31,7 +31,7 @@ export function useWatchlist(userId: string | undefined) {
           return;
         }
 
-        const res = await fetch("/api/watchlist", {
+        const res = await fetch("/api/profile/watchlist", {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
@@ -79,7 +79,7 @@ export function useWatchlist(userId: string | undefined) {
         const dbMediaType =
           mediaType === "movie" ? MediaType.Movie : MediaType.TV;
         const res = await fetch(
-          `/api/watchlist?tmdbId=${tmdbId}&mediaType=${dbMediaType}`,
+          `/api/profile/watchlist?tmdbId=${tmdbId}&mediaType=${dbMediaType}`,
           {
             method: "DELETE",
             headers: {

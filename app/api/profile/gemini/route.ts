@@ -27,7 +27,7 @@ async function getAuthenticatedUser(req: Request) {
 }
 
 /**
- * GET /api/gemini
+ * GET /api/profile/gemini
  * Returns key preview if it exists
  */
 export async function GET(req: Request) {
@@ -64,7 +64,7 @@ export async function GET(req: Request) {
 }
 
 /**
- * POST /api/gemini
+ * POST /api/profile/gemini
  * Encrypts and Upserts the API Key
  */
 export async function POST(req: Request) {
@@ -142,7 +142,7 @@ export async function POST(req: Request) {
 }
 
 /**
- * DELETE /api/gemini
+ * DELETE /api/profile/gemini
  * Removes the key from the database
  */
 export async function DELETE(req: Request) {

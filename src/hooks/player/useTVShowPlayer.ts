@@ -58,7 +58,7 @@ export function useTVShowPlayer({
     const fetchShow = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/tvshow/${tvShowId}`);
+        const res = await fetch(`/api/details/tv/${tvShowId}`);
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
         setTvShow(data);
@@ -142,7 +142,7 @@ export function useTVShowPlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        fetch("/api/watch-history", {
+        fetch("/api/profile/history", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -218,7 +218,7 @@ export function useTVShowPlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        fetch("/api/watch-history", {
+        fetch("/api/profile/history", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

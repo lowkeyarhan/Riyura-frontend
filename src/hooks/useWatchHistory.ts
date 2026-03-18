@@ -22,7 +22,7 @@ export function useWatchHistory(): WatchHistoryData {
         return false;
       }
 
-      const res = await fetch(`/api/history?id=${itemId}`, {
+      const res = await fetch(`/api/profile/history?id=${itemId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${session.access_token}`,

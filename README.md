@@ -114,12 +114,12 @@ Key hooks:
 
 - **`useAuth`**: reads initial session + subscribes to auth changes; exposes `user`, `loading`, `firstName`, `avatarUrl`, `signOut`.
 - **`useProfileData`**: fetches `/api/profile` once per user with concurrency locking; returns `continueWatching`, `watchlist`, `stats`, and a `refetch`.
-- **`useWatchlist`**: fetches `/api/watchlist`; provides `removeItem` with **optimistic UI** + revert on failure.
-- **`useWatchHistory`**: deletes history items via `/api/history?id=...`.
+- **`useWatchlist`**: fetches `/api/profile/watchlist`; provides `removeItem` with **optimistic UI** + revert on failure.
+- **`useWatchHistory`**: deletes history items via `/api/profile/history?id=...`.
 - **Player hooks**
-  - **`useMoviePlayer`** and **`useTVShowPlayer`** fetch details and track watch duration; persist watch history on unmount via `/api/watch-history` using `keepalive: true`.
+  - **`useMoviePlayer`** and **`useTVShowPlayer`** fetch details and track watch duration; persist watch history on unmount via `/api/profile/history` using `keepalive: true`.
 - **`useStreamUrls`**: loads stream servers via `/api/stream-urls` and generates playback links.
-- **`useGeminiApiKey`**: reads/saves/deletes the user’s encrypted Gemini key via `/api/gemini`.
+- **`useGeminiApiKey`**: reads/saves/deletes the user’s encrypted Gemini key via `/api/profile/gemini`.
 - **`useRecommendations`**: loads Gemini recommendations with a strict “single-flight” lock and supports `refresh()`.
 - **`useSearchData`**: URL-driven search state (query/page/sort/tab) with back/forward restore; fetches `/api/search`.
 - **`useTrendingData`**: fetches a small trending set for highlights.
@@ -164,7 +164,7 @@ Typical flows:
 - **Playback**
   - Watch pages obtain stream servers via `/api/stream-urls`
   - Players track local watch duration
-  - On unmount, they `POST /api/watch-history` using the user’s Supabase access token.
+  - On unmount, they `POST /api/profile/history` using the user’s Supabase access token.
 
 - **Profile**
   - UI calls `/api/profile` (authorized)
@@ -173,8 +173,8 @@ Typical flows:
     - stats aggregates (movies/series/hours)
 
 - **Gemini personalization**
-  - UI stores an encrypted Gemini key via `/api/gemini` (authorized; encrypted using `ENCRYPTION_KEY`)
-  - Recommendations load from `/api/gemini/recommendations` via `useRecommendations`.
+  - UI stores an encrypted Gemini key via `/api/profile/gemini` (authorized; encrypted using `ENCRYPTION_KEY`)
+  - Recommendations load from `/api/profile/recommendations` via `useRecommendations`.
 
 ## SSR / SSG / CSR behavior
 
@@ -288,14 +288,13 @@ Not exhaustive, but the most important ones:
   - `GET /api/stream-urls?media_type=Movie|TV` → server-only Supabase (service role)
 
 - **User data (authorized)**
-  - `GET/POST/DELETE /api/watchlist`
-  - `GET/POST /api/watch-history` (duration aggregation + stream ID validation)
-  - `GET/POST/DELETE /api/history`
+  - `GET/POST/DELETE /api/profile/watchlist`
+  - `GET/POST/DELETE /api/profile/history` (watch history with duration aggregation + stream validation)
   - `GET /api/profile`
 
 - **Gemini (authorized)**
-  - `GET/POST/DELETE /api/gemini` (encrypted key storage)
-  - `GET /api/gemini/recommendations` (present in repo)
+  - `GET/POST/DELETE /api/profile/gemini` (encrypted key storage)
+  - `GET /api/profile/recommendations` (present in repo)
 
 ## Troubleshooting
 

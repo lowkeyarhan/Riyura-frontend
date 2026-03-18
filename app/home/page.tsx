@@ -6,7 +6,7 @@ import Footer from "@/src/components/layout/Footer";
 import MoviesTvMediaGrid from "@/src/components/media/MoviesTvMediaGrid";
 import AnimeMediaGrid from "@/src/components/media/AnimeMediaGrid";
 import { HomeMediaGridSkeleton } from "@/src/components/skeletons/HomeMediaGridSkeleton";
-import { useHomeData, type MediaSelector } from "@/src/hooks/useHomeData";
+import { useHomeData, type MediaSelector } from "@/src/hooks/home/useHomeData";
 
 const SELECTOR_TABS: Array<{ id: MediaSelector; label: string }> = [
   { id: "movie", label: "Movies" },

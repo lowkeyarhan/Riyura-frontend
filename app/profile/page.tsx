@@ -7,7 +7,7 @@ import { LogOut } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useProfileData } from "@/src/hooks/profile/useProfileData";
-import { useGeminiApiKey } from "@/src/hooks/profile/useGeminiApiKey";
+import { useApiKey } from "@/src/lib/contexts/ApiKeyContext";
 import { useRecommendations } from "@/src/hooks/profile/useRecommendations";
 import { useWatchHistory } from "@/src/hooks/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
@@ -15,7 +15,7 @@ import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
 import { MediaType } from "@/src/props/global/mediaType";
 import type { ContinueWatchingItem, WatchlistItem } from "@/src/dto/media";
-import type { GeminiRecommendationResponse } from "@/src/dto/ui/profile";
+import type { RecommendationProp } from "@/src/props/profile/recommendation";
 import type { WatchlistItemShape } from "@/src/components/profile/WatchlistSection";
 
 import { ProfileHeader } from "@/src/components/profile/ProfileHeader";
@@ -40,23 +40,14 @@ export default function ProfilePage() {
     setContinueWatching,
   } = useProfileData(user?.id);
 
-  const {
-    apiKeyInput,
-    apiKeyPreview,
-    hasApiKey,
-    isLoading: isLoadingApiKey,
-    isSaving: isSavingApiKey,
-    setApiKeyInput,
-    saveApiKey,
-    deleteApiKey,
-  } = useGeminiApiKey(user?.id);
+  const apiKey = useApiKey();
 
   const {
     recommendations,
     isLoading: isLoadingRecommendations,
     error: recommendationsError,
     refresh: refreshRecommendations,
-  } = useRecommendations(user?.id, hasApiKey);
+  } = useRecommendations(user?.id, apiKey.hasApiKey);
 
   const { deleteHistoryItem } = useWatchHistory();
 
@@ -120,17 +111,16 @@ export default function ProfilePage() {
     );
   };
 
-  const handleRecommendationClick = (item: GeminiRecommendationResponse) => {
+  const handleRecommendationClick = (item: RecommendationProp) => {
     router.push(
-      item.media_type === MediaType.Movie
-        ? `/details/movie/${item.tmdb_id}`
-        : `/details/tvshow/${item.tmdb_id}`,
+      item.mediaType === MediaType.Movie
+        ? `/details/movie/${item.tmdbId}`
+        : `/details/tvshow/${item.tmdbId}`,
     );
   };
 
   const handleApiKeySave = async (key: string) => {
-    await saveApiKey(key);
-    // Trigger initial recommendation fetch after saving key
+    await apiKey.saveApiKey(key);
     refreshRecommendations();
   };
 
@@ -163,14 +153,10 @@ export default function ProfilePage() {
             {/* Preferences - Desktop Only (Moved to bottom on mobile) */}
             <div className="hidden lg:block mt-6 mb-2">
               <SettingsSection
-                apiKeyInput={apiKeyInput}
-                onApiKeyInputChange={setApiKeyInput}
-                onApiKeySave={handleApiKeySave}
-                onApiKeyDelete={deleteApiKey}
-                isLoadingApiKey={isLoadingApiKey}
-                isSavingApiKey={isSavingApiKey}
-                apiKeyPreview={apiKeyPreview}
-                hasApiKey={hasApiKey}
+                apiKey={{
+                  ...apiKey,
+                  saveApiKey: handleApiKeySave,
+                }}
               />
             </div>
           </div>
@@ -210,7 +196,7 @@ export default function ProfilePage() {
               recommendations={recommendations}
               isLoading={isLoadingRecommendations}
               error={recommendationsError}
-              hasApiKey={hasApiKey}
+              hasApiKey={apiKey.hasApiKey}
               onRefresh={refreshRecommendations}
               onItemClick={handleRecommendationClick}
             />
@@ -218,14 +204,10 @@ export default function ProfilePage() {
             {/* --- MOBILE ONLY SECTIONS (Preferences & Sign Out) --- */}
             <div className="lg:hidden space-y-8 pt-8 border-t border-white/5">
               <SettingsSection
-                apiKeyInput={apiKeyInput}
-                onApiKeyInputChange={setApiKeyInput}
-                onApiKeySave={handleApiKeySave}
-                onApiKeyDelete={deleteApiKey}
-                isLoadingApiKey={isLoadingApiKey}
-                isSavingApiKey={isSavingApiKey}
-                apiKeyPreview={apiKeyPreview}
-                hasApiKey={hasApiKey}
+                apiKey={{
+                  ...apiKey,
+                  saveApiKey: handleApiKeySave,
+                }}
               />
 
               <div className="flex justify-center">

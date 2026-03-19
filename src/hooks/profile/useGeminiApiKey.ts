@@ -1,34 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import type { ApiKeyProp } from "@/src/props/profile/apiKey";
 
-interface GeminiApiKeyData {
-  apiKeyInput: string;
-  apiKeyPreview: string | null;
-  hasApiKey: boolean;
-  isLoading: boolean;
-  isSaving: boolean;
-  setApiKeyInput: (value: string) => void;
-  saveApiKey: (key: string) => Promise<void>;
-  deleteApiKey: () => Promise<void>;
-}
-
-export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
+export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
   const { addNotification } = useNotification();
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyPreview, setApiKeyPreview] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const apiKeyFetchingRef = useRef(false);
+  const isFetchingRef = useRef(false);
 
-  // Fetch API Key Status on mount
   useEffect(() => {
-    if (!userId || apiKeyFetchingRef.current) return;
+    if (!userId || isFetchingRef.current) return;
 
     const fetchApiKeyStatus = async () => {
-      if (apiKeyFetchingRef.current) return;
-      apiKeyFetchingRef.current = true;
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
 
       try {
         setIsLoading(true);
@@ -36,33 +25,29 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        if (!session) return;
 
-        if (session) {
-          const res = await fetch("/api/profile/gemini", {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
+        const res = await fetch("/api/profile/key", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-          if (res.ok) {
-            const data = await res.json();
-            setHasApiKey(data.hasKey);
-            setApiKeyPreview(data.keyPreview);
-            if (data.keyPreview) {
-              setApiKeyInput(data.keyPreview);
-            }
-          }
+        if (res.ok) {
+          const data = await res.json();
+          setHasApiKey(data.hasKey);
+          setApiKeyPreview(data.keyPreview ?? null);
+          if (data.keyPreview) setApiKeyInput(data.keyPreview);
         }
       } catch (error) {
         console.error("Failed to fetch API key status:", error);
       } finally {
         setIsLoading(false);
-        apiKeyFetchingRef.current = false;
+        isFetchingRef.current = false;
       }
     };
 
     fetchApiKeyStatus();
   }, [userId]);
 
-  // Handler: Save API Key
   const saveApiKey = async (key: string) => {
     if (!userId) return;
 
@@ -72,37 +57,33 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      if (!session) return;
 
-      if (session) {
-        const res = await fetch("/api/profile/gemini", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ apiKey: key }),
-        });
+      const res = await fetch("/api/profile/key", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ apiKey: key }),
+      });
 
-        if (res.ok) {
-          const data = await res.json();
-          setHasApiKey(true);
-          setApiKeyPreview(data.keyPreview);
-          setApiKeyInput(data.keyPreview);
-        } else {
-          const error = await res.json();
-          console.error(`❌ [API Key] Failed to save:`, error.error);
-          addNotification(`Failed to save API key: ${error.error}`, "error");
-        }
+      if (res.ok) {
+        const data = await res.json();
+        setHasApiKey(data.hasKey);
+        setApiKeyPreview(data.keyPreview ?? null);
+        setApiKeyInput(data.keyPreview ?? key);
+      } else {
+        const error = await res.json();
+        addNotification(`Failed to save API key: ${error.error}`, "error");
       }
-    } catch (error) {
-      console.error(`🔥 [API Key] Error saving API key:`, error);
+    } catch {
       addNotification("Failed to save API key. Please try again.", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handler: Delete API Key
   const deleteApiKey = async () => {
     if (!userId) return;
 
@@ -112,26 +93,23 @@ export function useGeminiApiKey(userId: string | undefined): GeminiApiKeyData {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      if (!session) return;
 
-      if (session) {
-        const res = await fetch("/api/profile/gemini", {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
+      const res = await fetch("/api/profile/key", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
-        if (res.ok) {
-          setHasApiKey(false);
-          setApiKeyPreview(null);
-          setApiKeyInput("");
-        } else {
-          const error = await res.json();
-          console.error(`❌ [API Key] Failed to delete:`, error.error);
-        }
+      if (res.ok) {
+        setHasApiKey(false);
+        setApiKeyPreview(null);
+        setApiKeyInput("");
+      } else {
+        const error = await res.json();
+        addNotification(`Failed to delete API key: ${error.error}`, "error");
       }
-    } catch (error) {
-      console.error(`🔥 [API Key] Error deleting API key:`, error);
+    } catch {
+      addNotification("Failed to delete API key. Please try again.", "error");
     } finally {
       setIsSaving(false);
     }

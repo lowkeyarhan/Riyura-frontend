@@ -5,6 +5,8 @@ export type { SearchProp } from "./search/search";
 export type { ExploreProp } from "./explore/explore";
 export type { ProviderProp } from "./global/provider";
 export type { HistoryProp } from "./profile/history";
+export type { ApiKeyProp } from "./profile/apiKey";
+export type { RecommendationProp } from "./profile/recommendation";
 export type {
   MovieDetailProp,
   MovieDetailGenre,

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
-import { GeminiRecommendationResponse } from "@/src/dto/ui/profile";
+import type { RecommendationProp } from "@/src/props/profile/recommendation";
 
 interface RecommendationsData {
-  recommendations: GeminiRecommendationResponse[];
+  recommendations: RecommendationProp[];
   isLoading: boolean;
   error: string | null;
   refresh: () => void;
@@ -13,79 +13,60 @@ export function useRecommendations(
   userId: string | undefined,
   hasApiKey: boolean,
 ): RecommendationsData {
-  const [recommendations, setRecommendations] = useState<
-    GeminiRecommendationResponse[]
-  >([]);
+  const [recommendations, setRecommendations] = useState<RecommendationProp[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const recommendationsFetchingRef = useRef(false);
+  const isFetchingRef = useRef(false);
 
-  // Shared fetch function with strict locking
   const fetchRecommendations = useCallback(
     async (forceRefresh = false) => {
-      if (!userId || !hasApiKey) return;
-
-      // Prevent duplicate calls if already fetching
-      if (recommendationsFetchingRef.current) {
-        return;
-      }
+      if (!userId || !hasApiKey || isFetchingRef.current) return;
 
       try {
-        recommendationsFetchingRef.current = true;
+        isFetchingRef.current = true;
         setIsLoading(true);
         setError(null);
 
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        if (!session) return;
 
-        if (session) {
-          const url = forceRefresh
-            ? "/api/profile/recommendations?refresh=true"
-            : "/api/profile/recommendations";
+        const url = forceRefresh
+          ? "/api/profile/recommendations?refresh=true"
+          : "/api/profile/recommendations";
 
-          const res = await fetch(url, {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-          if (res.ok) {
-            const data = await res.json();
-            setRecommendations(data.recommendations || []);
-            console.log(
-              `✅ [Recommendations] Loaded from ${data.source || "API"}`,
-            );
-          } else {
-            const errorData = await res.json();
-            setError(errorData.error || "Failed to load recommendations");
-            console.error(`❌ [Recommendations] Error:`, errorData.error);
-          }
+        if (res.ok) {
+          const data = await res.json();
+          setRecommendations(data.recommendations ?? []);
+        } else {
+          const errorData = await res.json();
+          setError(errorData.error || "Failed to load recommendations");
         }
-      } catch (err) {
-        console.error(`🔥 [Recommendations] Failed:`, err);
+      } catch {
         setError("Failed to load recommendations");
       } finally {
         setIsLoading(false);
-        recommendationsFetchingRef.current = false;
+        isFetchingRef.current = false;
       }
     },
     [userId, hasApiKey],
   );
 
-  // Initial Load
   useEffect(() => {
     if (!userId || !hasApiKey) return;
     fetchRecommendations();
   }, [userId, hasApiKey]);
 
-  // Expose refresh function for manual refresh
   const refresh = useCallback(() => {
     fetchRecommendations(true);
   }, [fetchRecommendations]);
 
-  return {
-    recommendations,
-    isLoading,
-    error,
-    refresh,
-  };
+  return { recommendations, isLoading, error, refresh };
 }

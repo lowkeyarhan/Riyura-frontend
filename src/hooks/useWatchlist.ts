@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
 import { MediaType } from "@/src/props/global/mediaType";
-import { WatchlistItem } from "@/src/dto/media";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 export function useWatchlist(userId: string | undefined) {
-  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [items, setItems] = useState<MediaCardProp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +25,6 @@ export function useWatchlist(userId: string | undefined) {
         } = await supabase.auth.getSession();
 
         if (!session) {
-          console.error("[useWatchlist] No session found");
           setError("No active session");
           setLoading(false);
           return;
@@ -35,17 +34,15 @@ export function useWatchlist(userId: string | undefined) {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          setItems(Array.isArray(data) ? data : []);
-        } else {
-          const errorText = await res.text();
-          console.error("[useWatchlist] API error:", res.status, errorText);
-          setError(`Failed to fetch watchlist: ${res.status}`);
+        const json = await res.json();
+
+        if (!res.ok) {
+          setError(json?.error ?? `Failed to fetch watchlist: ${res.status}`);
           setItems([]);
+        } else {
+          setItems(Array.isArray(json.data) ? json.data : []);
         }
       } catch (err) {
-        console.error("[useWatchlist] Error loading watchlist:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
         setItems([]);
       } finally {
@@ -60,10 +57,8 @@ export function useWatchlist(userId: string | undefined) {
     async (tmdbId: number, mediaType: "movie" | "tv") => {
       if (!userId) return { success: false };
 
-      // Optimistic update
       const previousItems = [...items];
-      const updated = items.filter((i) => i.tmdb_id !== tmdbId);
-      setItems(updated);
+      setItems(items.filter((i) => i.tmdbId !== tmdbId));
 
       try {
         const {
@@ -71,40 +66,35 @@ export function useWatchlist(userId: string | undefined) {
         } = await supabase.auth.getSession();
 
         if (!session) {
-          console.error("No session found");
           setItems(previousItems);
           return { success: false };
         }
 
         const dbMediaType =
           mediaType === "movie" ? MediaType.Movie : MediaType.TV;
-        const res = await fetch(
-          `/api/profile/watchlist?tmdbId=${tmdbId}&mediaType=${dbMediaType}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          },
-        );
 
-        if (!res.ok) throw new Error("Failed to remove from watchlist");
+        const res = await fetch("/api/profile/watchlist", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ tmdb_id: tmdbId, media_type: dbMediaType }),
+        });
+
+        if (!res.ok) {
+          setItems(previousItems);
+          return { success: false };
+        }
 
         return { success: true };
-      } catch (err) {
-        // Revert on fail
+      } catch {
         setItems(previousItems);
-        console.error("Error removing:", err);
         return { success: false };
       }
     },
     [userId, items],
   );
 
-  return {
-    items,
-    loading,
-    error,
-    removeItem,
-  };
+  return { items, loading, error, removeItem };
 }

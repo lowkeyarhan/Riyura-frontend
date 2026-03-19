@@ -1,8 +1,3 @@
-/**
- * Normalizes TMDB image URLs to prevent 404s.
- * Backend may return malformed URLs like image.tmdb.org/t/p/xxx.jpg (missing size)
- * or relative paths. Correct format: image.tmdb.org/t/p/{size}/path
- */
 const TMDB_BASE = "https://image.tmdb.org/t/p";
 const VALID_SIZE_PATTERN = /\/t\/p\/(original|w\d+)\//;
 
@@ -15,10 +10,8 @@ export function normalizeTmdbImageUrl(
   const trimmed = path.trim();
   if (!trimmed) return "";
 
-  // Already has a valid size segment
   if (VALID_SIZE_PATTERN.test(trimmed)) return trimmed;
 
-  // Malformed TMDB URL: t/p/ directly followed by filename (missing size)
   if (trimmed.includes("image.tmdb.org/t/p/")) {
     return trimmed.replace(
       "image.tmdb.org/t/p/",
@@ -26,7 +19,6 @@ export function normalizeTmdbImageUrl(
     );
   }
 
-  // Relative path (e.g. /buPFnHZ3xQy6vZEHxbHgL1Pc6CR.jpg or buPFnHZ3xQy6vZEHxbHgL1Pc6CR.jpg)
   if (!trimmed.startsWith("http")) {
     const normalized = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
     return `${TMDB_BASE}/${size}${normalized}`;
@@ -35,7 +27,6 @@ export function normalizeTmdbImageUrl(
   return trimmed;
 }
 
-/** Normalize poster_path in media card items */
 export function normalizeMediaCardPoster(item: {
   poster_path?: string | null;
   [key: string]: unknown;
@@ -48,7 +39,6 @@ export function normalizeMediaCardPoster(item: {
   return item;
 }
 
-/** Normalize backdrop_path and poster_path in banner items */
 export function normalizeBannerItem(item: {
   backdrop_path?: string | null;
   poster_path?: string | null;

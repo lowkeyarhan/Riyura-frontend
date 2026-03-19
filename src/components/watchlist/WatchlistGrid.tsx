@@ -1,15 +1,14 @@
 import { LayoutGrid } from "lucide-react";
+import { useState } from "react";
 import MediaCard from "@/src/components/media/MediaCard";
-import { WatchlistItem } from "@/src/dto/media";
 import { ContextMenu } from "@/src/components/media/ContextMenu";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
 import { MediaType } from "@/src/props/global/mediaType";
-import { useState } from "react";
 
 const FONT_FAMILY = "Be Vietnam Pro, sans-serif";
 
 interface WatchlistGridProps {
-  items: WatchlistItem[];
+  items: MediaCardProp[];
   loading: boolean;
   filter: "all" | "movie" | "tv" | "anime";
   onRemove: (
@@ -23,58 +22,41 @@ interface WatchlistGridProps {
 export function WatchlistGrid({
   items,
   loading,
-  filter,
   onRemove,
   onItemClick,
 }: WatchlistGridProps) {
-  // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    item: WatchlistItem;
+    item: MediaCardProp;
   } | null>(null);
 
-  // Handle right-click (desktop)
-  const handleContextMenu = (e: React.MouseEvent, item: WatchlistItem) => {
-    e.preventDefault(); // Prevent browser context menu
+  const handleContextMenu = (e: React.MouseEvent, item: MediaCardProp) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, item });
+  };
+
+  const handleLongPress = (item: MediaCardProp) => {
     setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
+      x: window.innerWidth / 2 - 100,
+      y: window.innerHeight / 2 - 30,
       item,
     });
   };
 
-  // Handle long-press (mobile)
-  const handleLongPress = (item: WatchlistItem) => {
-    // Position at center of screen for mobile
-    setContextMenu({
-      x: window.innerWidth / 2 - 100, // Center (100px = half menu width)
-      y: window.innerHeight / 2 - 30, // Center (30px = half menu height)
-      item,
-    });
-  };
+  const closeContextMenu = () => setContextMenu(null);
 
-  // Close context menu
-  const closeContextMenu = () => {
-    setContextMenu(null);
-  };
-
-  // Handle remove from context menu
   const handleRemoveFromMenu = () => {
-    if (contextMenu) {
-      // Create a mock event with stopPropagation method
-      const mockEvent = {
-        stopPropagation: () => {},
-      } as React.MouseEvent;
-
-      onRemove(
-        mockEvent,
-        contextMenu.item.tmdb_id,
-        contextMenu.item.media_type === MediaType.Movie ? "movie" : "tv",
-      );
-      closeContextMenu();
-    }
+    if (!contextMenu) return;
+    const mockEvent = { stopPropagation: () => {} } as React.MouseEvent;
+    onRemove(
+      mockEvent,
+      contextMenu.item.tmdbId,
+      contextMenu.item.media_type === MediaType.Movie ? "movie" : "tv",
+    );
+    closeContextMenu();
   };
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
@@ -113,28 +95,16 @@ export function WatchlistGrid({
     );
   }
 
-  const toMediaCardProp = (item: WatchlistItem): MediaCardProp => ({
-    tmdbId: item.tmdb_id,
-    title: item.title,
-    poster_path: item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : "",
-    year: item.release_date
-      ? new Date(item.release_date).getFullYear().toString()
-      : "N/A",
-    media_type: item.media_type as MediaType,
-  });
-
   return (
     <>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
         {items.map((item) => (
           <MediaCard
-            key={item.tmdb_id}
-            item={toMediaCardProp(item)}
+            key={item.tmdbId}
+            item={item}
             onClick={() =>
               onItemClick(
-                item.tmdb_id,
+                item.tmdbId,
                 item.media_type === MediaType.Movie ? "movie" : "tv",
               )
             }
@@ -144,7 +114,6 @@ export function WatchlistGrid({
         ))}
       </div>
 
-      {/* Context Menu */}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}

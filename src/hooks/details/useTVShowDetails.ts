@@ -53,7 +53,7 @@ export function useTVShowDetails(id: string) {
 
           if (session) {
             const res = await fetch(
-              `/api/profile/watchlist/check?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
+              `/api/profile/watchlist?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
               {
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -61,7 +61,7 @@ export function useTVShowDetails(id: string) {
               },
             );
             const data = await res.json();
-            setIsWatchlisted(data.exists);
+            setIsWatchlisted(data.isInWatchlist);
           }
         } catch (err) {
           console.error("Error checking watchlist status:", err);
@@ -91,17 +91,18 @@ export function useTVShowDetails(id: string) {
       }
 
       if (isWatchlisted) {
-        const res = await fetch(
-          `/api/profile/watchlist?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+        const res = await fetch("/api/profile/watchlist", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
           },
-        );
+          body: JSON.stringify({
+            tmdb_id: tvShow.id,
+            media_type: MediaType.TV,
+          }),
+        });
         if (!res.ok) throw new Error("Failed to remove from watchlist");
-        setIsWatchlisted(false);
       } else {
         const res = await fetch("/api/profile/watchlist", {
           method: "POST",
@@ -111,13 +112,7 @@ export function useTVShowDetails(id: string) {
           },
           body: JSON.stringify({
             tmdb_id: tvShow.id,
-            title: tvShow.name,
             media_type: MediaType.TV,
-            poster_path: tvShow.poster_path ?? null,
-            release_date: tvShow.first_air_date,
-            vote: tvShow.vote_average,
-            number_of_seasons: tvShow.number_of_seasons,
-            number_of_episodes: tvShow.number_of_episodes,
           }),
         });
 

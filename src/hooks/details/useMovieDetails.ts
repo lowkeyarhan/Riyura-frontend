@@ -53,7 +53,7 @@ export function useMovieDetails(id: string) {
 
           if (session) {
             const res = await fetch(
-              `/api/profile/watchlist/check?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
+              `/api/profile/watchlist?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
               {
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -61,7 +61,7 @@ export function useMovieDetails(id: string) {
               },
             );
             const data = await res.json();
-            setIsWatchlisted(data.exists);
+            setIsWatchlisted(data.isInWatchlist);
           }
         } catch (err) {
           console.error("Error checking watchlist status:", err);
@@ -91,15 +91,17 @@ export function useMovieDetails(id: string) {
       }
 
       if (isWatchlisted) {
-        const res = await fetch(
-          `/api/profile/watchlist?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+        const res = await fetch("/api/profile/watchlist", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
           },
-        );
+          body: JSON.stringify({
+            tmdb_id: movie.id,
+            media_type: MediaType.Movie,
+          }),
+        });
         if (!res.ok) throw new Error("Failed to remove from watchlist");
       } else {
         const res = await fetch("/api/profile/watchlist", {
@@ -110,11 +112,7 @@ export function useMovieDetails(id: string) {
           },
           body: JSON.stringify({
             tmdb_id: movie.id,
-            title: movie.title,
             media_type: MediaType.Movie,
-            poster_path: movie.poster_path ?? null,
-            release_date: movie.release_date,
-            vote: movie.vote_average,
           }),
         });
 

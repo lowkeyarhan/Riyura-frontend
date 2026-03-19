@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MediaType } from "@/src/props/global/mediaType";
-import { WatchlistItem } from "@/src/dto/media";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface UseWatchlistFiltersParams {
-  items: WatchlistItem[];
+  items: MediaCardProp[];
   removeItem: (
     tmdbId: number,
     mediaType: "movie" | "tv",
@@ -19,7 +19,7 @@ interface UseWatchlistFiltersReturn {
   sortBy: "recent" | "title" | "year";
   setSortBy: (value: "recent" | "title" | "year") => void;
   counts: { movie: number; tv: number; total: number };
-  visibleItems: WatchlistItem[];
+  visibleItems: MediaCardProp[];
   handleRemove: (
     e: React.MouseEvent,
     tmdbId: number,
@@ -56,27 +56,19 @@ export function useWatchlistFilters({
       filtered = items.filter((i) => i.media_type === MediaType.TV);
     }
 
+    // "recent" preserves backend order (already sorted by added_at desc)
+    if (sortBy === "recent") return filtered;
+
     const sorted = [...filtered];
-    if (sortBy === "recent") {
-      sorted.sort((a, b) => {
-        const dateA = a.added_at ? new Date(a.added_at).getTime() : 0;
-        const dateB = b.added_at ? new Date(b.added_at).getTime() : 0;
-        return dateB - dateA;
-      });
-    } else if (sortBy === "title") {
+    if (sortBy === "title") {
       sorted.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === "year") {
       sorted.sort((a, b) => {
-        const yearA = a.release_date
-          ? new Date(a.release_date).getFullYear()
-          : 0;
-        const yearB = b.release_date
-          ? new Date(b.release_date).getFullYear()
-          : 0;
+        const yearA = parseInt(a.year, 10) || 0;
+        const yearB = parseInt(b.year, 10) || 0;
         return yearB - yearA;
       });
     }
-
     return sorted;
   }, [items, filter, sortBy]);
 

@@ -7,6 +7,7 @@ import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { supabase } from "@/src/lib/auth/supabase";
 import { MediaType } from "@/src/props/global/mediaType";
 import type { TvDetailProp } from "@/src/props/tv/tvDetail";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 export function useTVShowDetails(id: string) {
   const router = useRouter();
@@ -17,6 +18,7 @@ export function useTVShowDetails(id: string) {
   const [tvShow, setTVShow] = useState<TvDetailProp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [similarShows, setSimilarShows] = useState<MediaCardProp[]>([]);
 
   const fetchTVShowDetails = useCallback(async () => {
     if (!id) return;
@@ -39,9 +41,24 @@ export function useTVShowDetails(id: string) {
     }
   }, [id]);
 
+  const fetchSimilarShows = useCallback(async () => {
+    if (!id) return;
+    try {
+      const response = await fetch(`/api/details/tv/${id}/similiar`);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setSimilarShows(data);
+      }
+    } catch {
+      // silently fail — similar shows are non-critical
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchTVShowDetails();
-  }, [fetchTVShowDetails]);
+    fetchSimilarShows();
+  }, [fetchTVShowDetails, fetchSimilarShows]);
 
   useEffect(() => {
     const checkWatchlistStatus = async () => {
@@ -135,5 +152,6 @@ export function useTVShowDetails(id: string) {
     showTrailer,
     setShowTrailer,
     toggleWatchlist,
+    similarShows,
   };
 }

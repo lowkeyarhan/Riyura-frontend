@@ -6,6 +6,7 @@ import { Play, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { InfoRow } from "@/src/components/ui/InfoRow";
+import MediaCard from "@/src/components/media/MediaCard";
 import { useMovieDetails } from "@/src/hooks/details/useMovieDetails";
 import { formatRuntime, formatDate, formatMoney } from "@/src/lib/utils/format";
 
@@ -25,6 +26,7 @@ export default function MovieDetails() {
     showTrailer,
     setShowTrailer,
     toggleWatchlist,
+    similarMovies,
   } = useMovieDetails(id);
 
   if (loading) {
@@ -158,10 +160,11 @@ export default function MovieDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${isWatchlisted
-                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                  className={`p-3 rounded-full transition ${
+                    isWatchlisted
+                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"
@@ -204,13 +207,13 @@ export default function MovieDetails() {
               )}
               <InfoRow
                 label="Release Date"
-                value={movie.release_date ? formatDate(movie.release_date) : "N/A"}
+                value={
+                  movie.release_date ? formatDate(movie.release_date) : "N/A"
+                }
               />
               <InfoRow
                 label="Runtime"
-                value={
-                  movie.runtime > 0 ? formatRuntime(movie.runtime) : "N/A"
-                }
+                value={movie.runtime > 0 ? formatRuntime(movie.runtime) : "N/A"}
               />
               <InfoRow
                 label="IMDb Rating"
@@ -222,9 +225,7 @@ export default function MovieDetails() {
                   value={movie.original_language.toUpperCase()}
                 />
               )}
-              {movie.status && (
-                <InfoRow label="Status" value={movie.status} />
-              )}
+              {movie.status && <InfoRow label="Status" value={movie.status} />}
               {movie.production_companies?.length > 0 && (
                 <InfoRow
                   label="Production"
@@ -357,7 +358,25 @@ export default function MovieDetails() {
             </p>
           )}
         </section>
-
+        {similarMovies.length > 0 && (
+          <section>
+            <h2
+              className="text-2xl md:text-4xl font-semibold text-white mb-6"
+              style={{ fontFamily: FONT }}
+            >
+              More Like This
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {similarMovies.map((item) => (
+                <MediaCard
+                  key={item.tmdbId}
+                  item={item}
+                  onClick={() => router.push(`/details/movie/${item.tmdbId}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       <Footer />
     </div>

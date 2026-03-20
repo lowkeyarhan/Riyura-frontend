@@ -6,6 +6,7 @@ import { Play, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import { InfoRow } from "@/src/components/ui/InfoRow";
+import MediaCard from "@/src/components/media/MediaCard";
 import { useTVShowDetails } from "@/src/hooks/details/useTVShowDetails";
 import { formatRuntime, formatDate } from "@/src/lib/utils/format";
 
@@ -25,6 +26,7 @@ export default function TVShowDetails() {
     showTrailer,
     setShowTrailer,
     toggleWatchlist,
+    similarShows,
   } = useTVShowDetails(id);
 
   if (loading) {
@@ -162,10 +164,11 @@ export default function TVShowDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${isWatchlisted
-                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                  className={`p-3 rounded-full transition ${
+                    isWatchlisted
+                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"
@@ -454,6 +457,25 @@ export default function TVShowDetails() {
           </div>
         )}
 
+        {similarShows.length > 0 && (
+          <section>
+            <h2
+              className="text-2xl md:text-4xl font-semibold text-white mb-6"
+              style={{ fontFamily: FONT }}
+            >
+              More Like This
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {similarShows.map((item) => (
+                <MediaCard
+                  key={item.tmdbId}
+                  item={item}
+                  onClick={() => router.push(`/details/tvshow/${item.tmdbId}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       <Footer />
     </div>

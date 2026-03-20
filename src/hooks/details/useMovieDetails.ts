@@ -7,6 +7,7 @@ import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { supabase } from "@/src/lib/auth/supabase";
 import { MediaType } from "@/src/props/global/mediaType";
 import type { MovieDetailProp } from "@/src/props/movie/movieDetail";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 export function useMovieDetails(id: string) {
   const router = useRouter();
@@ -17,6 +18,7 @@ export function useMovieDetails(id: string) {
   const [movie, setMovie] = useState<MovieDetailProp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [similarMovies, setSimilarMovies] = useState<MediaCardProp[]>([]);
 
   const fetchMovieDetails = useCallback(async () => {
     if (!id) return;
@@ -39,9 +41,24 @@ export function useMovieDetails(id: string) {
     }
   }, [id]);
 
+  const fetchSimilarMovies = useCallback(async () => {
+    if (!id) return;
+    try {
+      const response = await fetch(`/api/details/movie/${id}/similiar`);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setSimilarMovies(data);
+      }
+    } catch {
+      // silently fail — similar movies are non-critical
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchMovieDetails();
-  }, [fetchMovieDetails]);
+    fetchSimilarMovies();
+  }, [fetchMovieDetails, fetchSimilarMovies]);
 
   useEffect(() => {
     const checkWatchlistStatus = async () => {
@@ -136,5 +153,6 @@ export function useMovieDetails(id: string) {
     showTrailer,
     setShowTrailer,
     toggleWatchlist,
+    similarMovies,
   };
 }

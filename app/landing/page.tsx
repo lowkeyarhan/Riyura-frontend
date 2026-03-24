@@ -6,20 +6,11 @@ import dynamic from "next/dynamic";
 import "../globals.css";
 import {
   Play,
-  Shield,
-  Users,
-  Sparkles,
-  MessageCircle,
   ArrowUpRight,
-  ArrowDown,
-  Lock,
-  Film,
-  Clock,
-  Search,
-  CheckCircle,
   Headphones,
   Radio,
-  Video,
+  Linkedin,
+  X,
 } from "lucide-react";
 
 import type { LiquidEtherProps } from "@/src/components/ui/LiquidEther";
@@ -32,64 +23,6 @@ const LiquidEther = dynamic<LiquidEtherProps>(
 // ─── Font helpers ────────────────────────────────────────────────────────────
 const SF =
   "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif";
-
-// ─── Static data ─────────────────────────────────────────────────────────────
-
-const WAVEFORM = [18, 32, 52, 74, 96, 118, 145, 118, 96, 74, 52, 32, 18];
-
-const FEATURE_CARDS = [
-  {
-    Icon: Film,
-    title: "Discover Content",
-    desc: "Discover what's worth watching.\nNot just what's trending.",
-  },
-  {
-    Icon: Clock,
-    title: "Watch Later",
-    desc: "Save it. Come back anytime.\nYour queue, always ready.",
-  },
-  {
-    Icon: Users,
-    title: "Live Watch Parties",
-    desc: "Watch together. Like you're in the same room.\nPerfect sync. Every time.",
-  },
-  {
-    Icon: Sparkles,
-    title: "AI Recommendations",
-    desc: "Smarter picks. No endless scrolling.\nPowered by AI that actually gets your taste.",
-  },
-  {
-    Icon: Search,
-    title: "Search Everything",
-    desc: "Find anything. Instantly.\nTitles, actors, studios — all in one search.",
-  },
-  {
-    Icon: Play,
-    title: "Continue Watching",
-    desc: "Pick up exactly where you left off.\nNo thinking required.",
-  },
-];
-
-const PARTY_TAGS = [
-  { label: "2.7k watching", h: false },
-  { label: "Live now", h: false },
-  { label: "✦ In sync", h: true },
-  { label: "Chat open", h: true },
-  { label: "✦ Any device", h: false },
-  { label: "AI picks", h: false },
-  { label: "Party mode", h: false },
-];
-
-const RING_DASH = 2 * Math.PI * 45 * 0.77;
-const RING_FULL = 2 * Math.PI * 45;
-
-const SEC_TAGS = [
-  "Supabase JWT",
-  "TLS Encrypted",
-  "2FA Ready",
-  "Rate Limited",
-  "Health Checked",
-];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -304,23 +237,6 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Waveform bars
-          <div
-            className="absolute left-1/2 -translate-x-1/2 flex items-end gap-[3.5px] pointer-events-none"
-            style={{ bottom: "14%" }}
-          >
-            {WAVEFORM.map((h, i) => (
-              <div
-                key={i}
-                className="w-[1.5px] rounded-full"
-                style={{
-                  height: `${h}px`,
-                  background: `rgba(255,255,255,${i === 6 ? 0.28 : i === 5 || i === 7 ? 0.12 : 0.06})`,
-                }}
-              />
-            ))}
-          </div> */}
-
           {/* Stream Horizons */}
           <div className="absolute bottom-6 right-6 text-right">
             <span className="text-[11px] text-white/34 block mb-1.5">
@@ -393,40 +309,40 @@ export default function LandingPage() {
                     uninterrupted from the first second.
                   </p>
                 </div>
-                <div className="relative flex-1 mt-auto flex items-end justify-center overflow-hidden px-6 pb-0">
-                  {/* <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1e] via-transparent to-transparent z-10"></div> */}
-                  <div className="relative w-full aspect-video rounded-t-xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)]">
+                <div className="relative flex-1 mt-auto flex items-end justify-center overflow-hidden pb-0">
+                  <div className="relative w-full rounded-t-xl overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       alt="Cinema Display Interface"
-                      className="w-full h-full object-cover contrast-110 [mask-image:radial-gradient(135%_120%_at_50%_50%,black_48%,rgba(0,0,0,0.88)_64%,rgba(0,0,0,0.32)_82%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_120%_at_50%_50%,black_48%,rgba(0,0,0,0.88)_64%,rgba(0,0,0,0.32)_82%,transparent_100%)]"
+                      className="w-full h-full object-cover [mask-image:radial-gradient(135%_120%_at_50%_50%,black_48%,rgba(0,0,0,0.88)_64%,rgba(0,0,0,0.32)_82%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_120%_at_50%_50%,black_48%,rgba(0,0,0,0.88)_64%,rgba(0,0,0,0.32)_82%,transparent_100%)]"
                       src="landing-page/feature_card_1.jpeg"
                     />
-                    <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(150%_120%_at_50%_58%,transparent_50%,rgba(0,0,0,0.24)_76%,rgba(0,0,0,0.56)_100%)]" />
-                    <div className="absolute inset-0 glass-reflection opacity-50"></div>
                   </div>
                 </div>
+                <div className="absolute inset-0 opacity-45 bg-[linear-gradient(45deg,rgba(255,255,255,0)_0%,transparent_75%,rgba(255,255,255,0.1)_100%)]" />
               </div>
 
               {/* Neural Curation */}
-              <div className="bento-card h-[460px] flex flex-col apple-glass">
-                <div className="p-8 relative z-20">
+              <div className="bento-card h-[460px] apple-glass relative overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt="Neural Visualization"
+                  className="absolute rounded-xl inset-0 w-full h-full object-cover -translate-x-[-5%]
+                  mask-type:linear-[linear]
+               mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+               -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+                  src="landing-page/feature_card_2.png"
+                />
+
+                <div className="absolute inset-x-0 top-0 z-20 p-8">
                   <h3 className="font-sans-serif text-[1.5rem] font-bold text-white mb-2">
                     Crafted for you.
                   </h3>
-                  <p className="font-paragraph text-gray-400 text-base max-w-sm font-normal">
-                    Discover content that actually matches your taste. No
-                    endless scrolling, no random picks, just smarter
-                    recommendations that get better over time.
+                  <p className="font-paragraph text-gray-300 text-base max-w-[250px] font-normal">
+                    Smarter recommendations that get better over time.
                   </p>
                 </div>
-                <div className="relative flex-1 flex items-center justify-center p-10 overflow-hidden">
-                  <img
-                    alt="Neural Visualization"
-                    className="w-full h-full object-contain mix-blend-screen brightness-125"
-                    src="landing-page/feature_card_2.jpeg"
-                  />
-                </div>
+                <div className="absolute inset-0 opacity-45 bg-[linear-gradient(150deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0)_100%)]" />
               </div>
             </div>
 
@@ -465,7 +381,10 @@ export default function LandingPage() {
                 <img
                   src="landing-page/feature_card_4.jpeg"
                   alt="Zero ads visual"
-                  className="absolute inset-0 w-full h-full object-cover scale-[1.12]"
+                  className="absolute inset-0 w-full h-full p-2 object-cover scale-[1.12]
+                  mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
                 />
                 <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(140%_120%_at_50%_50%,transparent_46%,rgba(0,0,0,0.22)_72%,rgba(0,0,0,0.64)_100%)]" />
                 <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(0,0,0,0.20)_0%,rgba(0,0,0,0.04)_34%,rgba(0,0,0,0.06)_64%,rgba(0,0,0,0.44)_100%)]" />
@@ -499,7 +418,7 @@ export default function LandingPage() {
                   >
                     4K HDR playback
                     <br />
-                    With dolby spacial audio.
+                    With dolby 7.1 spacial audio.
                   </h3>
                   <p className="font-paragraph text-gray-400 text-base">
                     Select titles available in 4K HDR, with rich color, deep
@@ -540,7 +459,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════
           WATCH PARTY  — Apple bento grid
       ══════════════════════════════════════════ */}
-      <section className="px-4 md:px-5 py-8 mb-12">
+      <section className="px-4 md:px-5 py-8 mb-12" id="watch-parties">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-10">
@@ -567,9 +486,7 @@ export default function LandingPage() {
              mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
              -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
               />
-              <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(150%_120%_at_50%_58%,transparent_50%,rgba(0,0,0,0.24)_76%,rgba(0,0,0,0.56)_100%)]" />
-              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(0,0,0,0.50)_0%,rgba(0,0,0,0.18)_40%,rgba(0,0,0,0.44)_100%)]" />
-              <div className="absolute inset-0 glass-reflection opacity-50" />
+              <div className="absolute inset-0 opacity-45 bg-[linear-gradient(45deg,rgba(255,255,255,0)_0%,transparent_50%,rgba(255,255,255,0.1)_100%)]" />
 
               <div className="relative z-20 p-8">
                 <h3 className="font-heading text-[1.5rem] font-bold text-white mb-2">
@@ -598,10 +515,12 @@ export default function LandingPage() {
                 src="landing-page/watchparty_card_2.jpeg"
                 alt="Playback sync preview"
                 className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover
-             object-top -translate-y-[20%]
-             mask-[radial-gradient(ellipse at center,white_70%,transparent_100%)]
-             -webkit-mask-[radial-gradient(ellipse at center,white_70%,transparent_100%)]"
+             absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-top -translate-y-[20%] scale-[1.06]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
               />
+              <div className="absolute inset-0 opacity-45 bg-[linear-gradient(150deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0)_100%)]" />
 
               <div className="absolute inset-x-0 bottom-0 z-20 p-8 text-center">
                 <h3 className="font-heading text-[1.5rem] font-bold text-white mb-2">
@@ -677,29 +596,47 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="md:col-span-6 bento-card apple-glass p-8 flex items-center gap-8">
-              <div className="flex-1">
+            <div className="md:col-span-6 bento-card apple-glass min-h-[150px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/watchparty_card_6.png"
+                alt="Buffering handled preview"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-right -translate-x-[-35%] scale-[1.06]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.28)_56%,rgba(0,0,0,0.72)_100%)]" />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-8">
                 <h3 className="font-heading text-[1.5rem] font-bold text-white mb-2">
                   Buffering handled.
                 </h3>
-                <p className="font-paragraph text-gray-400 text-base font-normal">
+                <p className="font-paragraph text-gray-300 text-base font-normal">
                   Playback adjusts quietly, so no one misses a moment.
                 </p>
               </div>
-              <div className="flex gap-1 items-end h-12">
-                <div className="w-1.5 bg-sky-400 h-8 rounded-full" />
-                <div className="w-1.5 bg-sky-400 h-12 rounded-full animate-pulse" />
-                <div className="w-1.5 bg-sky-400/30 h-6 rounded-full" />
-                <div className="w-1.5 bg-sky-400 h-10 rounded-full" />
-              </div>
             </div>
 
-            <div className="md:col-span-6 bento-card apple-glass p-8 flex items-center justify-between">
-              <div>
+            <div className="md:col-span-6 bento-card apple-glass min-h-[150px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/watchparty_card_7.png"
+                alt="Built for real rooms preview"
+                className="absolute rounded-xl inset-0 object-cover object-right -translate-y-[15%] -translate-x-[-15%] scale-[1.05]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.28)_56%,rgba(0,0,0,0.72)_100%)]" />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-8">
                 <h3 className="font-heading text-[1.5rem] font-bold text-white mb-2">
                   Built for real rooms.
                 </h3>
-                <p className="font-paragraph text-gray-400 text-base font-normal">
+                <p className="font-paragraph text-gray-300 text-base font-normal">
                   Private invites. Live chat. Smooth, reliable sync.
                 </p>
               </div>
@@ -708,202 +645,197 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          SECURITY & PERFORMANCE — Apple bento grid
-      ══════════════════════════════════════════ */}
-      <section className="px-4 md:px-5 pb-4">
-        <div className="max-w-7xl mx-auto rounded-2xl bg-[#0c0c0c] border border-white/[0.06] overflow-hidden">
-          <div className="p-10 pb-8">
+      {/* Security & Performance */}
+      <section className="px-6 md:px-8 pb-10 pt-6">
+        <div className="max-w-5xl mx-auto">
+          <header className="mb-12">
             <h2
-              className="font-bold text-white mb-2 leading-[0.98]"
-              style={{
-                fontSize: "clamp(34px, 5.5vw, 92px)",
-                letterSpacing: "-0.04em",
-                fontFamily: SF,
-                fontWeight: 700,
-              }}
+              className="font-heading font-bold text-white leading-[0.98] text-6xl mb-4"
+              style={{ letterSpacing: "-0.04em", fontWeight: 700 }}
             >
-              Fast. Reliable. Invisible.
+              <span className="block text-white">
+                Fast. Reliable. Invisible.
+              </span>
+              <span className="block text-white/45">
+                Engineered to hold up.
+              </span>
             </h2>
-            <p className="text-white/34 text-[15px] mb-9 max-w-sm leading-[1.65]">
-              Everything just works — exactly when you need it.
-            </p>
+          </header>
 
-            {/* ─── Bento grid ─── */}
-            <div
-              className="grid gap-2"
-              style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
-            >
-              {/* 99.9% uptime — col 1 */}
-              <div
-                className="rounded-[18px] p-7 flex flex-col justify-between border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                style={{ background: "#1a1a1a", minHeight: "172px" }}
-              >
-                <div
-                  className="text-white/24 text-[10px] tracking-[0.18em] uppercase"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
+          <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-4 gap-2 auto-rows-[160px]">
+            <div className="bento-card apple-glass md:col-span-2 md:row-span-2 min-h-[320px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_1.png"
+                alt="Performance card visual"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover
+    mask-type:linear-[linear]
+    mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+    -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+              <div className="absolute inset-0 opacity-45 bg-[linear-gradient(45deg,rgba(255,255,255,0)_0%,transparent_50%,rgba(255,255,255,0.1)_100%)]" />
+              <div className="absolute inset-x-0 bottom-0 z-20 p-8">
+                {/* Swapped items-end for items-baseline below 👇 */}
+                <h3
+                  className="font-heading text-[3rem] md:text-[3.5rem] font-bold text-white mb-2 leading-none inline-flex items-baseline gap-2"
+                  style={{ fontFamily: SF, letterSpacing: "-0.04em" }}
                 >
-                  Uptime
-                </div>
-                <div>
-                  <div
-                    className="text-white font-bold leading-none"
-                    style={{
-                      fontSize: "52px",
-                      letterSpacing: "-0.055em",
-                      fontFamily: SF,
-                      fontWeight: 700,
-                    }}
-                  >
-                    99.9<span style={{ fontSize: "26px" }}>%</span>
-                  </div>
-                  <div className="text-white/35 text-[12px] leading-[1.55] mt-2.5">
-                    Because interruptions
-                    <br />
-                    ruin everything.
-                  </div>
-                </div>
-              </div>
-
-              {/* Secure Auth — spans 2 cols */}
-              <div
-                className="rounded-[18px] p-7 flex flex-col justify-between border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                style={{ background: "#1a1a1a", gridColumn: "span 2" }}
-              >
-                <div className="w-9 h-9 rounded-[12px] bg-white/[0.055] flex items-center justify-center">
-                  <Shield size={16} className="text-white/46" />
-                </div>
-                <div>
-                  <div
-                    className="text-white text-[19px] font-[600] mb-2"
-                    style={{ letterSpacing: "-0.025em" }}
-                  >
-                    Secure Authentication
-                  </div>
-                  <div className="text-white/38 text-[14px] leading-[1.62]">
-                    Your account, protected.
-                    <br />
-                    No friction. No compromises.
-                  </div>
-                </div>
-              </div>
-
-              {/* Near-zero delay — col 4 */}
-              <div
-                className="rounded-[18px] p-7 flex flex-col justify-between border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                style={{ background: "#1a1a1a" }}
-              >
-                <div
-                  className="text-white/24 text-[10px] tracking-[0.18em] uppercase"
-                  style={{ fontFamily: "Montserrat, sans-serif" }}
-                >
-                  Latency
-                </div>
-                <div>
-                  <div
-                    className="text-white font-bold leading-none"
-                    style={{
-                      fontSize: "52px",
-                      letterSpacing: "-0.055em",
-                      fontFamily: SF,
-                      fontWeight: 700,
-                    }}
-                  >
-                    ~0
-                  </div>
-                  <div className="text-white/35 text-[12px] mt-2.5">
-                    Near-zero delay
-                  </div>
-                </div>
-              </div>
-
-              {/* Smooth streaming — spans 2 cols */}
-              <div
-                className="rounded-[18px] p-7 flex flex-col justify-between border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                style={{ background: "#1a1a1a", gridColumn: "span 2" }}
-              >
-                <div className="w-9 h-9 rounded-[12px] bg-white/[0.055] flex items-center justify-center">
-                  <Play size={16} className="text-white/46" />
-                </div>
-                <div>
-                  <div
-                    className="text-white text-[19px] font-[600] mb-2"
-                    style={{ letterSpacing: "-0.025em" }}
-                  >
-                    High Performance Streaming
-                  </div>
-                  <div className="text-white/38 text-[14px] leading-[1.62]">
-                    Smooth playback.
-                    <br />
-                    Even when everyone joins at once.
-                  </div>
-                </div>
-              </div>
-
-              {/* Always on — spans 2 cols */}
-              <div
-                className="rounded-[18px] p-7 flex flex-col justify-between border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                style={{ background: "#1a1a1a", gridColumn: "span 2" }}
-              >
-                <div className="w-9 h-9 rounded-[12px] bg-white/[0.055] flex items-center justify-center">
-                  <CheckCircle size={16} className="text-white/46" />
-                </div>
-                <div>
-                  <div
-                    className="text-white text-[19px] font-[600] mb-2"
-                    style={{ letterSpacing: "-0.025em" }}
-                  >
-                    Always on. Always ready.
-                  </div>
-                  <div className="text-white/38 text-[14px] leading-[1.62]">
-                    So you never have to think about it.
-                  </div>
-                </div>
-              </div>
-
-              {/* Tags row — full width */}
-              <div
-                className="rounded-[18px] px-7 py-4 flex items-center gap-3 flex-wrap border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                style={{ background: "#1a1a1a", gridColumn: "span 4" }}
-              >
-                {SEC_TAGS.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.045] border border-white/[0.07] text-[12px] text-white/46 cursor-default hover:bg-white/[0.07] transition-colors duration-200"
-                  >
-                    <CheckCircle size={10} className="text-white/34" />
-                    {tag}
+                  99.9%
+                  <span className="text-[11px] md:text-xs font-medium uppercase tracking-[0.16em] text-white/55 leading-none">
+                    uptime
                   </span>
-                ))}
+                </h3>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  Built to stay available - even when demand spikes.
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* Section footer */}
-          <div className="px-10 py-5 border-t border-white/[0.052] flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-5">
-              <a
-                href="#"
-                className="text-white/32 text-[12px] hover:text-white/52 transition-colors duration-200"
-              >
-                Support
-              </a>
-              <a
-                href="/auth"
-                className="text-white/32 text-[12px] hover:text-white/52 transition-colors duration-200"
-              >
-                Register
-              </a>
-            </div>
-            <p className="text-white/18 text-[11px]">
-              © 2026 Riyura. All rights reserved.
-            </p>
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full border border-white/[0.08] flex items-center justify-center cursor-pointer hover:border-white/[0.18] transition-colors duration-200">
-                <span className="text-[11px] text-white/32">𝕏</span>
+            <div className="bento-card apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_2.png"
+                alt="Fast by default visual"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-right -translate-x-[-5%]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+              <div className="absolute inset-0 opacity-45 bg-[linear-gradient(150deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0)_100%)]" />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2">
+                  Fast by default
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  Optimized APIs and minimal payloads.
+                </p>
               </div>
-              <div className="w-7 h-7 rounded-full border border-white/[0.08] flex items-center justify-center cursor-pointer hover:border-white/[0.18] transition-colors duration-200">
-                <span className="text-[10px] text-white/32">in</span>
+            </div>
+
+            <div className="bento-card apple-glass md:col-span-1 md:row-span-2 min-h-[320px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_4.png"
+                alt="Optimized data access visual"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-top -translate-y-[15%] scale-[1.25]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2 leading-tight">
+                  Fast access
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  Data retrieval is optimized for speed.
+                </p>
+              </div>
+            </div>
+
+            <div className="bento-card apple-glass md:col-span-1 md:row-span-2 min-h-[320px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_5.png"
+                alt="Session integrity visual"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-top -translate-y-[15%] scale-[0.9]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2 leading-tight">
+                  Session integrity
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  JWT-based authentication with controlled access.
+                </p>
+              </div>
+            </div>
+
+            <div className="bento-card apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_3.png"
+                alt="Abuse protection visual"
+                className="absolute rounded-xl inset-0 w-full h-full object-cover object-right -translate-x-[-37%]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2">
+                  Abuse protection
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  Requests are filtered and rate limited.
+                </p>
+              </div>
+            </div>
+
+            <div className="bento-card apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_6.png"
+                alt="Graceful recovery visual"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-right -translate-x-[-25%]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2">
+                  Graceful recovery
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  Failures are handled without breaking experience.
+                </p>
+              </div>
+            </div>
+
+            <div className="bento-card apple-glass md:col-span-1 md:row-span-1 min-h-[160px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_7.png"
+                alt="Handles real load visual"
+                className="absolute p-2 rounded-xl brightness-90 inset-0 w-full h-full object-cover object-top -translate-x-[-10%] -translate-y-[20%]
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2 leading-tight">
+                  Handles real load
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal">
+                  Scalable backend
+                </p>
+              </div>
+            </div>
+
+            <div className="bento-card apple-glass md:col-span-1 md:row-span-1 min-h-[160px] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="landing-page/perf_card_8.png"
+                alt="Stability visual"
+                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover object-right scale-[0.9] translate-x-[10%] translate-y-[-5%] brightness-80
+                mask-type:linear-[linear]
+             mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+             -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                <h4 className="font-heading text-[1.5rem] font-bold text-white mb-2 leading-tight">
+                  Stability
+                </h4>
+                <p className="font-paragraph text-gray-300 text-base font-normal leading-tight">
+                  Always monitored
+                </p>
               </div>
             </div>
           </div>
@@ -913,55 +845,173 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════
           FOOTER
       ══════════════════════════════════════════ */}
-      <footer className="px-8 md:px-16 py-12 mt-2">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 hover:opacity-70 transition-opacity duration-200"
-          >
-            <Image src="/logo.png" alt="Riyura" width={28} height={28} />
-            <span
-              className="text-white font-bold text-[18px]"
-              style={{ fontFamily: "'Bruno Ace', sans-serif" }}
-            >
-              RIYURA
-            </span>
-          </Link>
-
-          <div className="flex items-center gap-6 text-[13px] text-white/36">
-            {["About", "Explore", "Watch Parties", "Privacy", "Support"].map(
-              (l, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="hover:text-white/60 transition-colors duration-200"
-                >
-                  {l}
-                </a>
-              ),
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {["𝕏", "in"].map((icon, i) => (
-              <div
-                key={i}
-                className="w-8 h-8 rounded-full border border-white/[0.09] flex items-center justify-center cursor-pointer hover:border-white/[0.20] hover:bg-white/[0.04] transition-all duration-200"
-              >
-                <span
-                  className={`text-white/34 ${i === 0 ? "text-[12px]" : "text-[11px]"}`}
-                >
-                  {icon}
-                </span>
+      <footer className="bg-black border-t border-white/[0.08] mt-4">
+        <div className="pt-14 pb-10 max-w-5xl mx-auto">
+          <div className="apple-glass rounded-2xl p-6 md:p-8 mb-14 border border-white/[0.06]">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+              <div className="max-w-md">
+                <h3 className="font-heading text-lg md:text-xl font-bold text-white mb-2 tracking-tight">
+                  Stay in the loop
+                </h3>
+                <p className="font-paragraph text-sm text-white/45 leading-relaxed">
+                  Product updates and watch-party tips. No spam.
+                </p>
               </div>
-            ))}
+              <form
+                className="flex flex-col sm:flex-row gap-3 w-full lg:max-w-[420px] shrink-0"
+                onSubmit={(e) => e.preventDefault()}
+              >
+                <label htmlFor="footer-newsletter-email" className="sr-only">
+                  Email for newsletter
+                </label>
+                <input
+                  id="footer-newsletter-email"
+                  type="email"
+                  name="email"
+                  required
+                  autoComplete="email"
+                  placeholder="Email address"
+                  className="flex-1 min-w-0 rounded-full bg-black/50 border border-white/[0.1] px-5 py-3 text-[14px] text-white placeholder:text-white/35 outline-none focus:border-white/22 focus:ring-1 focus:ring-white/10 transition-colors font-paragraph"
+                />
+                <button
+                  type="submit"
+                  className="rounded-full bg-white text-black px-7 py-3 text-[14px] font-semibold tracking-tight hover:bg-white/90 transition-colors duration-300 shrink-0"
+                >
+                  Subscribe
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
 
-        <div className="max-w-5xl mx-auto mt-8 pt-6 border-t border-white/[0.05] text-center">
-          <p className="text-white/20 text-[12px]">
-            © 2026 Riyura. All rights reserved.
-          </p>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-14">
+            <div className="md:col-span-5 lg:col-span-4 space-y-6">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-200"
+              >
+                <Image src="/logo.png" alt="Riyura" width={28} height={28} />
+                <span
+                  className="text-white font-bold text-[18px]"
+                  style={{ fontFamily: "'Bruno Ace', sans-serif" }}
+                >
+                  RIYURA
+                </span>
+              </Link>
+              <p className="font-paragraph text-[13px] text-white/45 leading-relaxed max-w-[300px]">
+                Pro-grade streaming for everyone who loves to watch together.
+              </p>
+              <div className="flex items-center gap-2">
+                <a
+                  href="#"
+                  aria-label="Riyura on X"
+                  className="group w-10 h-10 rounded-full border border-white/[0.1] flex items-center justify-center text-white/50 hover:text-white hover:border-white/22 hover:bg-white/[0.05] transition-all duration-200"
+                >
+                  <X size={17} strokeWidth={1.5} aria-hidden />
+                </a>
+                <a
+                  href="#"
+                  aria-label="Riyura on LinkedIn"
+                  className="group w-10 h-10 rounded-full border border-white/[0.1] flex items-center justify-center text-white/50 hover:text-white hover:border-white/22 hover:bg-white/[0.05] transition-all duration-200"
+                >
+                  <Linkedin size={17} strokeWidth={1.5} aria-hidden />
+                </a>
+              </div>
+            </div>
+
+            <div className="md:col-span-7 lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-10">
+              <div>
+                <h4 className="font-heading text-[13px] font-semibold text-white mb-4 tracking-tight">
+                  Product
+                </h4>
+                <ul className="space-y-3 font-paragraph">
+                  <li>
+                    <a
+                      href="#features"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Features
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#watch-parties"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Watch parties
+                    </a>
+                  </li>
+                  <li>
+                    <Link
+                      href="/explore"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Explore
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-heading text-[13px] font-semibold text-white mb-4 tracking-tight">
+                  Company
+                </h4>
+                <ul className="space-y-3 font-paragraph">
+                  <li>
+                    <a
+                      href="#"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      About
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Support
+                    </a>
+                  </li>
+                  <li>
+                    <Link
+                      href="/auth"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Get started
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <h4 className="font-heading text-[13px] font-semibold text-white mb-4 tracking-tight">
+                  Legal
+                </h4>
+                <ul className="space-y-3 font-paragraph">
+                  <li>
+                    <a
+                      href="#"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Privacy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#"
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
+                      Terms
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-14 pt-8 border-t border-white/[0.06]">
+            <p className="font-paragraph text-[12px] text-white/35 text-center sm:text-left">
+              © 2026 Riyura. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

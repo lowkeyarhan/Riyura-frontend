@@ -3,6 +3,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
 
 @media (prefers-color-scheme: dark) {
@@ -45,8 +47,7 @@ body {
 
 /* Bento grid cards */
 .bento-card {
-  background-color: #1c1c1e;
-  border-radius: 20px;
+  border-radius: 30px;
   overflow: hidden;
   position: relative;
 }
@@ -54,7 +55,7 @@ body {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
     0 20px 40px rgba(0, 0, 0, 0.4);
@@ -90,6 +91,14 @@ body {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
     0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.font-heading {
+  font-family: "DM Sans", sans-serif;
+}
+
+.font-paragraph {
+  font-family: "Inter Tight", sans-serif;
 }
 
 /* Hide scrollbar for horizontal scroll containers */

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -14,6 +15,8 @@ import {
 } from "lucide-react";
 
 import type { LiquidEtherProps } from "@/src/components/ui/LiquidEther";
+import SplitText from "@/src/components/ui/SplitText";
+import { GlobalSpotlight } from "@/src/components/ui/MagicBento";
 
 const LiquidEther = dynamic<LiquidEtherProps>(
   () => import("@/src/components/ui/LiquidEther"),
@@ -27,6 +30,10 @@ const SF =
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const featuresGridRef = useRef<HTMLDivElement>(null);
+  const watchPartyGridRef = useRef<HTMLDivElement>(null);
+  const perfGridRef = useRef<HTMLDivElement>(null);
+
   return (
     <div
       className="bg-black min-h-screen text-white overflow-x-hidden"
@@ -196,10 +203,37 @@ export default function LandingPage() {
                 fontWeight: 700,
               }}
             >
-              <span className="text-white">One click. </span>
-              <span style={{ color: "rgba(255,255,255,0.20)" }}>
-                Everyone&apos;s in.
-              </span>
+              <SplitText
+                text="One click."
+                tag="span"
+                className="text-white"
+                startDelay={0}
+                delay={50}
+                duration={1.25}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 40 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                rootMargin="-100px"
+                textAlign="center"
+              />
+              <span>&nbsp;</span>
+              <SplitText
+                text="Everyone's in."
+                tag="span"
+                className="text-white/20"
+                startDelay={0.6}
+                delay={50}
+                duration={1.25}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 40 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                rootMargin="-100px"
+                textAlign="center"
+              />
             </h1>
 
             {/* Subtitle */}
@@ -294,11 +328,17 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="space-y-2">
+          <div ref={featuresGridRef} className="space-y-2 bento-section">
+            <GlobalSpotlight
+              gridRef={featuresGridRef}
+              enabled
+              spotlightRadius={100}
+              glowColor="255, 255, 255"
+            />
             {/* Row 1: 2 cols */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {/* Infinite Stream */}
-              <div className="bento-card h-[460px] apple-glass relative overflow-hidden">
+              <div className="bento-card card card--border-glow h-[460px] apple-glass relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   alt="Cinema Display Interface"
@@ -323,7 +363,7 @@ export default function LandingPage() {
               </div>
 
               {/* Neural Curation */}
-              <div className="bento-card h-[460px] apple-glass relative overflow-hidden">
+              <div className="bento-card card card--border-glow h-[460px] apple-glass relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   alt="Neural Visualization"
@@ -349,7 +389,7 @@ export default function LandingPage() {
             {/* Row 2: Up Next + Ad-Free */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {/* Up Next Stacks - 2/3 width */}
-              <div className="bento-card md:col-span-2 apple-glass min-h-[460px] relative overflow-hidden">
+              <div className="bento-card card card--border-glow md:col-span-2 apple-glass min-h-[460px] relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   className="absolute rounded-xl inset-0 w-full h-full object-cover
@@ -376,7 +416,7 @@ export default function LandingPage() {
               </div>
 
               {/* Ad-Free Metric */}
-              <div className="bento-card apple-glass relative overflow-hidden">
+              <div className="bento-card card card--border-glow apple-glass relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="landing-page/feature_card_4.jpeg"
@@ -400,7 +440,7 @@ export default function LandingPage() {
             </div>
 
             {/* Row 3: Spatial Audio */}
-            <div className="apple-glass rounded-3xl p-8 md:p-10 relative overflow-hidden min-h-[380px]">
+            <div className="card card--border-glow apple-glass rounded-3xl p-8 md:p-10 relative overflow-hidden min-h-[380px]">
               <div className="absolute top-0 left-0 right-0 h-px pointer-events-none bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)]" />
               <div className="absolute inset-0 w-full h-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -477,8 +517,17 @@ export default function LandingPage() {
           </div>
 
           {/* ─── Bento grid ─── */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-            <div className="md:col-span-8 bento-card apple-glass min-h-[400px] relative overflow-hidden">
+          <div
+            ref={watchPartyGridRef}
+            className="grid grid-cols-1 md:grid-cols-12 gap-2 bento-section"
+          >
+            <GlobalSpotlight
+              gridRef={watchPartyGridRef}
+              enabled
+              spotlightRadius={100}
+              glowColor="255, 255, 255"
+            />
+            <div className="md:col-span-8 bento-card card card--border-glow apple-glass min-h-[400px] relative overflow-hidden">
               <img
                 src="landing-page/watchparty_card_1.jpeg"
                 alt="Watch party preview"
@@ -510,7 +559,7 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <div className="md:col-span-4 bento-card apple-glass min-h-[400px] relative overflow-hidden">
+            <div className="md:col-span-4 bento-card card card--border-glow apple-glass min-h-[400px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/watchparty_card_2.jpeg"
@@ -533,7 +582,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="md:col-span-4 bento-card apple-glass min-h-[300px] relative overflow-hidden">
+            <div className="md:col-span-4 bento-card card card--border-glow apple-glass min-h-[300px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/watchparty_card_3.png"
@@ -554,7 +603,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="md:col-span-4 bento-card apple-glass min-h-[300px] relative overflow-hidden">
+            <div className="md:col-span-4 bento-card card card--border-glow apple-glass min-h-[300px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/watchparty_card_4.png"
@@ -575,7 +624,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="md:col-span-4 bento-card apple-glass p-8 flex flex-col justify-between">
+            <div className="md:col-span-4 bento-card card card--border-glow apple-glass p-8 flex flex-col justify-between">
               <div className="flex justify-center gap-4 py-8">
                 <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/70">
                   ◀◀
@@ -597,7 +646,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="md:col-span-6 bento-card apple-glass min-h-[150px] relative overflow-hidden">
+            <div className="md:col-span-6 bento-card card card--border-glow apple-glass min-h-[150px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/watchparty_card_6.png"
@@ -620,7 +669,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="md:col-span-6 bento-card apple-glass min-h-[150px] relative overflow-hidden">
+            <div className="md:col-span-6 bento-card card card--border-glow apple-glass min-h-[150px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/watchparty_card_7.png"
@@ -663,8 +712,17 @@ export default function LandingPage() {
             </h2>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-4 gap-2 auto-rows-[160px]">
-            <div className="bento-card apple-glass md:col-span-2 md:row-span-2 min-h-[320px] relative overflow-hidden">
+          <div
+            ref={perfGridRef}
+            className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-4 gap-2 auto-rows-[160px] bento-section"
+          >
+            <GlobalSpotlight
+              gridRef={perfGridRef}
+              enabled
+              spotlightRadius={100}
+              glowColor="255, 255, 255"
+            />
+            <div className="bento-card card card--border-glow apple-glass md:col-span-2 md:row-span-2 min-h-[320px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_1.png"
@@ -692,7 +750,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_2.png"
@@ -714,7 +772,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-1 md:row-span-2 min-h-[320px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-1 md:row-span-2 min-h-[320px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_4.png"
@@ -735,7 +793,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-1 md:row-span-2 min-h-[320px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-1 md:row-span-2 min-h-[320px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_5.png"
@@ -756,7 +814,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_3.png"
@@ -777,7 +835,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-2 md:row-span-1 min-h-[160px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_6.png"
@@ -798,7 +856,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-1 md:row-span-1 min-h-[160px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-1 md:row-span-1 min-h-[160px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_7.png"
@@ -819,7 +877,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bento-card apple-glass md:col-span-1 md:row-span-1 min-h-[160px] relative overflow-hidden">
+            <div className="bento-card card card--border-glow apple-glass md:col-span-1 md:row-span-1 min-h-[160px] relative overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="landing-page/perf_card_8.png"

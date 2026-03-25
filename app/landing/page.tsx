@@ -252,7 +252,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════
           LOGOS STRIP
       ══════════════════════════════════════════ */}
-      <section className="py-7 px-4 md:px-5">
+      <section className="py-10 px-4 md:px-5">
         <div className="flex items-center justify-between max-w-5xl mx-auto px-4 select-none opacity-[0.32]">
           {[
             { sym: "▲", name: "Vercel" },
@@ -298,28 +298,28 @@ export default function LandingPage() {
             {/* Row 1: 2 cols */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {/* Infinite Stream */}
-              <div className="bento-card h-[460px] flex flex-col apple-glass">
-                <div className="p-8 relative z-20">
+              <div className="bento-card h-[460px] apple-glass relative overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt="Cinema Display Interface"
+                  className="absolute rounded-xl inset-0 w-full h-full object-cover top-[15%]
+                  mask-type:linear-[linear]
+                  mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+                  -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+                  src="landing-page/feature_card_1.png"
+                />
+
+                <div className="absolute inset-x-0 top-0 z-20 p-8">
                   <h3 className="font-sans-serif text-[1.5rem] font-bold text-white mb-2">
                     Endless, uninterrupted.
                   </h3>
-                  <p className="font-paragraph text-gray-400 text-base max-w-sm font-normal">
+                  <p className="font-paragraph text-gray-300 text-base  font-normal">
                     Start watching instantly with no loading delays. Everything
                     is optimized to feel smooth, fast, and completely
                     uninterrupted from the first second.
                   </p>
                 </div>
-                <div className="relative flex-1 mt-auto flex items-end justify-center overflow-hidden pb-0">
-                  <div className="relative w-full rounded-t-xl overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      alt="Cinema Display Interface"
-                      className="w-full h-full object-cover [mask-image:radial-gradient(135%_120%_at_50%_50%,black_48%,rgba(0,0,0,0.88)_64%,rgba(0,0,0,0.32)_82%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_120%_at_50%_50%,black_48%,rgba(0,0,0,0.88)_64%,rgba(0,0,0,0.32)_82%,transparent_100%)]"
-                      src="landing-page/feature_card_1.jpeg"
-                    />
-                  </div>
-                </div>
-                <div className="absolute inset-0 opacity-45 bg-[linear-gradient(45deg,rgba(255,255,255,0)_0%,transparent_75%,rgba(255,255,255,0.1)_100%)]" />
+                <div className="absolute inset-0 opacity-45 bg-[linear-gradient(45deg,rgba(255,255,255,0)_0%,transparent_50%,rgba(255,255,255,0.1)_100%)]" />
               </div>
 
               {/* Neural Curation */}
@@ -349,29 +349,29 @@ export default function LandingPage() {
             {/* Row 2: Up Next + Ad-Free */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {/* Up Next Stacks - 2/3 width */}
-              <div className="bento-card md:col-span-2 apple-glass flex flex-col">
-                <div className="p-8 flex justify-between items-start relative z-20">
+              <div className="bento-card md:col-span-2 apple-glass min-h-[460px] relative overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="absolute rounded-xl inset-0 w-full h-full object-cover
+                  mask-type:linear-[linear]
+               mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
+               -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
+                  src="landing-page/feature_card_3.png"
+                  alt="Keep watching preview"
+                />
+
+                <div className="absolute inset-x-0 top-0 z-20 p-8 flex items-start justify-between gap-6">
                   <div>
                     <h4 className="font-sans-serif text-[1.5rem] font-bold text-white mb-2">
                       Keep watching.
                     </h4>
-                    <p className="font-paragraph text-gray-400 text-base max-w-sm font-normal">
+                    <p className="font-paragraph text-gray-300 text-base max-w-sm font-normal">
                       Jump back in exactly where you left off.
                     </p>
                   </div>
-                  <button className="w-10 h-10 rounded-full apple-glass flex items-center justify-center">
+                  <button className="w-10 h-10 rounded-full apple-glass flex items-center justify-center shrink-0">
                     <span className="text-white text-xl leading-none">+</span>
                   </button>
-                </div>
-                <div className="flex-1 relative flex items-end justify-center overflow-hidden px-6 pb-0 -mt-4">
-                  <div className="relative w-full max-w-[620px] aspect-[16/9] overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      className="w-full h-full object-cover [mask-image:radial-gradient(ellipse_at_center,white_70%,transparent_100%)]"
-                      src="landing-page/feature_card_3.jpeg"
-                      alt="Keep watching preview"
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -400,7 +400,8 @@ export default function LandingPage() {
             </div>
 
             {/* Row 3: Spatial Audio */}
-            <div className="glass-card-pro rounded-3xl p-8 md:p-10 relative overflow-hidden min-h-[380px]">
+            <div className="apple-glass rounded-3xl p-8 md:p-10 relative overflow-hidden min-h-[380px]">
+              <div className="absolute top-0 left-0 right-0 h-px pointer-events-none bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)]" />
               <div className="absolute inset-0 w-full h-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -427,14 +428,14 @@ export default function LandingPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-5 shrink-0">
-                  <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center backdrop-blur-md bg-white/5">
+                  <div className="w-16 h-16 rounded-full apple-glass flex items-center justify-center">
                     <Headphones
                       size={30}
                       className="text-white"
                       strokeWidth={1.25}
                     />
                   </div>
-                  <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center backdrop-blur-md bg-white/5">
+                  <div className="w-16 h-16 rounded-full apple-glass flex items-center justify-center">
                     <span
                       className="text-white text-xl"
                       style={{ fontFamily: SF }}
@@ -442,7 +443,7 @@ export default function LandingPage() {
                       4K
                     </span>
                   </div>
-                  <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center backdrop-blur-md bg-white/5">
+                  <div className="w-16 h-16 rounded-full apple-glass flex items-center justify-center">
                     <Radio
                       size={30}
                       className="text-white"
@@ -459,7 +460,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════
           WATCH PARTY  — Apple bento grid
       ══════════════════════════════════════════ */}
-      <section className="px-4 md:px-5 py-8 mb-12" id="watch-parties">
+      <section className="px-4 md:px-5 py-10" id="watch-parties">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-10">
@@ -481,7 +482,7 @@ export default function LandingPage() {
               <img
                 src="landing-page/watchparty_card_1.jpeg"
                 alt="Watch party preview"
-                className="absolute p-2 rounded-xl inset-0 w-full h-full object-cover
+                className="absolute rounded-xl inset-0 w-full h-full object-cover
              mask-type:linear-[linear]
              mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]
              -webkit-mask-[radial-gradient(circle_at_center,white_0%,transparent_100%)]"
@@ -646,7 +647,7 @@ export default function LandingPage() {
       </section>
 
       {/* Security & Performance */}
-      <section className="px-6 md:px-8 pb-10 pt-6">
+      <section className="px-6 md:px-8 py-10 mb-16">
         <div className="max-w-5xl mx-auto">
           <header className="mb-12">
             <h2
@@ -842,178 +843,174 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          FOOTER
-      ══════════════════════════════════════════ */}
-      <footer className="bg-black border-t border-white/[0.08] mt-4">
-        <div className="pt-14 pb-10 max-w-5xl mx-auto">
-          <div className="apple-glass rounded-2xl p-6 md:p-8 mb-14 border border-white/[0.06]">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
-              <div className="max-w-md">
-                <h3 className="font-heading text-lg md:text-xl font-bold text-white mb-2 tracking-tight">
-                  Stay in the loop
-                </h3>
-                <p className="font-paragraph text-sm text-white/45 leading-relaxed">
-                  Product updates and watch-party tips. No spam.
-                </p>
+      {/* { FOOTER_SECTION } */}
+      <section className="ai-footer">
+        <div className="footer-glow glow-left" />
+        <div className="footer-glow glow-right" />
+
+        <div className="footer-container">
+          <div className="footer-cta">
+            <div className="badges">
+              <div className="badge">
+                <div className="badge-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </div>
+                <span>4K HDR streaming</span>
               </div>
-              <form
-                className="flex flex-col sm:flex-row gap-3 w-full lg:max-w-[420px] shrink-0"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <label htmlFor="footer-newsletter-email" className="sr-only">
-                  Email for newsletter
-                </label>
-                <input
-                  id="footer-newsletter-email"
-                  type="email"
-                  name="email"
-                  required
-                  autoComplete="email"
-                  placeholder="Email address"
-                  className="flex-1 min-w-0 rounded-full bg-black/50 border border-white/[0.1] px-5 py-3 text-[14px] text-white placeholder:text-white/35 outline-none focus:border-white/22 focus:ring-1 focus:ring-white/10 transition-colors font-paragraph"
-                />
-                <button
-                  type="submit"
-                  className="rounded-full bg-white text-black px-7 py-3 text-[14px] font-semibold tracking-tight hover:bg-white/90 transition-colors duration-300 shrink-0"
-                >
-                  Subscribe
-                </button>
-              </form>
+              <div className="badge">
+                <div className="badge-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                </div>
+                <span>Zero buffering</span>
+              </div>
+              <div className="badge">
+                <div className="badge-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+                <span>Private watch rooms</span>
+              </div>
             </div>
+
+            <h2 className="font-heading">
+              Watch together <br /> Anything. Effortlessly.
+            </h2>
+
+            <a
+              href="https://app.riyura.com/welcome"
+              target="_blank"
+              rel="noreferrer"
+              className="btn-primary"
+            >
+              Start Watching
+            </a>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-14">
-            <div className="md:col-span-5 lg:col-span-4 space-y-6">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-200"
-              >
-                <Image src="/logo.png" alt="Riyura" width={28} height={28} />
-                <span
-                  className="text-white font-bold text-[18px]"
-                  style={{ fontFamily: "'Bruno Ace', sans-serif" }}
-                >
-                  RIYURA
-                </span>
-              </Link>
-              <p className="font-paragraph text-[13px] text-white/45 leading-relaxed max-w-[300px]">
-                Pro-grade streaming for everyone who loves to watch together.
+          <div className="footer-bottom">
+            <div className="footer-nav">
+              <div className="brand-group" style={{ gap: "1rem" }}>
+                <div className="brand-logo">Riyura</div>
+                <div className="lang-selector">
+                  <span>🌐</span>
+                  <svg
+                    viewBox="0 0 14 14"
+                    fill="transparent"
+                    strokeWidth="2"
+                    stroke="#aaa"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M 3 5.5 L 7 9.5 L 11 5.5" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="footer-links">
+                <div className="link-item">
+                  <span>Company</span>
+                  <svg
+                    viewBox="0 0 14 14"
+                    fill="transparent"
+                    strokeWidth="2"
+                    stroke="#aaa"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M 3 5.5 L 7 9.5 L 11 5.5" />
+                  </svg>
+                </div>
+                <div className="link-item">
+                  <span>Learn</span>
+                  <svg
+                    viewBox="0 0 14 14"
+                    fill="transparent"
+                    strokeWidth="2"
+                    stroke="#aaa"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M 3 5.5 L 7 9.5 L 11 5.5" />
+                  </svg>
+                </div>
+                <div className="link-item">
+                  <span>Terms</span>
+                  <svg
+                    viewBox="0 0 14 14"
+                    fill="transparent"
+                    strokeWidth="2"
+                    stroke="#aaa"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M 3 5.5 L 7 9.5 L 11 5.5" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="footer-meta">
+              <p className="copyright">
+                ©2026 Riyura. Made with love by Arhan Das.
               </p>
-              <div className="flex items-center gap-2">
+
+              <div className="social-links">
                 <a
-                  href="#"
-                  aria-label="Riyura on X"
-                  className="group w-10 h-10 rounded-full border border-white/[0.1] flex items-center justify-center text-white/50 hover:text-white hover:border-white/22 hover:bg-white/[0.05] transition-all duration-200"
+                  href="https://twitter.com/ailawyerapp"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  <X size={17} strokeWidth={1.5} aria-hidden />
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                    <path d="M214.75,211.71l-62.6-98.38,61.77-67.95a8,8,0,0,0-11.84-10.76L143.24,99.34,102.75,35.71A8,8,0,0,0,96,32H48a8,8,0,0,0-6.75,12.3l62.6,98.37-61.77,68a8,8,0,1,0,11.84,10.76l58.84-64.72,40.49,63.63A8,8,0,0,0,160,224h48a8,8,0,0,0,6.75-12.29ZM164.39,208,62.57,48h29L193.43,208Z" />
+                  </svg>
                 </a>
                 <a
-                  href="#"
-                  aria-label="Riyura on LinkedIn"
-                  className="group w-10 h-10 rounded-full border border-white/[0.1] flex items-center justify-center text-white/50 hover:text-white hover:border-white/22 hover:bg-white/[0.05] transition-all duration-200"
+                  href="https://www.youtube.com/@ailawyerapp"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  <Linkedin size={17} strokeWidth={1.5} aria-hidden />
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                    <path d="M164.44,121.34l-48-32A8,8,0,0,0,104,96v64a8,8,0,0,0,12.44,6.66l48-32a8,8,0,0,0,0-13.32ZM120,145.05V111l25.58,17ZM234.33,69.52a24,24,0,0,0-14.49-16.4C185.56,39.88,131,40,128,40s-57.56-.12-91.84,13.12a24,24,0,0,0-14.49,16.4C19.08,79.5,16,97.74,16,128s3.08,48.5,5.67,58.48a24,24,0,0,0,14.49,16.41C69,215.56,120.4,216,127.34,216h1.32c6.94,0,58.37-.44,91.18-13.11a24,24,0,0,0,14.49-16.41c2.59-10,5.67-28.22,5.67-58.48S236.92,79.5,234.33,69.52Zm-15.49,113a8,8,0,0,1-4.77,5.49c-31.65,12.22-85.48,12-86,12H128c-.54,0-54.33.2-86-12a8,8,0,0,1-4.77-5.49C34.8,173.39,32,156.57,32,128s2.8-45.39,5.16-54.47A8,8,0,0,1,41.93,68c30.52-11.79,81.66-12,85.85-12h.27c.54,0,54.38-.18,86,12a8,8,0,0,1,4.77,5.49C221.2,82.61,224,99.43,224,128S221.2,173.39,218.84,182.47Z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://www.instagram.com/ailawyerapp/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                    <path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160ZM176,24H80A56.06,56.06,0,0,0,24,80v96a56.06,56.06,0,0,0,56,56h96a56.06,56.06,0,0,0,56-56V80A56.06,56.06,0,0,0,176,24Zm40,152a40,40,0,0,1-40,40H80a40,40,0,0,1-40-40V80A40,40,0,0,1,80,40h96a40,40,0,0,1,40,40ZM192,76a12,12,0,1,1-12-12A12,12,0,0,1,192,76Z" />
+                  </svg>
                 </a>
               </div>
             </div>
-
-            <div className="md:col-span-7 lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-10">
-              <div>
-                <h4 className="font-heading text-[13px] font-semibold text-white mb-4 tracking-tight">
-                  Product
-                </h4>
-                <ul className="space-y-3 font-paragraph">
-                  <li>
-                    <a
-                      href="#features"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Features
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#watch-parties"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Watch parties
-                    </a>
-                  </li>
-                  <li>
-                    <Link
-                      href="/explore"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Explore
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-heading text-[13px] font-semibold text-white mb-4 tracking-tight">
-                  Company
-                </h4>
-                <ul className="space-y-3 font-paragraph">
-                  <li>
-                    <a
-                      href="#"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      About
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Support
-                    </a>
-                  </li>
-                  <li>
-                    <Link
-                      href="/auth"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Get started
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <h4 className="font-heading text-[13px] font-semibold text-white mb-4 tracking-tight">
-                  Legal
-                </h4>
-                <ul className="space-y-3 font-paragraph">
-                  <li>
-                    <a
-                      href="#"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Privacy
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      Terms
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-14 pt-8 border-t border-white/[0.06]">
-            <p className="font-paragraph text-[12px] text-white/35 text-center sm:text-left">
-              © 2026 Riyura. All rights reserved.
-            </p>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 }

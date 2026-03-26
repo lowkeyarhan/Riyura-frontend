@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MediaType } from "@/src/props/global/mediaType";
+import { getDetailsPath } from "@/src/lib/utils/format";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface UseWatchlistFiltersParams {
@@ -49,12 +50,12 @@ export function useWatchlistFilters({
   const visibleItems = useMemo(() => {
     if (!Array.isArray(items)) return [];
 
-    let filtered = items;
-    if (filter === "movie") {
-      filtered = items.filter((i) => i.media_type === MediaType.Movie);
-    } else if (filter === "tv") {
-      filtered = items.filter((i) => i.media_type === MediaType.TV);
-    }
+    const filtered =
+      filter === "movie"
+        ? items.filter((i) => i.media_type === MediaType.Movie)
+        : filter === "tv"
+          ? items.filter((i) => i.media_type === MediaType.TV)
+          : items;
 
     // "recent" preserves backend order (already sorted by added_at desc)
     if (sortBy === "recent") return filtered;
@@ -63,11 +64,9 @@ export function useWatchlistFilters({
     if (sortBy === "title") {
       sorted.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === "year") {
-      sorted.sort((a, b) => {
-        const yearA = parseInt(a.year, 10) || 0;
-        const yearB = parseInt(b.year, 10) || 0;
-        return yearB - yearA;
-      });
+      sorted.sort(
+        (a, b) => (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0),
+      );
     }
     return sorted;
   }, [items, filter, sortBy]);
@@ -79,16 +78,18 @@ export function useWatchlistFilters({
   ) => {
     e.stopPropagation();
     const { success } = await removeItem(tmdbId, mediaType);
-    if (success) {
-      addNotification("Removed from watchlist", "success");
-    } else {
-      addNotification("Failed to remove item", "error");
-    }
+    addNotification(
+      success ? "Removed from watchlist" : "Failed to remove item",
+      success ? "success" : "error",
+    );
   };
 
   const handleItemClick = (tmdbId: number, mediaType: "movie" | "tv") => {
     router.push(
-      `/details/${mediaType === "movie" ? "movie" : "tvshow"}/${tmdbId}`,
+      getDetailsPath(
+        tmdbId,
+        mediaType === "movie" ? MediaType.Movie : MediaType.TV,
+      ),
     );
   };
 

@@ -15,12 +15,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import {
-  addToWatchlist,
-  isInWatchlist,
-  removeFromWatchlist,
-} from "@/src/lib/db/database";
-import { supabase } from "@/src/lib/auth/supabase";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { imageConfig } from "@/src/lib/config";
 
 const AUTO_SLIDE_INTERVAL = 8000;
@@ -268,7 +263,7 @@ export default function Banner({ initialItems }: BannerProps) {
   const currentItemId = currentItem?.tmdbId;
   const currentContentType = currentItem?.contentType;
 
-  // Check the watchlist status
+  // Check the watchlist status via API
   useEffect(() => {
     const checkWatchlistStatus = async () => {
       if (!user || !currentItemId || !currentContentType) {
@@ -277,12 +272,15 @@ export default function Banner({ initialItems }: BannerProps) {
       }
 
       try {
-        const inWatchlist = await isInWatchlist(
-          user.id,
-          currentItemId!,
-          currentContentType as MediaType,
+        const session = await getSupabaseSession();
+        if (!session) { setIsWatchlisted(false); return; }
+
+        const res = await fetch(
+          `/api/profile/watchlist?tmdbId=${currentItemId}&mediaType=${currentContentType}`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } },
         );
-        setIsWatchlisted(inWatchlist);
+        const data = await res.json();
+        setIsWatchlisted(Boolean(data?.isInWatchlist));
       } catch {
         setIsWatchlisted(false);
       }
@@ -304,9 +302,7 @@ export default function Banner({ initialItems }: BannerProps) {
       try {
         setContinueWatchingLoading(true);
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const session = await getSupabaseSession();
 
         if (!session?.access_token) {
           if (isActive) setContinueWatching([]);
@@ -327,9 +323,9 @@ export default function Banner({ initialItems }: BannerProps) {
 
         const mappedItems = Array.isArray(payload.data)
           ? payload.data
-              .map(mapWatchHistoryItem)
-              .filter((item) => item.progress <= 95)
-              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+            .map(mapWatchHistoryItem)
+            .filter((item) => item.progress <= 95)
+            .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
           : [];
 
         if (isActive) setContinueWatching(mappedItems);
@@ -366,10 +362,10 @@ export default function Banner({ initialItems }: BannerProps) {
 
   const metadataParts = currentItem
     ? [
-        getMediaTypeLabel(currentItem.contentType),
-        currentItem.year,
-        ...itemGenres,
-      ].filter((part): part is string => Boolean(part))
+      getMediaTypeLabel(currentItem.contentType),
+      currentItem.year,
+      ...itemGenres,
+    ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
@@ -382,7 +378,7 @@ export default function Banner({ initialItems }: BannerProps) {
     router.push(`/watch/tvshow/${currentItem.tmdbId}?season=1&episode=1`);
   };
 
-  // Toggle the watchlist
+  // Toggle the watchlist via API
   const toggleWatchlist = async () => {
     if (!currentItem) return;
     if (!user) {
@@ -392,27 +388,35 @@ export default function Banner({ initialItems }: BannerProps) {
 
     setWatchlistLoading(true);
     const mediaTitle = getDisplayTitle(currentItem);
+    const mediaType = toMediaType(currentItem.contentType);
 
     try {
-      if (isWatchlisted) {
-        await removeFromWatchlist(
-          user.id,
-          currentItem.tmdbId,
-          toMediaType(currentItem.contentType),
+      const session = await getSupabaseSession();
+      if (!session) {
+        addNotification("Session expired. Please sign in again.", "error");
+        return;
+      }
+
+      const method = isWatchlisted ? "DELETE" : "POST";
+      const res = await fetch("/api/profile/watchlist", {
+        method,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tmdb_id: currentItem.tmdbId, media_type: mediaType }),
+      });
+
+      if (res.ok) {
+        setIsWatchlisted(!isWatchlisted);
+        addNotification(
+          isWatchlisted
+            ? `${mediaTitle} removed from watchlist`
+            : `${mediaTitle} added to watchlist`,
+          "success",
         );
-        setIsWatchlisted(false);
-        addNotification(`${mediaTitle} removed from watchlist`, "success");
       } else {
-        await addToWatchlist(user.id, {
-          tmdb_id: currentItem.tmdbId,
-          title: mediaTitle,
-          media_type: toMediaType(currentItem.contentType),
-          poster_path: currentItem.backdrop_path || null,
-          release_date: currentItem.year || null,
-          vote: null,
-        });
-        setIsWatchlisted(true);
-        addNotification(`${mediaTitle} added to watchlist`, "success");
+        addNotification("Failed to update watchlist", "error");
       }
     } catch {
       addNotification("Failed to update watchlist", "error");
@@ -447,11 +451,13 @@ export default function Banner({ initialItems }: BannerProps) {
   };
 
   const handlePlayClick = useCallback(
-    (item: any) => {
+    (cardItem: { image: string; title: string; progress: number; meta: string; remaining: string }) => {
+      // Find the full item to get tmdbId, mediaType, and stream params
+      const item = continueWatching.find((i) => i.title === cardItem.title);
+      if (!item) return;
       if (item.mediaType === MediaType.Movie) {
-        const url = `/watch/movie/${item.tmdbId}${
-          item.streamId ? `?stream=${item.streamId}` : ""
-        }`;
+        const url = `/watch/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
+          }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -461,8 +467,7 @@ export default function Banner({ initialItems }: BannerProps) {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${
-            params.toString() ? `?${params.toString()}` : ""
+          `/player/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -599,11 +604,10 @@ export default function Banner({ initialItems }: BannerProps) {
                           ? "Remove from watchlist"
                           : "Add to watchlist"
                       }
-                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${
-                        isWatchlisted
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
                           ? "bg-white/35 text-white"
                           : "bg-white/20 text-white hover:bg-white/30"
-                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                        } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />
                     </button>
@@ -632,9 +636,8 @@ export default function Banner({ initialItems }: BannerProps) {
                   width: index === currentSlide ? 32 : 8,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`h-2 rounded-full ${
-                  index === currentSlide ? "bg-white" : "bg-white/50"
-                }`}
+                className={`h-2 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

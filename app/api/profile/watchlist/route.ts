@@ -1,16 +1,17 @@
-import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
 import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
 import { MediaType } from "@/src/props/global/mediaType";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import {
+  getAuthHeader,
+  handleBackendError,
+  handleNonSuccessStatus,
+  parseJsonBody,
+  unauthorizedResponse,
+} from "@/src/lib/server/routeUtils";
 
 export const dynamic = "force-dynamic";
-
-function getAuthHeader(request: Request): string | null {
-  const header = request.headers.get("Authorization");
-  return header?.startsWith("Bearer ") ? header : null;
-}
 
 function normalizeItem(raw: Record<string, unknown>): MediaCardProp {
   return {
@@ -31,9 +32,7 @@ function normalizeItem(raw: Record<string, unknown>): MediaCardProp {
 // Without params → return full watchlist
 export async function GET(request: Request) {
   const authHeader = getAuthHeader(request);
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authHeader) return unauthorizedResponse();
 
   const { searchParams } = new URL(request.url);
   const tmdbId = searchParams.get("tmdbId");
@@ -53,8 +52,10 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, isInWatchlist: false });
       }
 
-      const isInWatchlist = Boolean(response.data?.isInWatchlist);
-      return NextResponse.json({ success: true, isInWatchlist });
+      return NextResponse.json({
+        success: true,
+        isInWatchlist: Boolean(response.data?.isInWatchlist),
+      });
     } catch {
       return NextResponse.json({ success: false, isInWatchlist: false });
     }
@@ -68,59 +69,34 @@ export async function GET(request: Request) {
       validateStatus: (s) => s < 500,
     });
 
-    if (response.status === 401) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to fetch watchlist",
+    );
+    if (err) return err;
 
-    if (response.status !== 200) {
-      return NextResponse.json(
-        { error: response.data?.error ?? "Failed to fetch watchlist" },
-        { status: response.status },
-      );
-    }
-
-    const raw: unknown[] = Array.isArray(response.data?.data)
+    const raw: Record<string, unknown>[] = Array.isArray(response.data?.data)
       ? response.data.data
       : Array.isArray(response.data)
         ? response.data
         : [];
 
-    const data = raw.map((item) =>
-      normalizeItem(item as Record<string, unknown>),
-    );
-
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: raw.map(normalizeItem) });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status ?? 502;
-      return NextResponse.json(
-        { error: error.response?.data?.error ?? "Failed to fetch watchlist" },
-        { status: status >= 400 ? status : 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleBackendError(error, "Failed to fetch watchlist");
   }
 }
 
 // POST /api/profile/watchlist
 export async function POST(request: Request) {
   const authHeader = getAuthHeader(request);
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authHeader) return unauthorizedResponse();
 
-  let body: { tmdb_id?: number; media_type?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
-  }
+  const body = await parseJsonBody<{ tmdb_id?: number; media_type?: string }>(
+    request,
+  );
+  if (body instanceof Response) return body;
 
   const { tmdb_id, media_type } = body;
   if (!tmdb_id || !media_type) {
@@ -141,49 +117,29 @@ export async function POST(request: Request) {
       },
     );
 
-    if (response.status === 401) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (response.status !== 200 && response.status !== 201) {
-      return NextResponse.json(
-        { error: response.data?.error ?? "Failed to add to watchlist" },
-        { status: response.status },
-      );
-    }
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to add to watchlist",
+      [200, 201],
+    );
+    if (err) return err;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status ?? 502;
-      return NextResponse.json(
-        { error: error.response?.data?.error ?? "Failed to add to watchlist" },
-        { status: status >= 400 ? status : 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleBackendError(error, "Failed to add to watchlist");
   }
 }
 
 // DELETE /api/profile/watchlist
 export async function DELETE(request: Request) {
   const authHeader = getAuthHeader(request);
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authHeader) return unauthorizedResponse();
 
-  let body: { tmdb_id?: number; media_type?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
-  }
+  const body = await parseJsonBody<{ tmdb_id?: number; media_type?: string }>(
+    request,
+  );
+  if (body instanceof Response) return body;
 
   const { tmdb_id, media_type } = body;
   if (!tmdb_id || !media_type) {
@@ -201,32 +157,15 @@ export async function DELETE(request: Request) {
       validateStatus: (s) => s < 500,
     });
 
-    if (response.status === 401) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (response.status !== 200) {
-      return NextResponse.json(
-        { error: response.data?.error ?? "Failed to remove from watchlist" },
-        { status: response.status },
-      );
-    }
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to remove from watchlist",
+    );
+    if (err) return err;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status ?? 502;
-      return NextResponse.json(
-        {
-          error:
-            error.response?.data?.error ?? "Failed to remove from watchlist",
-        },
-        { status: status >= 400 ? status : 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleBackendError(error, "Failed to remove from watchlist");
   }
 }

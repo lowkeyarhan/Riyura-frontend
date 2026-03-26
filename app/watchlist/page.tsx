@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useWatchlist } from "@/src/hooks/useWatchlist";
+import { useWatchlist } from "@/src/hooks/profile/useWatchlist";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { useWatchlistFilters } from "@/src/hooks/useWatchlistFilters";
 import { WatchlistHeader } from "@/src/components/watchlist/WatchlistHeader";

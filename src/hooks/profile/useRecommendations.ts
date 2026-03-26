@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/src/lib/auth/supabase";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import type { RecommendationProp } from "@/src/props/profile/recommendation";
 
 interface RecommendationsData {
@@ -29,9 +29,7 @@ export function useRecommendations(
         setIsLoading(true);
         setError(null);
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const session = await getSupabaseSession();
         if (!session) return;
 
         const url = forceRefresh
@@ -62,7 +60,7 @@ export function useRecommendations(
   useEffect(() => {
     if (!userId || !hasApiKey) return;
     fetchRecommendations();
-  }, [userId, hasApiKey]);
+  }, [userId, hasApiKey, fetchRecommendations]);
 
   const refresh = useCallback(() => {
     fetchRecommendations(true);

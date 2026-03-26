@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/src/lib/auth/supabase";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { MediaType } from "@/src/props/global/mediaType";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
@@ -20,10 +20,7 @@ export function useWatchlist(userId: string | undefined) {
       setError(null);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        const session = await getSupabaseSession();
         if (!session) {
           setError("No active session");
           setLoading(false);
@@ -61,10 +58,7 @@ export function useWatchlist(userId: string | undefined) {
       setItems(items.filter((i) => i.tmdbId !== tmdbId));
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        const session = await getSupabaseSession();
         if (!session) {
           setItems(previousItems);
           return { success: false };

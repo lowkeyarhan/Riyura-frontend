@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/src/lib/auth/supabase";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { MediaType } from "@/src/props/global/mediaType";
 
 interface WatchHistoryData {
@@ -17,16 +17,12 @@ export function useWatchHistory(): WatchHistoryData {
     try {
       setIsDeleting(true);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
+      const session = await getSupabaseSession();
       if (!session) {
         console.error("No session found");
         return false;
       }
 
-      console.log("🗑️ Removing watch history item", { tmdbId, mediaType });
       const res = await fetch("/api/profile/history", {
         method: "DELETE",
         headers: {
@@ -38,14 +34,12 @@ export function useWatchHistory(): WatchHistoryData {
 
       const payload = await res.json().catch(() => null);
       if (!res.ok) {
-        console.error("❌ Failed to remove history item", {
+        console.error("Failed to remove history item", {
           status: res.status,
           payload,
         });
         throw new Error("Failed to remove from history");
       }
-
-      console.log("✅ History item removed", payload);
 
       return true;
     } catch (error) {
@@ -56,8 +50,5 @@ export function useWatchHistory(): WatchHistoryData {
     }
   };
 
-  return {
-    deleteHistoryItem,
-    isDeleting,
-  };
+  return { deleteHistoryItem, isDeleting };
 }

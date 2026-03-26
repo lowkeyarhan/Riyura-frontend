@@ -1,20 +1,19 @@
-import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
+import {
+  getAuthHeader,
+  handleBackendError,
+  handleNonSuccessStatus,
+  parseJsonBody,
+  unauthorizedResponse,
+} from "@/src/lib/server/routeUtils";
 
 export const dynamic = "force-dynamic";
-
-function getAuthHeader(request: Request): string | null {
-  const header = request.headers.get("Authorization");
-  return header?.startsWith("Bearer ") ? header : null;
-}
 
 // GET /api/profile/key
 export async function GET(request: Request) {
   const authHeader = getAuthHeader(request);
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authHeader) return unauthorizedResponse();
 
   try {
     const response = await backendClient.get("/ai/key", {
@@ -23,55 +22,29 @@ export async function GET(request: Request) {
       validateStatus: (s) => s < 500,
     });
 
-    if (response.status === 401) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (response.status !== 200) {
-      return NextResponse.json(
-        { error: response.data?.error ?? "Failed to fetch API key status" },
-        { status: response.status },
-      );
-    }
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to fetch API key status",
+    );
+    if (err) return err;
 
     return NextResponse.json({
       keyPreview: response.data.keyPreview ?? null,
       hasKey: Boolean(response.data.hasKey),
     });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status ?? 502;
-      return NextResponse.json(
-        {
-          error:
-            error.response?.data?.error ?? "Failed to fetch API key status",
-        },
-        { status: status >= 400 ? status : 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleBackendError(error, "Failed to fetch API key status");
   }
 }
 
 // POST /api/profile/key
 export async function POST(request: Request) {
   const authHeader = getAuthHeader(request);
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authHeader) return unauthorizedResponse();
 
-  let body: { apiKey?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
-  }
+  const body = await parseJsonBody<{ apiKey?: string }>(request);
+  if (body instanceof Response) return body;
 
   const { apiKey } = body;
   if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
@@ -92,42 +65,27 @@ export async function POST(request: Request) {
       },
     );
 
-    if (response.status === 401) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (response.status !== 200 && response.status !== 201) {
-      return NextResponse.json(
-        { error: response.data?.error ?? "Failed to save API key" },
-        { status: response.status },
-      );
-    }
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to save API key",
+      [200, 201],
+    );
+    if (err) return err;
 
     return NextResponse.json({
       keyPreview: response.data.keyPreview ?? null,
       hasKey: Boolean(response.data.hasKey),
     });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status ?? 502;
-      return NextResponse.json(
-        { error: error.response?.data?.error ?? "Failed to save API key" },
-        { status: status >= 400 ? status : 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleBackendError(error, "Failed to save API key");
   }
 }
 
 // DELETE /api/profile/key
 export async function DELETE(request: Request) {
   const authHeader = getAuthHeader(request);
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!authHeader) return unauthorizedResponse();
 
   try {
     const response = await backendClient.delete("/ai/key", {
@@ -136,29 +94,15 @@ export async function DELETE(request: Request) {
       validateStatus: (s) => s < 500,
     });
 
-    if (response.status === 401) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (response.status !== 200) {
-      return NextResponse.json(
-        { error: response.data?.error ?? "Failed to delete API key" },
-        { status: response.status },
-      );
-    }
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to delete API key",
+    );
+    if (err) return err;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status ?? 502;
-      return NextResponse.json(
-        { error: error.response?.data?.error ?? "Failed to delete API key" },
-        { status: status >= 400 ? status : 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleBackendError(error, "Failed to delete API key");
   }
 }

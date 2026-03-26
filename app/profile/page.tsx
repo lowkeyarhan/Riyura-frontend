@@ -9,7 +9,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useProfileData } from "@/src/hooks/profile/useProfileData";
 import { useApiKey } from "@/src/lib/contexts/ApiKeyContext";
 import { useRecommendations } from "@/src/hooks/profile/useRecommendations";
-import { useWatchHistory } from "@/src/hooks/useWatchHistory";
+import { useWatchHistory } from "@/src/hooks/profile/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";

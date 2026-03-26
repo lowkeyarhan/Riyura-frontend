@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/auth/supabase";
-import { ensureUserProfile } from "@/src/lib/db/database";
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -214,9 +213,8 @@ export default function AuthPage() {
             <div className="relative flex gap-2 mb-8 bg-black/30 rounded-lg p-1">
               <button
                 onClick={() => setIsSignUp(false)}
-                className={`relative flex-1 py-3 rounded-md font-semibold uppercase tracking-wider transition-colors overflow-hidden ${
-                  !isSignUp ? "text-white" : "text-gray-400 hover:text-white"
-                }`}
+                className={`relative flex-1 py-3 rounded-md font-semibold uppercase tracking-wider transition-colors overflow-hidden ${!isSignUp ? "text-white" : "text-gray-400 hover:text-white"
+                  }`}
                 style={{ fontFamily: "Montserrat, sans-serif" }}
               >
                 {!isSignUp && (
@@ -231,9 +229,8 @@ export default function AuthPage() {
 
               <button
                 onClick={() => setIsSignUp(true)}
-                className={`relative flex-1 py-3 rounded-md font-semibold uppercase tracking-wider transition-colors overflow-hidden ${
-                  isSignUp ? "text-white" : "text-gray-400 hover:text-white"
-                }`}
+                className={`relative flex-1 py-3 rounded-md font-semibold uppercase tracking-wider transition-colors overflow-hidden ${isSignUp ? "text-white" : "text-gray-400 hover:text-white"
+                  }`}
                 style={{ fontFamily: "Montserrat, sans-serif" }}
               >
                 {isSignUp && (

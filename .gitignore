@@ -25,6 +25,9 @@ logs/
 build/
 dist/
 
+# TypeScript
+tsconfig.tsbuildinfo
+
 # Coverage
 coverage/
 

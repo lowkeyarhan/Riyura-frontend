@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/src/lib/auth/supabase";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { Film, Tv, Clock } from "lucide-react";
 import { Stat } from "@/src/components/profile/StatBadge";
 import { HistoryProp } from "@/src/props/profile/history";
@@ -40,8 +40,9 @@ function computeStats(items: HistoryProp[]): Stat[] {
   const seriesCount = new Set(
     items.filter((i) => i.mediaType !== MediaType.Movie).map((i) => i.tmdbId),
   ).size;
-  const totalSeconds = items.reduce((acc, i) => acc + (i.durationSec ?? 0), 0);
-  const hoursCount = Math.round(totalSeconds / 3600);
+  const hoursCount = Math.round(
+    items.reduce((acc, i) => acc + (i.durationSec ?? 0), 0) / 3600,
+  );
 
   return [
     { ...INITIAL_STATS[0], value: moviesCount.toString() },
@@ -115,10 +116,7 @@ export function useProfileData(userId: string | undefined): ProfileData {
       setIsLoadingHistory(true);
       setIsLoadingWatchlist(true);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
+      const session = await getSupabaseSession();
       if (!session) return;
 
       const authHeader = `Bearer ${session.access_token}`;
@@ -143,14 +141,14 @@ export function useProfileData(userId: string | undefined): ProfileData {
 
       if (watchlistRes.ok) {
         const { data } = await watchlistRes.json();
-        const raw: any[] = Array.isArray(data) ? data : [];
+        const raw: Record<string, unknown>[] = Array.isArray(data) ? data : [];
         const mapped: WatchlistItemShape[] = raw.map((item) => ({
-          id: item.tmdbId ?? item.id,
-          tmdb_id: item.tmdbId ?? item.id,
-          title: item.title ?? "",
-          poster_path: item.poster_path ?? null,
-          release_date: item.release_date ?? null,
-          media_type: item.media_type,
+          id: (item.tmdbId ?? item.id) as number,
+          tmdb_id: (item.tmdbId ?? item.id) as number,
+          title: (item.title as string) ?? "",
+          poster_path: (item.poster_path as string | null) ?? null,
+          release_date: (item.release_date as string | null) ?? null,
+          media_type: item.media_type as MediaType,
         }));
         setWatchlist(mapped);
       }
@@ -167,16 +165,14 @@ export function useProfileData(userId: string | undefined): ProfileData {
   }, [userId]);
 
   useEffect(() => {
-    if (userId) {
-      fetchAllData();
-    }
+    if (userId) fetchAllData();
   }, [userId, fetchAllData]);
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     setDataInitialized(false);
     fetchingRef.current = false;
     fetchAllData();
-  };
+  }, [fetchAllData]);
 
   return {
     continueWatching,

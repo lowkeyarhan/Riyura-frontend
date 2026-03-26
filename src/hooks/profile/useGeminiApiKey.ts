@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/src/lib/auth/supabase";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import type { ApiKeyProp } from "@/src/props/profile/apiKey";
 
@@ -22,9 +22,7 @@ export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
       try {
         setIsLoading(true);
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const session = await getSupabaseSession();
         if (!session) return;
 
         const res = await fetch("/api/profile/key", {
@@ -54,9 +52,7 @@ export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
     try {
       setIsSaving(true);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const session = await getSupabaseSession();
       if (!session) return;
 
       const res = await fetch("/api/profile/key", {
@@ -90,9 +86,7 @@ export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
     try {
       setIsSaving(true);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const session = await getSupabaseSession();
       if (!session) return;
 
       const res = await fetch("/api/profile/key", {

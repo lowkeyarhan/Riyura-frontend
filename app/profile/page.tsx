@@ -14,7 +14,7 @@ import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
 import { MediaType } from "@/src/props/global/mediaType";
-import type { ContinueWatchingItem, WatchlistItem } from "@/src/dto/media";
+import type { ContinueWatchingItem } from "@/src/hooks/profile/useProfileData";
 import type { RecommendationProp } from "@/src/props/profile/recommendation";
 import type { WatchlistItemShape } from "@/src/components/profile/WatchlistSection";
 
@@ -90,15 +90,17 @@ export default function ProfilePage() {
   const handleDeleteHistory = async (e: React.MouseEvent, itemId: number) => {
     e.stopPropagation();
 
-    // Optimistic update
-    setContinueWatching((prev) => prev.filter((item) => item.id !== itemId));
+    const item = continueWatching.find((i) => i.id === itemId);
+    if (!item) return;
 
-    const success = await deleteHistoryItem(itemId);
+    // Optimistic update
+    setContinueWatching((prev) => prev.filter((i) => i.id !== itemId));
+
+    const success = await deleteHistoryItem(item.tmdbId, item.mediaType);
     if (success) {
       addNotification("Removed from watch history", "success");
     } else {
       addNotification("Failed to remove item", "error");
-      // Note: In a production app, you'd want to revert the optimistic update here
     }
   };
 

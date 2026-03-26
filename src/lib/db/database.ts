@@ -1,11 +1,43 @@
 import { supabase } from "@/src/lib/auth/supabase";
-import {
-  MediaType,
-  WatchHistoryItem,
-  WatchlistItem,
-  WatchlistAddRequest,
-  WatchHistoryAddRequest,
-} from "@/src/dto/media";
+import { MediaType } from "@/src/props/global/mediaType";
+
+type WatchlistAddRequest = {
+  tmdb_id: number;
+  title: string;
+  media_type: MediaType;
+  poster_path: string | null;
+  release_date: string | null;
+  vote: number | null;
+  number_of_seasons?: number | null;
+  number_of_episodes?: number | null;
+};
+
+type WatchlistItem = WatchlistAddRequest & {
+  id: number;
+  user_id?: string;
+  added_at: string;
+};
+
+type WatchHistoryAddRequest = {
+  tmdb_id: number;
+  media_type: MediaType;
+  stream_id: string;
+  title: string;
+  poster_path: string | null;
+  backdrop_path?: string | null;
+  release_date: string | null;
+  season_number?: number | null;
+  episode_number?: number | null;
+  episode_name?: string | null;
+  episode_length?: number | null;
+  duration_sec: number;
+};
+
+type WatchHistoryItem = WatchHistoryAddRequest & {
+  id: number;
+  user_id?: string;
+  watched_at: string;
+};
 
 // Profile Functions ----
 export async function ensureUserProfile(user: {

@@ -5,12 +5,13 @@ import Image from "next/image";
 import { Play } from "lucide-react";
 import type { MouseEvent } from "react";
 import { MediaType } from "@/src/props/global/mediaType";
-import type { MediaCardDTO } from "@/src/dto/ui/card";
 
-type RecommendationCardProps = Pick<MediaCardDTO, "title" | "posterUrl"> & {
-  rating?: MediaCardDTO["rating"];
-  year?: number | MediaCardDTO["year"];
-  type: MediaCardDTO["mediaType"];
+type RecommendationCardProps = {
+  title: string;
+  posterUrl: string | null;
+  rating?: number;
+  year?: number;
+  type: MediaType;
   seasons?: number;
   episodes?: number;
   reason: string;
@@ -52,13 +53,11 @@ const TVIcon = () => (
   </svg>
 );
 
-const TYPE_CONFIG: Record<
-  MediaType,
-  { label: string; icon: React.ReactNode }
-> = {
-  [MediaType.Movie]: { label: MediaType.Movie, icon: <MovieIcon /> },
-  [MediaType.TV]: { label: MediaType.TV, icon: <TVIcon /> },
-};
+const TYPE_CONFIG: Record<MediaType, { label: string; icon: React.ReactNode }> =
+  {
+    [MediaType.Movie]: { label: MediaType.Movie, icon: <MovieIcon /> },
+    [MediaType.TV]: { label: MediaType.TV, icon: <TVIcon /> },
+  };
 
 export default function RecommendationCard({
   title,
@@ -74,7 +73,8 @@ export default function RecommendationCard({
 }: RecommendationCardProps) {
   const normalizedType =
     (type as string).toLowerCase() === "movie" ? MediaType.Movie : MediaType.TV;
-  const typeConfig = TYPE_CONFIG[normalizedType] ?? TYPE_CONFIG[MediaType.Movie];
+  const typeConfig =
+    TYPE_CONFIG[normalizedType] ?? TYPE_CONFIG[MediaType.Movie];
 
   // Long-press detection for mobile
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(

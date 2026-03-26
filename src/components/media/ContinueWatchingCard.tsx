@@ -2,11 +2,16 @@
 
 import Image from "next/image";
 import { Play } from "lucide-react";
-import { ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
 
 interface ContinueWatchingCardProps {
-  item: ContinueWatchingOverlayItem;
-  onClick: (item: ContinueWatchingOverlayItem) => void;
+  item: {
+    image: string;
+    title: string;
+    progress: number;
+    meta: string;
+    remaining: string;
+  };
+  onClick: (item: ContinueWatchingCardProps["item"]) => void;
 }
 
 export default function ContinueWatchingCard({

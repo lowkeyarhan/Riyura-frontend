@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
-import { useStreamUrls } from "@/src/hooks/player/useStreamUrls";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { TVShowPlayerSidebar } from "@/src/components/player/TVShowPlayerSidebar";
@@ -16,7 +15,6 @@ export default function TVShowPlayer() {
   const { user } = useAuth();
   const tvShowId = params.id as string;
 
-  // Parse query parameters
   const streamParam = searchParams.get("stream");
   const seasonParam = searchParams.get("season");
   const episodeParam = searchParams.get("episode");
@@ -26,8 +24,9 @@ export default function TVShowPlayer() {
 
   const {
     tvShow,
+    servers,
     episodes,
-    loading: tvShowLoading,
+    loading,
     selectedSeason,
     selectedEpisode,
     activeServerIndex,
@@ -43,11 +42,7 @@ export default function TVShowPlayer() {
     initialEpisode,
   });
 
-  const { generateTVLinks, loading: streamsLoading } = useStreamUrls("tv");
-  const servers = generateTVLinks(tvShowId, selectedSeason, selectedEpisode);
-  const loading = tvShowLoading || streamsLoading;
-
-  // Set initial server based on stream parameter (only on mount or when stream param changes)
+  // Set initial server based on stream parameter
   useEffect(() => {
     if (streamParam && servers.length > 0) {
       const serverIndex = servers.findIndex((s) => s.id === streamParam);
@@ -56,20 +51,18 @@ export default function TVShowPlayer() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamParam, servers.length, setActiveServerIndex]); // Stable deps: don't include servers array itself (new ref every render)
+  }, [streamParam, servers.length, setActiveServerIndex]);
 
   // Save watch history on unmount
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      saveWatchHistoryOnUnmount(servers);
-    };
+    const handleBeforeUnload = () => saveWatchHistoryOnUnmount();
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      saveWatchHistoryOnUnmount(servers);
+      saveWatchHistoryOnUnmount();
     };
-  }, [saveWatchHistoryOnUnmount, servers]);
+  }, [saveWatchHistoryOnUnmount]);
 
   if (loading) return <PlayerSkeleton />;
 
@@ -81,8 +74,7 @@ export default function TVShowPlayer() {
             Unable to play any content
           </p>
           <p className="text-white/60 text-sm text-center max-w-md">
-            No stream sources are configured. Please add stream URLs for TV
-            shows in the admin settings.
+            No stream sources are available for this episode.
           </p>
         </div>
       </PlayerLayout>
@@ -98,7 +90,7 @@ export default function TVShowPlayer() {
           <div className="lg:col-span-9 flex flex-col h-auto lg:h-full border border-white/5 rounded-3xl aspect-video lg:aspect-auto">
             <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl group">
               <iframe
-                src={servers[activeServerIndex].link}
+                src={servers[activeServerIndex].url}
                 className="w-full h-full object-contain border border-white/5"
                 frameBorder="0"
                 allowFullScreen

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Search, LayoutGrid, List, PlayCircle } from "lucide-react";
-import { TMDBEpisode, TMDBSeasonSummary } from "@/src/dto/tmdb/details";
+import { TvPlayerEpisode, TvPlayerSeason } from "@/src/props/tv/tvPlayer";
 
 interface EpisodeBrowserProps {
-  validSeasons: TMDBSeasonSummary[];
-  episodes: TMDBEpisode[];
+  validSeasons: TvPlayerSeason[];
+  episodes: TvPlayerEpisode[];
   selectedSeason: number;
   selectedEpisode: number;
   onSeasonChange: (seasonNumber: number) => void;
@@ -92,7 +92,7 @@ export function EpisodeBrowser({
           {/* Sidebar: Seasons */}
           <div className="pt-2 px-4 md:px-6 pb-4 md:pb-6 h-auto md:h-full md:max-h-[800px] overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 border-b md:border-b-0 md:border-r border-white/5 mb-4 md:mb-0 flex-shrink-0">
             <div className="flex flex-row md:flex-col gap-3 md:gap-4 min-w-max md:min-w-0">
-              {validSeasons.map((season: any) => {
+              {validSeasons.map((season: TvPlayerSeason) => {
                 const isActive = selectedSeason === season.season_number;
                 return (
                   <button
@@ -151,7 +151,7 @@ export function EpisodeBrowser({
                   const isSelected = selectedEpisode === ep.episode_number;
                   return (
                     <div
-                      key={ep.id}
+                      key={ep.episode_number}
                       onClick={() => handleEpisodeClick(ep.episode_number)}
                       className={`group relative rounded-lg overflow-hidden cursor-pointer border transition-all ${
                         isSelected
@@ -188,13 +188,10 @@ export function EpisodeBrowser({
                         >
                           {ep.name}
                         </h4>
-                        <div className="flex justify-between items-center text-[10px] text-gray-600 font-medium">
-                          <span>{ep.runtime ? `${ep.runtime}m` : "N/A"}</span>
-                          <span>
-                            {ep.air_date
-                              ? new Date(ep.air_date).toLocaleDateString()
-                              : ""}
-                          </span>
+                        <div className="text-[10px] text-gray-600 font-medium text-right">
+                          {ep.air_date
+                            ? new Date(ep.air_date).toLocaleDateString()
+                            : ""}
                         </div>
                       </div>
                     </div>
@@ -207,7 +204,7 @@ export function EpisodeBrowser({
                   const isSelected = selectedEpisode === ep.episode_number;
                   return (
                     <div
-                      key={ep.id}
+                      key={ep.episode_number}
                       onClick={() => handleEpisodeClick(ep.episode_number)}
                       className={`flex gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
                         isSelected

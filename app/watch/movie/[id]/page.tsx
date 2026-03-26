@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
-import { useStreamUrls } from "@/src/hooks/player/useStreamUrls";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { MoviePlayerSidebar } from "@/src/components/player/MoviePlayerSidebar";
@@ -15,9 +14,12 @@ export default function MoviePlayer() {
   const { user } = useAuth();
   const movieId = params.id as string;
 
+  const streamParam = searchParams.get("stream");
+
   const {
     movie,
-    loading: movieLoading,
+    servers,
+    loading,
     activeServerIndex,
     setActiveServerIndex,
     saveWatchHistoryOnUnmount,
@@ -26,13 +28,7 @@ export default function MoviePlayer() {
     userId: user?.id,
   });
 
-  const { generateMovieLinks, loading: streamsLoading } =
-    useStreamUrls("movie");
-  const servers = generateMovieLinks(movieId);
-  const loading = movieLoading || streamsLoading;
-
-  // Set initial server based on stream parameter (only on mount or when stream param changes)
-  const streamParam = searchParams.get("stream");
+  // Set initial server based on stream parameter
   useEffect(() => {
     if (streamParam && servers.length > 0) {
       const serverIndex = servers.findIndex((s) => s.id === streamParam);
@@ -40,20 +36,18 @@ export default function MoviePlayer() {
         setActiveServerIndex(serverIndex);
       }
     }
-  }, [streamParam, servers.length, setActiveServerIndex]); // Stable deps: run when stream param or server count changes, NOT every render
+  }, [streamParam, servers.length, setActiveServerIndex]);
 
   // Save watch history on unmount
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      saveWatchHistoryOnUnmount(servers);
-    };
+    const handleBeforeUnload = () => saveWatchHistoryOnUnmount();
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      saveWatchHistoryOnUnmount(servers);
+      saveWatchHistoryOnUnmount();
     };
-  }, [saveWatchHistoryOnUnmount, servers]);
+  }, [saveWatchHistoryOnUnmount]);
 
   if (loading) return <PlayerSkeleton />;
 
@@ -65,8 +59,7 @@ export default function MoviePlayer() {
             Unable to play any content
           </p>
           <p className="text-white/60 text-sm text-center max-w-md">
-            No stream sources are configured. Please add stream URLs for movies
-            in the admin settings.
+            No stream sources are available for this movie.
           </p>
         </div>
       </PlayerLayout>
@@ -78,9 +71,8 @@ export default function MoviePlayer() {
       <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4">
         {/* --- LEFT: CINEMA PLAYER --- */}
         <div className="flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto">
-          {/* The Player */}
           <iframe
-            src={servers[activeServerIndex].link}
+            src={servers[activeServerIndex].url}
             className="w-full h-full object-cover"
             frameBorder="0"
             allowFullScreen

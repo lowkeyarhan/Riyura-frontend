@@ -9,8 +9,7 @@ function getAuthHeader(request: Request): string | null {
   return header?.startsWith("Bearer ") ? header : null;
 }
 
-// ─── GET /api/profile/recommendations ────────────────────────────────────────
-// Pass ?refresh=true to force regeneration; omit for cached DB results
+// GET /api/profile/recommendations
 export async function GET(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {

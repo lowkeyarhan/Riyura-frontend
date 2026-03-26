@@ -9,7 +9,7 @@ function getAuthHeader(request: Request): string | null {
   return header?.startsWith("Bearer ") ? header : null;
 }
 
-// ─── GET /api/profile/key ─────────────────────────────────────────────────────
+// GET /api/profile/key
 export async function GET(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
   }
 }
 
-// ─── POST /api/profile/key ────────────────────────────────────────────────────
+// POST /api/profile/key
 export async function POST(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
   }
 }
 
-// ─── DELETE /api/profile/key ──────────────────────────────────────────────────
+// DELETE /api/profile/key
 export async function DELETE(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {

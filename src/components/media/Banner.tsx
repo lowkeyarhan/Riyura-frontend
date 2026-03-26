@@ -10,8 +10,7 @@ import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
 import { MediaType } from "@/src/props/global/mediaType";
 import { BannerProp } from "@/src/props/banner/banner";
 import { apiClient } from "@/src/lib/axios";
-import { ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
-import { WatchHistoryItem } from "@/src/dto/media";
+import { HistoryProp } from "@/src/props/profile/history";
 import { useAuth } from "@/src/hooks/useAuth";
 import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
 import { SkeletonTheme } from "react-loading-skeleton";
@@ -119,32 +118,46 @@ const contentVariants: Variants = {
 const toMediaType = (contentType: BannerProp["contentType"]): MediaType =>
   contentType === MediaType.Movie ? MediaType.Movie : MediaType.TV;
 
+type ContinueWatchingOverlayItem = {
+  id: number;
+  tmdbId: number;
+  title: string;
+  image: string;
+  progress: number;
+  meta: string;
+  remaining: string;
+  mediaType: MediaType;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  streamId?: string;
+};
+
 const mapWatchHistoryItem = (
-  item: WatchHistoryItem,
+  item: HistoryProp,
 ): ContinueWatchingOverlayItem => {
-  const fallbackLength = item.media_type === MediaType.Movie ? 7200 : 2700;
-  const totalLength = Math.max(60, item.episode_length || fallbackLength);
-  const watchedSeconds = Math.max(0, item.duration_sec || 0);
+  const fallbackLength = item.mediaType === MediaType.Movie ? 7200 : 2700;
+  const totalLength = Math.max(60, item.episodeLength || fallbackLength);
+  const watchedSeconds = Math.max(0, item.durationSec || 0);
   const remainingSeconds = Math.max(0, totalLength - watchedSeconds);
 
   return {
-    id: item.id,
-    tmdbId: item.tmdb_id,
+    id: item.tmdbId,
+    tmdbId: item.tmdbId,
     title: item.title || "Untitled",
-    image: getCardImageUrl(item.backdrop_path || item.poster_path),
+    image: getCardImageUrl(item.backdropPath),
     progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
     meta:
-      item.media_type === MediaType.Movie
+      item.mediaType === MediaType.Movie
         ? MediaType.Movie
-        : `S${item.season_number || 1} E${item.episode_number || 1}`,
+        : `S${item.seasonNumber || 1} E${item.episodeNumber || 1}`,
     remaining:
       remainingSeconds === 0
         ? "Completed"
         : `${Math.ceil(remainingSeconds / 60)}m remaining`,
-    mediaType: item.media_type,
-    seasonNumber: item.season_number || 1,
-    episodeNumber: item.episode_number || 1,
-    streamId: item.stream_id,
+    mediaType: item.mediaType,
+    seasonNumber: item.seasonNumber || 1,
+    episodeNumber: item.episodeNumber || 1,
+    streamId: item.providerId ?? undefined,
   };
 };
 
@@ -300,7 +313,7 @@ export default function Banner({ initialItems }: BannerProps) {
           return;
         }
 
-        const response = await fetch("/api/profile/history?limit=10", {
+        const response = await fetch("/api/profile/history?page=0", {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
@@ -309,7 +322,7 @@ export default function Banner({ initialItems }: BannerProps) {
         }
 
         const payload = (await response.json()) as {
-          data?: WatchHistoryItem[];
+          data?: HistoryProp[];
         };
 
         const mappedItems = Array.isArray(payload.data)
@@ -363,10 +376,10 @@ export default function Banner({ initialItems }: BannerProps) {
   const handlePlay = () => {
     if (!currentItem) return;
     if (currentItem.contentType === MediaType.Movie) {
-      router.push(`/player/movie/${currentItem.tmdbId}`);
+      router.push(`/watch/movie/${currentItem.tmdbId}`);
       return;
     }
-    router.push(`/player/tvshow/${currentItem.tmdbId}?season=1&episode=1`);
+    router.push(`/watch/tvshow/${currentItem.tmdbId}?season=1&episode=1`);
   };
 
   // Toggle the watchlist
@@ -436,7 +449,7 @@ export default function Banner({ initialItems }: BannerProps) {
   const handlePlayClick = useCallback(
     (item: any) => {
       if (item.mediaType === MediaType.Movie) {
-        const url = `/player/movie/${item.tmdbId}${
+        const url = `/watch/movie/${item.tmdbId}${
           item.streamId ? `?stream=${item.streamId}` : ""
         }`;
         router.push(url);

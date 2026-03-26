@@ -1,278 +1,249 @@
+import axios from "axios";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { MediaType } from "@/src/props/global/mediaType";
-import { WatchHistoryAddRequest, WatchHistoryItem } from "@/src/dto/media";
-import { ApiResponse } from "@/src/dto/api";
+import { backendClient } from "@/src/lib/axios";
+import type { HistoryProp } from "@/src/props/profile/history";
 
-const VALID_STREAMS = new Set([
-  "syntherionmovie",
-  "ironlinkmovie",
-  "dormannumovie",
-  "nanovuemovie",
-  "syntheriontv",
-  "ironlinktv",
-  "dormannutv",
-  "nanovuetv",
-]);
+export const dynamic = "force-dynamic";
 
-function createAuthedSupabaseClient(authHeader: string) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: { headers: { Authorization: authHeader } },
-    },
-  );
+function getAuthHeader(request: Request): string | null {
+  const header = request.headers.get("Authorization");
+  return header?.startsWith("Bearer ") ? header : null;
 }
 
-/**
- * GET /api/profile/history
- * Fetches watch history. Use ?limit=10 for Continue Watching, no limit for full list.
- */
+// GET /api/profile/history
+// Fetches paginated watch history. Uses ?page= (0-indexed).
 export async function GET(request: Request) {
-  try {
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Missing or Invalid Token" },
-        { status: 401 },
-      );
-    }
-
-    const supabase = createAuthedSupabaseClient(authHeader);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const limitParam = searchParams.get("limit");
-    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
-
-    let query = supabase
-      .from("watch_history")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("watched_at", { ascending: false });
-
-    if (limit && limit > 0) {
-      query = query.limit(limit);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    const items = (data || []) as WatchHistoryItem[];
-
-    const response: ApiResponse<WatchHistoryItem[]> = {
-      success: true,
-      data: items,
-    };
-
-    return NextResponse.json(response, { status: 200 });
-  } catch (err: any) {
-    console.error("Error fetching watch history:", err.message);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
-
-/**
- * POST /api/profile/history
- * Saves/updates watch progress from players. Supports duration aggregation and stream validation.
- */
-export async function POST(request: Request) {
-  try {
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.warn(
-        "⚠️ Watch History: Blocked request with missing/invalid token",
-      );
-      return NextResponse.json(
-        { error: "Missing or Invalid Token" },
-        { status: 401 },
-      );
-    }
-
-    const supabase = createAuthedSupabaseClient(authHeader);
-    const body: WatchHistoryAddRequest = await request.json();
-    const {
-      tmdb_id,
-      media_type,
-      stream_id,
-      title,
-      poster_path,
-      backdrop_path,
-      release_date,
-      season_number,
-      episode_number,
-      episode_name,
-      episode_length,
-      duration_sec = 0,
-    } = body;
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user_id = user.id;
-
-    if (!user_id || !tmdb_id || !title || !media_type || !stream_id) {
-      console.error("❌ Watch History: Missing required fields in payload");
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
-    }
-
-    if (!VALID_STREAMS.has(stream_id)) {
-      console.error(`❌ Watch History: Invalid stream source: ${stream_id}`);
-      return NextResponse.json({ error: "Invalid Stream ID" }, { status: 400 });
-    }
-
-    console.log("📥 Received watch history request:", {
-      tmdb_id,
-      title,
-      media_type,
-      stream_id,
-      duration_sec,
-      season: season_number,
-      episode: episode_number,
-    });
-
-    const { data: existing } = await supabase
-      .from("watch_history")
-      .select("id, duration_sec, season_number, episode_number")
-      .match({ user_id, tmdb_id, media_type })
-      .maybeSingle();
-
-    let finalDuration = duration_sec;
-
-    if (existing) {
-      console.log("🔄 Found existing record, updating:", {
-        id: existing.id,
-        old_duration: existing.duration_sec,
-        new_duration: duration_sec,
-        old_season: existing.season_number,
-        old_episode: existing.episode_number,
-      });
-
-      const isSameContext =
-        media_type === MediaType.Movie ||
-        (existing.season_number === season_number &&
-          existing.episode_number === episode_number);
-
-      if (isSameContext) {
-        finalDuration += existing.duration_sec || 0;
-        console.log("✅ Same context - adding duration:", finalDuration);
-      } else {
-        console.log("🔄 Different episode/season - resetting duration");
-      }
-    } else {
-      console.log("✨ Creating new watch history record");
-    }
-
-    const payload = {
-      user_id,
-      tmdb_id,
-      media_type,
-      stream_id,
-      title,
-      poster_path,
-      backdrop_path,
-      release_date,
-      season_number,
-      episode_number,
-      episode_name,
-      episode_length,
-      duration_sec: finalDuration,
-      watched_at: new Date().toISOString(),
-    };
-
-    let dbQuery;
-
-    if (existing?.id) {
-      console.log("📝 Updating existing record with ID:", existing.id);
-      dbQuery = supabase
-        .from("watch_history")
-        .update(payload)
-        .eq("id", existing.id);
-    } else {
-      console.log("📝 Inserting new record");
-      dbQuery = supabase.from("watch_history").insert(payload);
-    }
-
-    const { data, error } = await dbQuery.select().single();
-
-    if (error) {
-      console.error("❌ Supabase Write Error:", error.message);
-      throw error;
-    }
-
-    console.log("✅ Watch history saved successfully:", {
-      id: data.id,
-      title: data.title,
-      media_type: data.media_type,
-      duration_sec: data.duration_sec,
-    });
-
-    return NextResponse.json({ success: true, data }, { status: 200 });
-  } catch (err: any) {
-    console.error("🔥 Critical Error in Watch History API:", err.message);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
-
-/**
- * DELETE /api/profile/history?id=...
- * Removes a watch history item by id.
- */
-export async function DELETE(request: Request) {
-  const authHeader = request.headers.get("Authorization");
+  const authHeader = getAuthHeader(request);
   if (!authHeader) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createAuthedSupabaseClient(authHeader);
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { searchParams } = new URL(request.url);
+  const page = searchParams.get("page") ?? "0";
 
-  if (authError || !user) {
+  try {
+    const response = await backendClient.get("/profile/history", {
+      params: { page },
+      headers: { Authorization: authHeader },
+      timeout: 10000,
+      validateStatus: (s) => s < 500,
+    });
+
+    if (response.status === 401) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (response.status !== 200) {
+      return NextResponse.json(
+        { error: response.data?.error ?? "Failed to fetch watch history" },
+        { status: response.status },
+      );
+    }
+
+    const items: HistoryProp[] = Array.isArray(response.data?.data)
+      ? response.data.data
+      : [];
+
+    return NextResponse.json({ success: true, data: items });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status ?? 502;
+      return NextResponse.json(
+        {
+          error: error.response?.data?.error ?? "Failed to fetch watch history",
+        },
+        { status: status >= 400 ? status : 502 },
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/profile/history
+// Saves watch progress. Called by the player on unmount.
+export async function POST(request: Request) {
+  const authHeader = getAuthHeader(request);
+  if (!authHeader) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let body: Partial<HistoryProp>;
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  const {
+    tmdbId,
+    mediaType,
+    providerId,
+    durationSec,
+    seasonNumber,
+    episodeNumber,
+  } = body;
+
+  if (!tmdbId || !mediaType || !providerId) {
+    return NextResponse.json(
+      { error: "tmdbId, mediaType, and providerId are required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    console.log("➡️  /profile/history POST", {
+      tmdb_id: tmdbId,
+      media_type: mediaType,
+      stream_id: providerId,
+      provider_id: providerId,
+      duration_sec: durationSec ?? 0,
+      season_number: seasonNumber ?? null,
+      episode_number: episodeNumber ?? null,
+    });
+    const response = await backendClient.post(
+      "/profile/history",
+      {
+        tmdb_id: tmdbId,
+        media_type: mediaType,
+        stream_id: providerId,
+        provider_id: providerId,
+        duration_sec: durationSec ?? 0,
+        season_number: seasonNumber ?? null,
+        episode_number: episodeNumber ?? null,
+      },
+      {
+        headers: { Authorization: authHeader },
+        timeout: 10000,
+        validateStatus: (s) => s < 500,
+      },
+    );
+
+    if (response.status === 401) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { error } = await supabase
-      .from("watch_history")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("id", id);
+    if (response.status !== 200 && response.status !== 201) {
+      console.error(
+        "History POST backend error:",
+        response.status,
+        response.data,
+      );
+      return NextResponse.json(
+        { error: response.data?.error ?? "Failed to save watch history" },
+        { status: response.status },
+      );
+    }
 
-    if (error) throw error;
+    console.log("✅ /profile/history POST ok", response.status, response.data);
+    return NextResponse.json({
+      success: true,
+      message: "History saved successfully",
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status ?? 502;
+      console.error("History POST axios error:", status, error.response?.data);
+      return NextResponse.json(
+        {
+          error: error.response?.data?.error ?? "Failed to save watch history",
+        },
+        { status: status >= 400 ? status : 502 },
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+// DELETE /api/profile/history
+// Removes a watch history entry by tmdb_id + media_type.
+export async function DELETE(request: Request) {
+  const authHeader = getAuthHeader(request);
+  if (!authHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { tmdb_id?: number; media_type?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
+
+  const { tmdb_id, media_type } = body;
+  if (!tmdb_id || !media_type) {
+    return NextResponse.json(
+      { error: "tmdb_id and media_type are required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    console.log("➡️  /profile/history DELETE", { tmdb_id, media_type });
+    const response = await backendClient.request({
+      url: "/profile/history",
+      method: "DELETE",
+      data: { tmdb_id, media_type },
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+      timeout: 15000,
+      validateStatus: (s) => s < 500,
+    });
+
+    if (response.status === 401) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (response.status !== 200) {
+      return NextResponse.json(
+        { error: response.data?.error ?? "Failed to delete watch history" },
+        { status: response.status },
+      );
+    }
+
+    console.log(
+      "✅ /profile/history DELETE ok",
+      response.status,
+      response.data,
+    );
+    return NextResponse.json({
+      success: true,
+      message: "History deleted successfully",
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status ?? 502;
+      console.error("History DELETE axios error:", {
+        status,
+        code: error.code,
+        message: error.message,
+        data: error.response?.data,
+      });
+      return NextResponse.json(
+        {
+          error:
+            error.response?.data?.error ?? "Failed to delete watch history",
+        },
+        { status: status >= 400 ? status : 502 },
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

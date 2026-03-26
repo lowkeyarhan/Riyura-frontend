@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/auth/supabase";
-import { ensureUserProfile } from "@/src/lib/db/database";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -11,7 +10,6 @@ export default function AuthCallbackPage() {
   const processedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent double-execution in React Strict Mode
     if (processedRef.current) return;
     processedRef.current = true;
 
@@ -19,7 +17,6 @@ export default function AuthCallbackPage() {
       try {
         console.log("🔍 Checking for existing session...");
 
-        // 1. Immediate check: Handles cases where the session is already processed from the URL
         const {
           data: { session },
           error,
@@ -33,7 +30,6 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // 2. Event Listener: Listens for the SIGNED_IN event triggered by the OAuth code exchange
         console.log(
           "⏳ No session found yet, waiting for auth state change...",
         );
@@ -43,7 +39,7 @@ export default function AuthCallbackPage() {
         } = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log(`📣 Auth Event Received: ${event}`);
           if (event === "SIGNED_IN" && session) {
-            subscription.unsubscribe(); // Clean up immediately after success
+            subscription.unsubscribe();
             await handleSession(session);
           } else if (event === "SIGNED_OUT") {
             setStatus("Authentication failed. Redirecting...");
@@ -51,7 +47,6 @@ export default function AuthCallbackPage() {
           }
         });
 
-        // 3. Robust Fallback Timeout: Fixes the "stuck" issue by properly awaiting the session check
         setTimeout(async () => {
           const {
             data: { session: currentSession },
@@ -79,30 +74,19 @@ export default function AuthCallbackPage() {
     console.log("👤 User ID:", session.user.id);
 
     try {
-      // Short delay to ensure database triggers have finished creating the profile row
-      await new Promise((r) => setTimeout(r, 800));
+      const res = await fetch("/api/profile/onboard", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      if (!res.ok) {
+        console.warn("⚠️ Could not fetch onboarding status, sending to home.");
+        router.replace("/home");
+        return;
+      }
 
-      if (error || !profile) {
-        console.log("🆕 Profile not found, performing manual profile sync...");
-        await ensureUserProfile({
-          uid: session.user.id,
-          email: session.user.email!,
-          displayName:
-            session.user.user_metadata?.full_name ||
-            session.user.user_metadata?.name ||
-            "User",
-          photoURL:
-            session.user.user_metadata?.avatar_url ||
-            session.user.user_metadata?.picture,
-        });
-        router.replace("/onboarding");
-      } else if (!profile.onboarded) {
+      const { onboarded } = await res.json();
+
+      if (!onboarded) {
         router.replace("/onboarding");
       } else {
         console.log("🚀 Profile ready, heading home.");
@@ -110,7 +94,6 @@ export default function AuthCallbackPage() {
       }
     } catch (e) {
       console.error("⚠️ Profile verification warning:", e);
-      // Fallback: If profile check fails, we still let them in as they ARE authenticated
       router.replace("/home");
     }
   };

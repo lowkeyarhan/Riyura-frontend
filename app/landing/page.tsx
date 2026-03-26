@@ -27,8 +27,6 @@ const LiquidEther = dynamic<LiquidEtherProps>(
 const SF =
   "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif";
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function LandingPage() {
   const featuresGridRef = useRef<HTMLDivElement>(null);
   const watchPartyGridRef = useRef<HTMLDivElement>(null);
@@ -39,9 +37,7 @@ export default function LandingPage() {
       className="bg-black min-h-screen text-white overflow-x-hidden"
       style={{ fontFamily: SF }}
     >
-      {/* ══════════════════════════════════════════
-          NAVBAR
-      ══════════════════════════════════════════ */}
+      {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-transparent">
         <div className="px-8 md:px-16 py-5 flex items-center justify-between">
           <Link
@@ -78,9 +74,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ══════════════════════════════════════════
-          HERO
-      ══════════════════════════════════════════ */}
+      {/* HERO */}
       <section className="px-4 md:px-5 pt-[72px] pb-4">
         <div
           className="relative overflow-hidden rounded-[20px] border border-white/[0.055]"
@@ -111,7 +105,7 @@ export default function LandingPage() {
             />
           </div>
 
-          {/* SVG: network arcs + whisker lines */}
+          {/* Network arcs + whisker lines */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
             viewBox="0 0 1440 820"
@@ -191,7 +185,7 @@ export default function LandingPage() {
             />
           </svg>
 
-          {/* CENTER CONTENT */}
+          {/* Center content */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
             {/* Headline */}
             <h1
@@ -248,7 +242,7 @@ export default function LandingPage() {
               Watch together. Instantly. No setup. No delays.
             </p>
 
-            {/* CTA row */}
+            {/* CTA */}
             <div className="flex items-center gap-3">
               <Link
                 href="/auth"
@@ -283,9 +277,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          LOGOS STRIP
-      ══════════════════════════════════════════ */}
+      {/* LOGOS STRIP */}
       <section className="py-10 px-4 md:px-5">
         <div className="flex items-center justify-between max-w-5xl mx-auto px-4 select-none opacity-[0.32]">
           {[
@@ -308,9 +300,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          FEATURE CARDS  (3 × 2 grid)
-      ══════════════════════════════════════════ */}
+      {/* FEATURE CARDS (3 × 2 grid) */}
       <section className="px-4 md:px-5 py-10" id="features">
         <div className="max-w-5xl mx-auto">
           <div className="mb-12">
@@ -335,7 +325,7 @@ export default function LandingPage() {
               spotlightRadius={100}
               glowColor="255, 255, 255"
             />
-            {/* Row 1: 2 cols */}
+            {/* Row 1: 2 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {/* Infinite Stream */}
               <div className="bento-card card card--border-glow h-[460px] apple-glass relative overflow-hidden">
@@ -386,7 +376,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Row 2: Up Next + Ad-Free */}
+            {/* Row 2: Up Next & Ad-Free */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {/* Up Next Stacks - 2/3 width */}
               <div className="bento-card card card--border-glow md:col-span-2 apple-glass min-h-[460px] relative overflow-hidden">
@@ -497,9 +487,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          WATCH PARTY  — Apple bento grid
-      ══════════════════════════════════════════ */}
+      {/* WATCH PARTY - Apple bento grid */}
       <section className="px-4 md:px-5 py-10" id="watch-parties">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
@@ -516,7 +504,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          {/* ─── Bento grid ─── */}
+          {/* Bento grid */}
           <div
             ref={watchPartyGridRef}
             className="grid grid-cols-1 md:grid-cols-12 gap-2 bento-section"
@@ -695,7 +683,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Security & Performance */}
+      {/* SECURITY & PERFORMANCE */}
       <section className="px-6 md:px-8 py-10 mb-16">
         <div className="max-w-5xl mx-auto">
           <header className="mb-12">
@@ -901,7 +889,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* { FOOTER_SECTION } */}
+      {/* FOOTER SECTION */}
       <section className="ai-footer">
         <div className="footer-glow glow-left" />
         <div className="footer-glow glow-right" />

@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { MediaType } from "@/src/props/global/mediaType";
 
 interface WatchHistoryData {
-  deleteHistoryItem: (itemId: number) => Promise<boolean>;
+  deleteHistoryItem: (tmdbId: number, mediaType: MediaType) => Promise<boolean>;
   isDeleting: boolean;
 }
 
 export function useWatchHistory(): WatchHistoryData {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const deleteHistoryItem = async (itemId: number): Promise<boolean> => {
+  const deleteHistoryItem = async (
+    tmdbId: number,
+    mediaType: MediaType,
+  ): Promise<boolean> => {
     try {
       setIsDeleting(true);
 
@@ -22,14 +26,26 @@ export function useWatchHistory(): WatchHistoryData {
         return false;
       }
 
-      const res = await fetch(`/api/profile/history?id=${itemId}`, {
+      console.log("🗑️ Removing watch history item", { tmdbId, mediaType });
+      const res = await fetch("/api/profile/history", {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ tmdb_id: tmdbId, media_type: mediaType }),
       });
 
-      if (!res.ok) throw new Error("Failed to remove from history");
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        console.error("❌ Failed to remove history item", {
+          status: res.status,
+          payload,
+        });
+        throw new Error("Failed to remove from history");
+      }
+
+      console.log("✅ History item removed", payload);
 
       return true;
     } catch (error) {

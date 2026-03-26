@@ -26,7 +26,7 @@ function normalizeItem(raw: Record<string, unknown>): MediaCardProp {
   };
 }
 
-// ─── GET /api/profile/watchlist ──────────────────────────────────────────────
+// GET /api/profile/watchlist
 // With tmdbId & mediaType query params → check if item is in watchlist
 // Without params → return full watchlist
 export async function GET(request: Request) {
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
   }
 }
 
-// ─── POST /api/profile/watchlist ─────────────────────────────────────────────
+// POST /api/profile/watchlist
 export async function POST(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
   }
 }
 
-// ─── DELETE /api/profile/watchlist ───────────────────────────────────────────
+// DELETE /api/profile/watchlist
 export async function DELETE(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {

@@ -14,9 +14,9 @@ import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
 import { MediaType } from "@/src/props/global/mediaType";
-import type { ContinueWatchingItem } from "@/src/hooks/profile/useProfileData";
+import type { ContinueWatchingItem } from "@/src/props/profile/continueWatching";
 import type { RecommendationProp } from "@/src/props/profile/recommendation";
-import type { WatchlistItemShape } from "@/src/components/profile/WatchlistSection";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 import { ProfileHeader } from "@/src/components/profile/ProfileHeader";
 import { SettingsSection } from "@/src/components/profile/SettingsSection";
@@ -66,9 +66,8 @@ export default function ProfilePage() {
   const handlePlayClick = useCallback(
     (item: ContinueWatchingItem) => {
       if (item.mediaType === MediaType.Movie) {
-        const url = `/watch/movie/${item.tmdbId}${
-          item.streamId ? `?stream=${item.streamId}` : ""
-        }`;
+        const url = `/watch/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
+          }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -78,8 +77,7 @@ export default function ProfilePage() {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/watch/tvshow/${item.tmdbId}${
-            params.toString() ? `?${params.toString()}` : ""
+          `/watch/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -104,12 +102,11 @@ export default function ProfilePage() {
     }
   };
 
-  const handleWatchlistItemClick = (item: WatchlistItemShape) => {
-    const id = item.tmdb_id ?? item.id;
+  const handleWatchlistItemClick = (item: MediaCardProp) => {
     router.push(
       item.media_type === MediaType.Movie
-        ? `/details/movie/${id}`
-        : `/details/tvshow/${id}`,
+        ? `/details/movie/${item.tmdbId}`
+        : `/details/tvshow/${item.tmdbId}`,
     );
   };
 

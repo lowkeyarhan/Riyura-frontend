@@ -8,6 +8,10 @@ import {
   unauthorizedResponse,
 } from "@/src/lib/server/routeUtils";
 import type { HistoryProp } from "@/src/props/profile/history";
+import type {
+  HistorySaveRequest,
+  HistoryDeleteRequest,
+} from "@/src/props/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) return unauthorizedResponse();
 
-  const body = await parseJsonBody<Partial<HistoryProp>>(request);
+  const body = await parseJsonBody<HistorySaveRequest>(request);
   if (body instanceof Response) return body;
 
   const {
@@ -111,10 +115,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) return unauthorizedResponse();
-
-  const body = await parseJsonBody<{ tmdb_id?: number; media_type?: string }>(
-    request,
-  );
+  const body = await parseJsonBody<HistoryDeleteRequest>(request);
   if (body instanceof Response) return body;
 
   const { tmdb_id, media_type } = body;

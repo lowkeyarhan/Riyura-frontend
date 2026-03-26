@@ -10,6 +10,10 @@ import {
   parseJsonBody,
   unauthorizedResponse,
 } from "@/src/lib/server/routeUtils";
+import type {
+  WatchlistAddRequest,
+  WatchlistRemoveRequest,
+} from "@/src/props/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -93,9 +97,7 @@ export async function POST(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) return unauthorizedResponse();
 
-  const body = await parseJsonBody<{ tmdb_id?: number; media_type?: string }>(
-    request,
-  );
+  const body = await parseJsonBody<WatchlistAddRequest>(request);
   if (body instanceof Response) return body;
 
   const { tmdb_id, media_type } = body;
@@ -136,9 +138,7 @@ export async function DELETE(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) return unauthorizedResponse();
 
-  const body = await parseJsonBody<{ tmdb_id?: number; media_type?: string }>(
-    request,
-  );
+  const body = await parseJsonBody<WatchlistRemoveRequest>(request);
   if (body instanceof Response) return body;
 
   const { tmdb_id, media_type } = body;

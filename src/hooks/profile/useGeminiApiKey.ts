@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import type { ApiKeyProp } from "@/src/props/profile/apiKey";
+export interface ApiKeyProp {
+  apiKeyInput: string;
+  apiKeyPreview: string | null;
+  hasApiKey: boolean;
+  isLoading: boolean;
+  isSaving: boolean;
+  setApiKeyInput: (value: string) => void;
+  saveApiKey: (key: string) => Promise<void>;
+  deleteApiKey: () => Promise<void>;
+}
 
 export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
   const { addNotification } = useNotification();

@@ -5,22 +5,8 @@ import { Stat } from "@/src/components/profile/StatBadge";
 import { HistoryProp } from "@/src/props/profile/history";
 import { MediaType } from "@/src/props/global/mediaType";
 import { imageConfig } from "@/src/lib/config";
-import type { WatchlistItemShape } from "@/src/components/profile/WatchlistSection";
-
-export interface ContinueWatchingItem {
-  id: number;
-  tmdbId: number;
-  title: string;
-  progress: number;
-  image: string;
-  type: string;
-  year: number | null;
-  remaining: string;
-  mediaType: MediaType;
-  seasonNumber?: number | null;
-  episodeNumber?: number | null;
-  streamId: string;
-}
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import type { ContinueWatchingItem } from "@/src/props/profile/continueWatching";
 
 const INITIAL_STATS: Stat[] = [
   { label: "Movies", value: "0", icon: Film, color: "text-cyan-400" },
@@ -85,7 +71,7 @@ function mapHistoryItem(item: HistoryProp): ContinueWatchingItem {
 
 interface ProfileData {
   continueWatching: ContinueWatchingItem[];
-  watchlist: WatchlistItemShape[];
+  watchlist: MediaCardProp[];
   stats: Stat[];
   isLoadingHistory: boolean;
   isLoadingWatchlist: boolean;
@@ -100,7 +86,7 @@ export function useProfileData(userId: string | undefined): ProfileData {
   const [continueWatching, setContinueWatching] = useState<
     ContinueWatchingItem[]
   >([]);
-  const [watchlist, setWatchlist] = useState<WatchlistItemShape[]>([]);
+  const [watchlist, setWatchlist] = useState<MediaCardProp[]>([]);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
@@ -141,15 +127,8 @@ export function useProfileData(userId: string | undefined): ProfileData {
 
       if (watchlistRes.ok) {
         const { data } = await watchlistRes.json();
-        const raw: Record<string, unknown>[] = Array.isArray(data) ? data : [];
-        const mapped: WatchlistItemShape[] = raw.map((item) => ({
-          id: (item.tmdbId ?? item.id) as number,
-          tmdb_id: (item.tmdbId ?? item.id) as number,
-          title: (item.title as string) ?? "",
-          poster_path: (item.poster_path as string | null) ?? null,
-          release_date: (item.release_date as string | null) ?? null,
-          media_type: item.media_type as MediaType,
-        }));
+        const raw = Array.isArray(data) ? data : [];
+        const mapped: MediaCardProp[] = raw as unknown as MediaCardProp[];
         setWatchlist(mapped);
       }
 

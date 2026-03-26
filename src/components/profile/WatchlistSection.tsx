@@ -2,21 +2,11 @@ import { ChevronRight, Film } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
 import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import { MediaType } from "@/src/props/global/mediaType";
-
-export interface WatchlistItemShape {
-  id: number;
-  tmdb_id?: number;
-  title: string;
-  poster_path: string | null;
-  release_date: string | null;
-  media_type: MediaType;
-}
 
 interface WatchlistSectionProps {
-  items: WatchlistItemShape[];
+  items: MediaCardProp[];
   isLoading: boolean;
-  onItemClick: (item: WatchlistItemShape) => void;
+  onItemClick: (item: MediaCardProp) => void;
   onViewAll: () => void;
 }
 
@@ -26,17 +16,6 @@ export function WatchlistSection({
   onItemClick,
   onViewAll,
 }: WatchlistSectionProps) {
-  const toMediaCardProp = (item: WatchlistItemShape): MediaCardProp => ({
-    tmdbId: item.tmdb_id ?? item.id,
-    title: item.title,
-    poster_path: item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : "",
-    year: item.release_date
-      ? new Date(item.release_date).getFullYear().toString()
-      : "N/A",
-    media_type: item.media_type as MediaType,
-  });
 
   return (
     <section>
@@ -75,8 +54,8 @@ export function WatchlistSection({
             .slice(0, 4)
             .map((item) => (
               <MediaCard
-                key={item.id}
-                item={toMediaCardProp(item)}
+                key={item.tmdbId}
+                item={item}
                 onClick={() => onItemClick(item)}
               />
             ))

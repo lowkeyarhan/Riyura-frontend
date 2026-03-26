@@ -7,24 +7,11 @@ export type { ProviderProp } from "./global/provider";
 export type { HistoryProp } from "./profile/history";
 export type { ProfileProp } from "./profile/profile";
 export type { OnboardingProp } from "./profile/onboarding";
-export type { ApiKeyProp } from "./profile/apiKey";
 export type { RecommendationProp } from "./profile/recommendation";
-export type {
-  MovieDetailProp,
-  MovieDetailGenre,
-  MovieDetailProductionCompany,
-  MovieDetailCast,
-} from "./movie/movieDetail";
+export type { ContinueWatchingItem } from "./profile/continueWatching";
+export type { MovieDetailProp } from "./movie/movieDetail";
 export type { MoviePlayerProp } from "./movie/moviePlayer";
-export type {
-  TvDetailProp,
-  TvDetailGenre,
-  TvDetailProductionCompany,
-  TvDetailCast,
-  TvDetailCreatedBy,
-  TvDetailNetwork,
-  TvDetailSeason,
-} from "./tv/tvDetail";
+export type { TvDetailProp } from "./tv/tvDetail";
 export type {
   TvPlayerProp,
   TvPlayerSeason,

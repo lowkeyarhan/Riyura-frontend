@@ -1,14 +1,14 @@
-export interface MovieDetailGenre {
+interface MovieDetailGenre {
   id: number;
   name: string;
 }
 
-export interface MovieDetailProductionCompany {
+interface MovieDetailProductionCompany {
   id: number;
   name: string;
 }
 
-export interface MovieDetailCast {
+interface MovieDetailCast {
   character: string;
   original_name: string;
   profile_path: string | null;

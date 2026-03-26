@@ -1,7 +1,7 @@
 import { User, CreditCard, Key, Shield } from "lucide-react";
 import { SettingsLink, SettingsLinkItem } from "./SettingsLink";
 import { GeminiApiKeyInput } from "./GeminiApiKeyInput";
-import type { ApiKeyProp } from "@/src/props/profile/apiKey";
+import type { ApiKeyProp } from "@/src/hooks/profile/useGeminiApiKey";
 
 const SETTINGS_LINKS: SettingsLinkItem[] = [
   { label: "Account Settings", icon: User, desc: "Personal info, Email" },

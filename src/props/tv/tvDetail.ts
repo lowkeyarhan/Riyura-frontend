@@ -1,28 +1,28 @@
-export interface TvDetailGenre {
+interface TvDetailGenre {
   id: number;
   name: string;
 }
 
-export interface TvDetailProductionCompany {
+interface TvDetailProductionCompany {
   id?: number;
   name: string;
 }
 
-export interface TvDetailCast {
+interface TvDetailCast {
   character: string;
   original_name: string;
   profile_path: string | null;
 }
 
-export interface TvDetailCreatedBy {
+interface TvDetailCreatedBy {
   name: string;
 }
 
-export interface TvDetailNetwork {
+interface TvDetailNetwork {
   name: string;
 }
 
-export interface TvDetailSeason {
+interface TvDetailSeason {
   air_date: string;
   episode_count: number;
   episodes: unknown | null;

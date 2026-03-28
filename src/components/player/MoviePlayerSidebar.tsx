@@ -1,20 +1,6 @@
-import {
-  Calendar,
-  Star,
-  Clock,
-  Wifi,
-  DollarSign,
-  Info,
-  Server,
-} from "lucide-react";
-import { TMDBMovieDetailsResponse } from "@/src/dto/tmdb/details";
-
-const MetaTag = ({ icon: Icon, text }: { icon: any; text: string }) => (
-  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#0f1115] border border-white/5 text-xs font-medium text-gray-300">
-    <Icon size={12} className="text-gray-500" />
-    {text}
-  </div>
-);
+import { Wifi, Info, Server } from "lucide-react";
+import { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
+import { ProviderProp } from "@/src/props/global/provider";
 
 const ServerRow = ({
   name,
@@ -31,9 +17,10 @@ const ServerRow = ({
     onClick={onClick}
     className={`
       flex items-center justify-between w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-      ${isActive
-        ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-        : "bg-[#29292930] border-white/5 hover:bg-[#29292950] hover:border-white/10"
+      ${
+        isActive
+          ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
+          : "bg-[#29292930] border-white/5 hover:bg-[#29292950] hover:border-white/10"
       }
     `}
   >
@@ -41,26 +28,29 @@ const ServerRow = ({
       <div
         className={`
         w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-        ${isActive
+        ${
+          isActive
             ? "bg-orange-600 text-white"
             : "bg-[#29292930] text-gray-500 group-hover:text-white"
-          }
+        }
       `}
       >
         <Wifi size={14} />
       </div>
       <div className="text-left">
         <h4
-          className={`text-sm font-bold ${isActive ? "text-white" : "text-gray-300 group-hover:text-white"
-            }`}
+          className={`text-sm font-bold ${
+            isActive ? "text-white" : "text-gray-300 group-hover:text-white"
+          }`}
         >
           {name}
         </h4>
       </div>
     </div>
     <span
-      className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-orange-500" : "text-gray-600"
-        }`}
+      className={`text-[10px] font-bold uppercase tracking-wider ${
+        isActive ? "text-orange-500" : "text-gray-600"
+      }`}
     >
       {quality}
     </span>
@@ -68,15 +58,11 @@ const ServerRow = ({
 );
 
 interface MoviePlayerSidebarProps {
-  movie: TMDBMovieDetailsResponse | null;
-  servers: Array<{ id: string; name: string; quality: string; link: string }>;
+  movie: MoviePlayerProp | null;
+  servers: ProviderProp[];
   activeServerIndex: number;
   onServerChange: (index: number) => void;
 }
-
-const formatRuntime = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
-const formatMoney = (a: number) =>
-  a ? `$${(a / 1000000).toFixed(1)}M` : "N/A";
 
 export function MoviePlayerSidebar({
   movie,
@@ -95,25 +81,13 @@ export function MoviePlayerSidebar({
           {movie?.title}
         </h1>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          <MetaTag
-            icon={Calendar}
-            text={movie?.release_date?.split("-")[0] || "N/A"}
-          />
-          <MetaTag icon={Clock} text={formatRuntime(movie?.runtime || 0)} />
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 text-xs font-bold text-yellow-500">
-            <Star size={12} fill="currentColor" />
-            {movie?.vote_average?.toFixed(1)}
-          </div>
-        </div>
-
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {movie?.genres?.slice(0, 3).map((g: any) => (
+          {movie?.genres?.map((genre: string) => (
             <span
-              key={g.id}
-              className="px-2 py-1 rounded text-[10px] font-bold bg-white/5 text-gray-400 border border-white/5 uppercase tracking-wide"
+              key={genre}
+              className="px-2 py-1 rounded text-[10px] font-bold bg-white/5 text-gray-400 border border-white/5 uppercase tracking-wide whitespace-nowrap"
             >
-              {g.name}
+              {genre}
             </span>
           ))}
         </div>
@@ -148,17 +122,6 @@ export function MoviePlayerSidebar({
         <p className="text-sm text-gray-400 leading-relaxed">
           {movie?.overview || "No details available."}
         </p>
-
-        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between text-xs">
-          <div className="text-gray-500">
-            <span className="block font-bold text-gray-400">Budget</span>
-            {formatMoney(movie?.budget ?? 0)}
-          </div>
-          <div className="text-right text-gray-500">
-            <span className="block font-bold text-gray-400">Revenue</span>
-            {formatMoney(movie?.revenue ?? 0)}
-          </div>
-        </div>
       </div>
     </div>
   );

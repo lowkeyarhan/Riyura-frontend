@@ -1,47 +1,30 @@
 import Image from "next/image";
-import { TMDBSearchResult } from "@/src/dto/tmdb/lists";
-import { MovieIcon, TVIcon, StarIcon, CalendarIcon } from "./SearchIcons";
+import { MediaType } from "@/src/props/global/mediaType";
+import type { SearchProp } from "@/src/props/search/search";
 
 interface SearchResultCardProps {
-  item: TMDBSearchResult;
+  item: SearchProp;
   onClick: () => void;
-  formatDate: (date: string | null | undefined) => string;
 }
 
 const FONT_STYLE = { fontFamily: "Be Vietnam Pro, sans-serif" };
 
-export function SearchResultCard({
-  item,
-  onClick,
-  formatDate,
-}: SearchResultCardProps) {
-  const getMediaTypeLabel = () => {
-    if (item.media_type === "movie") return "Movie";
-    if (item.media_type === "tv") return "TV";
-    return "Media";
-  };
+const getImageUrl = (posterPath: string) =>
+  posterPath.startsWith("http")
+    ? posterPath
+    : `https://image.tmdb.org/t/p/w500${posterPath}`;
 
-  const getYear = () => {
-    const date = item.release_date || item.first_air_date;
-    if (!date) return "";
-    return new Date(date).getFullYear().toString();
-  };
+export function SearchResultCard({ item, onClick }: SearchResultCardProps) {
+  const getMediaTypeLabel = () =>
+    item.media_type === MediaType.Movie ? MediaType.Movie : MediaType.TV;
 
-  const getRating = () => {
-    const rating = item.vote_average ?? 0;
-    return rating > 0 ? `${rating.toFixed(1)}` : "";
-  };
-
-  const getLanguage = () => {
-    if (!item.original_language) return "";
-    return item.original_language.toUpperCase();
-  };
+  const getLanguage = () =>
+    item.original_language ? item.original_language.toUpperCase() : "";
 
   const metadataItems = [
     getMediaTypeLabel(),
-    getYear(),
+    item.release_year,
     getLanguage(),
-    getRating(),
   ]
     .filter(Boolean)
     .join(" • ");
@@ -59,8 +42,8 @@ export function SearchResultCard({
         {item.poster_path ? (
           <>
             <Image
-              src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
-              alt={item.title || item.name || ""}
+              src={getImageUrl(item.poster_path)}
+              alt={item.title}
               fill
               className="object-cover transition-transform duration-500"
               sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
@@ -69,7 +52,7 @@ export function SearchResultCard({
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
           </>
         ) : (
-          <div className="w-full h-full  flex items-center justify-center text-gray-500">
+          <div className="w-full h-full flex items-center justify-center text-gray-500">
             No Poster
           </div>
         )}
@@ -82,7 +65,7 @@ export function SearchResultCard({
           className="text-white text-lg md:text-xl font-bold line-clamp-2"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
-          {item.title || item.name}
+          {item.title}
         </h3>
 
         {/* Metadata */}
@@ -93,12 +76,12 @@ export function SearchResultCard({
           {metadataItems}
         </p>
 
-        {/* Overview - Always present to maintain consistent height */}
+        {/* Description */}
         <p
           className="text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 min-h-[4rem]"
           style={FONT_STYLE}
         >
-          {item.overview || ""}
+          {item.description || ""}
         </p>
       </div>
     </div>

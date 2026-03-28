@@ -1,11 +1,12 @@
 import { ChevronRight, Film } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
 import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface WatchlistSectionProps {
-  items: any[];
+  items: MediaCardProp[];
   isLoading: boolean;
-  onItemClick: (item: any) => void;
+  onItemClick: (item: MediaCardProp) => void;
   onViewAll: () => void;
 }
 
@@ -15,11 +16,6 @@ export function WatchlistSection({
   onItemClick,
   onViewAll,
 }: WatchlistSectionProps) {
-  const getPosterUrl = (posterPath: string | null) =>
-    posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
-
-  const getYear = (releaseDate: string | null) =>
-    releaseDate ? new Date(releaseDate).getFullYear() : undefined;
 
   return (
     <section>
@@ -58,13 +54,8 @@ export function WatchlistSection({
             .slice(0, 4)
             .map((item) => (
               <MediaCard
-                key={item.id}
-                title={item.title}
-                posterUrl={getPosterUrl(item.poster_path)}
-                year={getYear(item.release_date)}
-                type={item.media_type}
-                rating={item.vote_average}
-                seasons={item.number_of_seasons}
+                key={item.tmdbId}
+                item={item}
                 onClick={() => onItemClick(item)}
               />
             ))

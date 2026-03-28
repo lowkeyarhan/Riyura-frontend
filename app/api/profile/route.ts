@@ -1,140 +1,38 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { backendClient } from "@/src/lib/axios";
 import {
-  ProfileData,
-  ContinueWatchingItem,
-  ProfileStat,
-} from "@/src/dto/media";
-import { getCachedData } from "@/src/lib/cache";
+  getAuthHeader,
+  handleBackendError,
+  handleNonSuccessStatus,
+  unauthorizedResponse,
+} from "@/src/lib/server/routeUtils";
+import type { ProfileProp } from "@/src/props/profile/profile";
 
-export async function GET(req: Request) {
+export const dynamic = "force-dynamic";
+
+// GET /api/profile
+// Returns the authenticated user's full profile.
+export async function GET(request: Request) {
+  const authHeader = getAuthHeader(request);
+  if (!authHeader) return unauthorizedResponse();
+
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Missing or Invalid Token" },
-        { status: 401 },
-      );
-    }
+    const response = await backendClient.get("/profile", {
+      headers: { Authorization: authHeader },
+      timeout: 10000,
+      validateStatus: (s) => s < 500,
+    });
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } },
+    const err = handleNonSuccessStatus(
+      response.status,
+      response.data,
+      "Failed to fetch profile",
     );
+    if (err) return err;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Cache profile data for 5 minutes
-    const responseData = await getCachedData(
-      `profile:${user.id}`,
-      async () => {
-        // Fetch watch history
-        const { data: watchHistoryData, error: historyError } = await supabase
-          .from("watch_history")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("watched_at", { ascending: false })
-          .limit(10);
-
-        if (historyError) throw historyError;
-
-        // Fetch watchlist
-        const { data: watchlistData, error: watchlistError } = await supabase
-          .from("watchlist")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("added_at", { ascending: false });
-
-        if (watchlistError) throw watchlistError;
-
-        // Format watch history for Continue Watching using ContinueWatchingItem DTO
-        const continueWatching: ContinueWatchingItem[] = (
-          watchHistoryData || []
-        ).map((item: any) => {
-          const totalLength = item.episode_length || 7200;
-          const progress = Math.min(
-            100,
-            Math.round((item.duration_sec / totalLength) * 100),
-          );
-          const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
-
-          return {
-            id: item.id,
-            tmdbId: item.tmdb_id,
-            title: item.title,
-            progress,
-            image: item.backdrop_path
-              ? `https://image.tmdb.org/t/p/w500${item.backdrop_path}`
-              : item.poster_path
-                ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-                : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
-            type:
-              item.media_type === "Movie"
-                ? "Movie"
-                : item.episode_name
-                  ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
-                  : `S${item.season_number} E${item.episode_number}`,
-            year: item.release_date
-              ? new Date(item.release_date).getFullYear()
-              : null,
-            remaining: `${Math.floor(remainingSeconds / 60)}m remaining`,
-            mediaType: item.media_type,
-            seasonNumber: item.season_number,
-            episodeNumber: item.episode_number,
-            streamId: item.stream_id,
-          };
-        });
-
-        // Calculate stats using ProfileStat DTO
-        const moviesCount = (watchHistoryData || []).filter(
-          (i: any) => i.media_type === "Movie",
-        ).length;
-        const seriesCount = new Set(
-          (watchHistoryData || [])
-            .filter((i: any) => i.media_type !== "Movie")
-            .map((i: any) => i.tmdb_id),
-        ).size;
-        const totalSeconds = (watchHistoryData || []).reduce(
-          (acc: number, item: any) => acc + (item.duration_sec || 0),
-          0,
-        );
-        const hoursCount = Math.round(totalSeconds / 3600);
-
-        const stats: ProfileStat[] = [
-          { label: "Movies", value: moviesCount.toString() },
-          { label: "Series", value: seriesCount.toString() },
-          { label: "Hours", value: hoursCount.toString() },
-        ];
-
-        // Build response data using ProfileData DTO
-        return {
-          continueWatching,
-          watchlist: watchlistData || [],
-          stats,
-        };
-      },
-      { ttl: 86400 }, // 24 hours
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: responseData,
-      },
-      { status: 200 },
-    );
-  } catch (err: any) {
-    console.error("Error fetching profile data:", err.message);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+    const data = response.data?.data as ProfileProp;
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    return handleBackendError(error, "Failed to fetch profile");
   }
 }

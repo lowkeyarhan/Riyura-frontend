@@ -82,16 +82,20 @@ export default function DarkMoodWelcome() {
           mode="wait"
           onExitComplete={async () => {
             if (index === steps.length) {
-              // Update onboarding status in DB
-              if (typeof window !== "undefined" && supabase && firstName) {
+              // Mark onboarding complete via backend
+              if (typeof window !== "undefined" && supabase) {
                 const {
                   data: { session },
                 } = await supabase.auth.getSession();
-                if (session?.user?.id) {
-                  await supabase
-                    .from("profiles")
-                    .update({ onboarded: true })
-                    .eq("id", session.user.id);
+                if (session?.access_token) {
+                  await fetch("/api/profile/onboard", {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ onboarded: true }),
+                  });
                 }
               }
               router.push("/home");

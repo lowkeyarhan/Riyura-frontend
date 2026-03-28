@@ -1,44 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowUp, Film, Tv, Sparkles, Filter } from "lucide-react";
+import { ArrowUp, Globe } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { TMDBDiscoverItem, TMDBSearchResult } from "@/src/dto/tmdb/lists";
 import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
 import { SearchResultCard } from "@/src/components/search/SearchResultCard";
-import { SkeletonTheme } from "react-loading-skeleton";
+import {
+  EXPLORE_GENRES,
+  EXPLORE_LANGUAGES,
+  EXPLORE_MEDIA_TYPES,
+} from "@/src/lib/constants/explore";
+import { useExploreData } from "@/src/hooks/useExploreData";
 import "react-loading-skeleton/dist/skeleton.css";
 
-// --- Constants ---
-const GENRES = [
-  "Action",
-  "Adventure",
-  "Animation",
-  "Comedy",
-  "Crime",
-  "Documentary",
-  "Drama",
-  "Family",
-  "Fantasy",
-  "History",
-  "Horror",
-  "Music",
-  "Mystery",
-  "Romance",
-  "Sci-Fi",
-  "Thriller",
-  "War",
-  "Western",
-];
-
-const MEDIA_TYPES = [
-  { label: "All", value: "all", icon: Sparkles },
-  { label: "Movies", value: "movie", icon: Film },
-  { label: "TV Shows", value: "tv", icon: Tv },
-];
-
-// Card variants with fade only (no scale) to match search page
 const cardVariants = {
   initial: {
     opacity: 0,
@@ -49,112 +22,27 @@ const cardVariants = {
   exit: {
     opacity: 0,
     transition: {
-      duration: 0.25, // Faster disappear animation
+      duration: 0.25,
     },
   },
 };
 
 export default function ExplorePage() {
-  const router = useRouter();
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(["Action"]);
-  const [mediaType, setMediaType] = useState("all");
-  const [items, setItems] = useState<TMDBSearchResult[]>([]);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [showTopBtn, setShowTopBtn] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    const fetchData = async () => {
-      setLoading(true);
-
-      try {
-        const genreParams = selectedGenres.join(",");
-        const url = `/api/explore?page=${page}&genres=${genreParams}&mediaType=${mediaType}`;
-        const res = await fetch(url, { signal });
-        if (!res.ok) {
-          let message = "Fetch failed";
-          try {
-            const errorData = await res.json();
-            message = errorData?.error || message;
-          } catch {
-            message = `Fetch failed (${res.status})`;
-          }
-          throw new Error(message);
-        }
-        const data = await res.json();
-
-        const normalizedResults: TMDBSearchResult[] = (
-          data.results as TMDBDiscoverItem[]
-        ).map((item) => ({
-          ...item,
-          media_type:
-            item.media_type ||
-            (mediaType === "tv"
-              ? "tv"
-              : mediaType === "movie"
-                ? "movie"
-                : "movie"),
-        })) as TMDBSearchResult[];
-
-        setItems((prev) =>
-          page === 1 ? normalizedResults : [...prev, ...normalizedResults],
-        );
-        setHasMore(data.page < data.total_pages);
-      } catch (error: any) {
-        if (error.name !== "AbortError") console.error(error);
-      } finally {
-        if (!signal.aborted) setLoading(false);
-      }
-    };
-
-    fetchData();
-    return () => controller.abort();
-  }, [page, selectedGenres, mediaType]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading && hasMore) {
-          setPage((prev) => prev + 1);
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px" },
-    );
-    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [loading, hasMore]);
-
-  useEffect(() => {
-    const handleScroll = () => setShowTopBtn(window.scrollY > 500);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleGenreToggle = (genre: string) => {
-    setPage(1);
-    setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre],
-    );
-  };
-
-  const handleTypeChange = (type: string) => {
-    setPage(1);
-    setMediaType(type);
-  };
-
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return "Unknown";
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  const {
+    selectedGenres,
+    mediaType,
+    language,
+    filteredItems,
+    loading,
+    page,
+    hasMore,
+    showTopBtn,
+    loadMoreRef,
+    handleGenreToggle,
+    handleTypeChange,
+    handleLanguageChange,
+    handleCardClick,
+  } = useExploreData();
 
   return (
     <div className="relative min-h-screen bg-black pt-20 md:pt-28 px-4 sm:px-6 md:px-16 lg:px-16 pb-20 md:pb-12 font-sans">
@@ -173,18 +61,19 @@ export default function ExplorePage() {
           </h1>
         </div>
 
-        <div className="mb-6 md:mb-7">
+        <div className="mb-6 md:mb-7 flex flex-wrap items-center justify-between gap-4">
           <div className="inline-flex items-center rounded-xl border border-white/10 bg-[#131722]/80 p-1">
-            {MEDIA_TYPES.map((type) => {
+            {EXPLORE_MEDIA_TYPES.map((type) => {
               const isActive = mediaType === type.value;
               return (
                 <button
                   key={type.value}
                   onClick={() => handleTypeChange(type.value)}
-                  className={`relative cursor-pointer px-4 md:px-6 py-2 text-sm md:text-[15px] font-medium rounded-lg transition-colors ${isActive
-                    ? "text-white"
-                    : "text-white/55 hover:text-white/80"
-                    }`}
+                  className={`relative cursor-pointer px-4 md:px-6 py-2 text-sm md:text-[15px] font-medium rounded-lg transition-colors ${
+                    isActive
+                      ? "text-white"
+                      : "text-white/55 hover:text-white/80"
+                  }`}
                 >
                   {isActive && (
                     <motion.div
@@ -202,21 +91,47 @@ export default function ExplorePage() {
               );
             })}
           </div>
+
+          <div className="inline-flex items-center rounded-xl border border-white/10 bg-[#131722]/80 p-1">
+            <Globe className="ml-3 mr-2 w-4 h-4 text-white/55 shrink-0" />
+            <select
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="appearance-none bg-transparent pr-8 py-2 pl-0 text-sm md:text-[15px] font-medium text-white cursor-pointer focus:outline-none focus:ring-0"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255,255,255,0.55)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.5rem center",
+                backgroundSize: "1.25rem",
+              }}
+            >
+              {EXPLORE_LANGUAGES.map((lang) => (
+                <option
+                  key={lang.value || "all"}
+                  value={lang.value}
+                  className="bg-[#131722] text-white"
+                >
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="mb-8 md:mb-9 border-b border-white/10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 md:gap-7 overflow-x-auto scrollbar-hide pb-2 md:pb-4">
-              {GENRES.map((genre) => {
+              {EXPLORE_GENRES.map((genre) => {
                 const isSelected = selectedGenres.includes(genre);
                 return (
                   <button
                     key={genre}
                     onClick={() => handleGenreToggle(genre)}
-                    className={`relative cursor-pointer text-sm md:text-xl font-medium whitespace-nowrap transition-colors ${isSelected
-                      ? "text-white"
-                      : "text-white/55 hover:text-white/85"
-                      }`}
+                    className={`relative cursor-pointer text-sm md:text-xl font-medium whitespace-nowrap transition-colors ${
+                      isSelected
+                        ? "text-white"
+                        : "text-white/55 hover:text-white/85"
+                    }`}
                   >
                     {genre}
                     {isSelected && (
@@ -238,11 +153,11 @@ export default function ExplorePage() {
             <AnimatePresence mode="sync">
               {/* Show items if it's NOT the initial load (so we keep them during infinite scroll) */}
               {!(loading && page === 1) &&
-                items.map((item, idx) => (
+                filteredItems.map((item) => (
                   <motion.div
                     layout
-                    layoutId={`explore-card-${item.id}`}
-                    key={item.id}
+                    layoutId={`explore-card-${item.tmdbId}`}
+                    key={item.tmdbId}
                     variants={cardVariants}
                     initial="initial"
                     animate="animate"
@@ -251,14 +166,7 @@ export default function ExplorePage() {
                   >
                     <SearchResultCard
                       item={item}
-                      onClick={() =>
-                        router.push(
-                          item.media_type === "movie"
-                            ? `/details/movie/${item.id}`
-                            : `/details/tvshow/${item.id}`,
-                        )
-                      }
-                      formatDate={formatDate}
+                      onClick={() => handleCardClick(item)}
                     />
                   </motion.div>
                 ))}
@@ -288,9 +196,9 @@ export default function ExplorePage() {
         {/* --- Infinite Scroll Trigger --- */}
         <div ref={loadMoreRef} className="h-10 w-full mt-8" />
 
-        {!hasMore && items.length > 0 && (
+        {!hasMore && filteredItems.length > 0 && (
           <div className="text-center text-white/40 text-sm mt-8 pb-8">
-            You've reached the end
+            You&apos;ve reached the end
           </div>
         )}
 

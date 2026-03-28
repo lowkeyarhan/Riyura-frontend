@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Play, Trash2 } from "lucide-react";
+import { MediaType } from "@/src/props/global/mediaType";
 
 interface ContinueWatchingCardProps {
   item: any;
@@ -61,9 +62,9 @@ export function ContinueWatchingCard({
         </h4>
         <p className="text-xs font-medium text-gray-400 mb-2 md:mb-3 flex items-center gap-2">
           <span className="bg-white/10 px-2 py-0.5 rounded text-gray-300">
-            {item.mediaType === "Movie" ? "Movie" : item.type}
+            {item.mediaType === MediaType.Movie ? MediaType.Movie : item.type}
           </span>
-          {item.mediaType === "Movie" && item.year && (
+          {item.mediaType === MediaType.Movie && item.year && (
             <span className="text-gray-600">• {item.year}</span>
           )}
         </p>
@@ -86,4 +87,3 @@ export function ContinueWatchingCard({
     </motion.div>
   );
 }
-

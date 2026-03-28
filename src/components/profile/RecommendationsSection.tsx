@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import MediaCard from "@/src/components/media/MediaCard";
 import RecommendationCard from "@/src/components/media/RecommendationCard";
 import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import type { RecommendationProp } from "@/src/props/profile/recommendation";
+import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
 
 interface RecommendationsSectionProps {
-  recommendations: any[];
+  recommendations: RecommendationProp[];
   isLoading: boolean;
   error: string | null;
   hasApiKey: boolean;
   onRefresh: () => void;
-  onItemClick: (item: any) => void;
+  onItemClick: (item: RecommendationProp) => void;
 }
 
 export function RecommendationsSection({
@@ -25,16 +25,9 @@ export function RecommendationsSection({
   const [showAll, setShowAll] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const getPosterUrl = (posterPath: string | null) =>
-    posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null;
-
-  const getYear = (releaseDate: string | null) =>
-    releaseDate ? new Date(releaseDate).getFullYear() : undefined;
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await onRefresh();
-    // Small delay to show animation
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -80,37 +73,36 @@ export function RecommendationsSection({
           )}
         </div>
       </div>
+
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-          {Array.from({ length: showAll ? 8 : 4 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <MediaCardSkeleton key={`loading-${i}`} />
           ))}
         </div>
       ) : error || !hasApiKey ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-          {Array.from({ length: showAll ? 8 : 4 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl hover:border-white/10 hover:bg-[#15182170] overflow-hidden cursor-pointer shadow-md transition-all duration-300"
+              className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl overflow-hidden shadow-md"
             >
-              <div className="absolute inset-0">
-                <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
-                  {error ? "ERROR" : "NO API KEY"}
-                </div>
-                <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0f1115]/90 border border-white/10 shadow-sm">
-                  <span className="text-[10px] font-bold text-white">AI</span>
-                </div>
-                <div className="absolute bottom-0 inset-x-0 p-3">
-                  <div className="w-3/4 h-3 bg-white/10 rounded mb-2 animate-pulse" />
-                  <div className="w-1/2 h-2 bg-white/5 rounded animate-pulse" />
-                </div>
+              <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
+                {error ? "ERROR" : "NO API KEY"}
+              </div>
+              <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#0f1115]/90 border border-white/10 shadow-sm">
+                <span className="text-[10px] font-bold text-white">AI</span>
+              </div>
+              <div className="absolute bottom-0 inset-x-0 p-3">
+                <div className="w-3/4 h-3 bg-white/10 rounded mb-2 animate-pulse" />
+                <div className="w-1/2 h-2 bg-white/5 rounded animate-pulse" />
               </div>
             </div>
           ))}
         </div>
       ) : recommendations.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
-          <p className="mb-2">
+          <p>
             No recommendations yet. Watch some content to get personalized
             suggestions!
           </p>
@@ -126,7 +118,7 @@ export function RecommendationsSection({
               : recommendations.slice(0, 4)
             ).map((item, index) => (
               <motion.div
-                key={`${item.tmdb_id}-${index}`}
+                key={`${item.tmdbId}-${index}`}
                 layout
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -135,21 +127,19 @@ export function RecommendationsSection({
               >
                 <RecommendationCard
                   title={item.title}
-                  posterUrl={getPosterUrl(item.poster_path)}
-                  year={getYear(item.release_date)}
-                  type={item.media_type}
-                  rating={item.vote_average}
-                  seasons={item.number_of_seasons}
-                  episodes={item.number_of_episodes}
+                  posterUrl={
+                    normalizeTmdbImageUrl(item.posterPath, "w500") || null
+                  }
+                  year={item.year}
+                  type={item.mediaType}
                   reason={item.reason}
                   onClick={() => onItemClick(item)}
                 />
               </motion.div>
             ))}
           </AnimatePresence>
-        </motion.div >
-      )
-      }
-    </section >
+        </motion.div>
+      )}
+    </section>
   );
 }

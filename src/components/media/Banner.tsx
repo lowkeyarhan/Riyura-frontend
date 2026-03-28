@@ -4,69 +4,56 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, Transition, Variants } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Play, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Plus } from "lucide-react";
 import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
-import { BannerItem, ContinueWatchingOverlayItem } from "@/src/dto/ui/card";
-import { WatchHistoryItem } from "@/src/dto/media";
+import { MediaType } from "@/src/props/global/mediaType";
+import { BannerProp } from "@/src/props/banner/banner";
+import { apiClient } from "@/src/lib/axios";
+import { HistoryProp } from "@/src/props/profile/history";
 import { useAuth } from "@/src/hooks/useAuth";
 import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import {
-  addToWatchlist,
-  isInWatchlist,
-  removeFromWatchlist,
-} from "@/src/lib/db/database";
-import { supabase } from "@/src/lib/auth/supabase";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
+import { imageConfig } from "@/src/lib/config";
 
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
-const CARD_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w780";
 const AUTO_SLIDE_INTERVAL = 8000;
 const CONTINUE_NON_DESKTOP_MAX_CARDS = 3;
 const CONTINUE_DESKTOP_MAX_CARDS = 5;
 
 interface BannerProps {
-  initialItems?: BannerItem[];
+  initialItems?: BannerProp[];
 }
 
-const EMPTY_BANNER_ITEMS: BannerItem[] = [];
+const EMPTY_BANNER_ITEMS: BannerProp[] = [];
 
-const GENRE_MAP: Record<number, string> = {
-  28: "Action",
-  12: "Adventure",
-  16: "Animation",
-  35: "Comedy",
-  80: "Crime",
-  99: "Documentary",
-  18: "Drama",
-  10751: "Family",
-  14: "Fantasy",
-  36: "History",
-  27: "Horror",
-  10402: "Music",
-  9648: "Mystery",
-  10749: "Romance",
-  878: "Sci-Fi",
-  10770: "TV Movie",
-  53: "Thriller",
-  10752: "War",
-  37: "Western",
+const getImageUrl = (path: string) => {
+  if (!path.startsWith("http")) {
+    return `${imageConfig.original}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+  // Fix malformed TMDB URLs missing size (e.g. .../t/p/xxx.jpg -> .../t/p/original/xxx.jpg)
+  if (
+    path.includes("image.tmdb.org/t/p/") &&
+    !path.includes("/t/p/original/") &&
+    !path.includes("/t/p/w")
+  ) {
+    return path.replace("image.tmdb.org/t/p/", "image.tmdb.org/t/p/original/");
+  }
+  return path;
 };
-
-const getImageUrl = (path: string) =>
-  path ? `${IMAGE_BASE_URL}${path}` : "/placeholder-image.jpg";
 const getCardImageUrl = (path?: string | null) =>
-  path ? `${CARD_IMAGE_BASE_URL}${path}` : "/placeholder-image.jpg";
+  path
+    ? `${imageConfig.w780}${path.startsWith("/") ? path : `/${path}`}`
+    : "/placeholder-image.jpg";
 
 const truncate = (text: string, maxLength: number) =>
   text?.length > maxLength ? `${text.slice(0, maxLength)}...` : text || "";
 
-const getDisplayTitle = (item?: BannerItem) =>
-  item?.title || item?.name || item?.original_name || "Untitled";
+const getDisplayTitle = (item?: BannerProp) => item?.title || "Untitled";
 
-const getMediaTypeLabel = (contentType: BannerItem["contentType"]) =>
-  contentType === "movie" ? "Movie" : "TV Show";
+const getMediaTypeLabel = (contentType: BannerProp["contentType"]) =>
+  contentType === MediaType.Movie ? MediaType.Movie : "TV Show";
 
 // Image Transition
 const IMAGE_TRANSITION: Transition = {
@@ -123,37 +110,49 @@ const contentVariants: Variants = {
   exit: { opacity: 0, y: -20 },
 };
 
-// Helper function to convert TMDB format to database format
-const toMediaType = (contentType: "movie" | "tv"): "Movie" | "TV" => {
-  return contentType === "movie" ? "Movie" : "TV";
+const toMediaType = (contentType: BannerProp["contentType"]): MediaType =>
+  contentType === MediaType.Movie ? MediaType.Movie : MediaType.TV;
+
+type ContinueWatchingOverlayItem = {
+  id: number;
+  tmdbId: number;
+  title: string;
+  image: string;
+  progress: number;
+  meta: string;
+  remaining: string;
+  mediaType: MediaType;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  streamId?: string;
 };
 
 const mapWatchHistoryItem = (
-  item: WatchHistoryItem,
+  item: HistoryProp,
 ): ContinueWatchingOverlayItem => {
-  const fallbackLength = item.media_type === "Movie" ? 7200 : 2700;
-  const totalLength = Math.max(60, item.episode_length || fallbackLength);
-  const watchedSeconds = Math.max(0, item.duration_sec || 0);
+  const fallbackLength = item.mediaType === MediaType.Movie ? 7200 : 2700;
+  const totalLength = Math.max(60, item.episodeLength || fallbackLength);
+  const watchedSeconds = Math.max(0, item.durationSec || 0);
   const remainingSeconds = Math.max(0, totalLength - watchedSeconds);
 
   return {
-    id: item.id,
-    tmdbId: item.tmdb_id,
+    id: item.tmdbId,
+    tmdbId: item.tmdbId,
     title: item.title || "Untitled",
-    image: getCardImageUrl(item.backdrop_path || item.poster_path),
+    image: getCardImageUrl(item.backdropPath),
     progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
     meta:
-      item.media_type === "Movie"
-        ? "Movie"
-        : `S${item.season_number || 1} E${item.episode_number || 1}`,
+      item.mediaType === MediaType.Movie
+        ? MediaType.Movie
+        : `S${item.seasonNumber || 1} E${item.episodeNumber || 1}`,
     remaining:
       remainingSeconds === 0
         ? "Completed"
         : `${Math.ceil(remainingSeconds / 60)}m remaining`,
-    mediaType: item.media_type,
-    seasonNumber: item.season_number || 1,
-    episodeNumber: item.episode_number || 1,
-    streamId: item.stream_id,
+    mediaType: item.mediaType,
+    seasonNumber: item.seasonNumber || 1,
+    episodeNumber: item.episodeNumber || 1,
+    streamId: item.providerId ?? undefined,
   };
 };
 
@@ -165,7 +164,7 @@ export default function Banner({ initialItems }: BannerProps) {
 
   const [[currentSlide, direction], setCurrentSlide] = useState([0, 0]);
 
-  const [items, setItems] = useState<BannerItem[]>(safeInitialItems);
+  const [items, setItems] = useState<BannerProp[]>(safeInitialItems);
   const [loading, setLoading] = useState(safeInitialItems.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
@@ -237,27 +236,11 @@ export default function Banner({ initialItems }: BannerProps) {
       try {
         setLoading(true);
         setError(null);
-        const cacheKey = "banner:trending-content:v3";
-        const cached = localStorage.getItem(cacheKey);
 
-        if (cached) {
-          const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-            setItems(data.items || []);
-            setLoading(false);
-            return;
-          }
-        }
-
-        const response = await fetch("/api/banner");
-        if (!response.ok) throw new Error("Failed to load banner content");
-
-        const data = await response.json();
-        setItems(data.items || []);
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data, timestamp: Date.now() }),
+        const { data } = await apiClient.get<{ items: BannerProp[] }>(
+          "/api/home/banner",
         );
+        setItems(data.items || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
@@ -277,10 +260,10 @@ export default function Banner({ initialItems }: BannerProps) {
 
   // Get the current item
   const currentItem = items[currentSlide];
-  const currentItemId = currentItem?.id;
+  const currentItemId = currentItem?.tmdbId;
   const currentContentType = currentItem?.contentType;
 
-  // Check the watchlist status
+  // Check the watchlist status via API
   useEffect(() => {
     const checkWatchlistStatus = async () => {
       if (!user || !currentItemId || !currentContentType) {
@@ -289,12 +272,15 @@ export default function Banner({ initialItems }: BannerProps) {
       }
 
       try {
-        const inWatchlist = await isInWatchlist(
-          user.id,
-          currentItemId,
-          toMediaType(currentContentType),
+        const session = await getSupabaseSession();
+        if (!session) { setIsWatchlisted(false); return; }
+
+        const res = await fetch(
+          `/api/profile/watchlist?tmdbId=${currentItemId}&mediaType=${currentContentType}`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } },
         );
-        setIsWatchlisted(inWatchlist);
+        const data = await res.json();
+        setIsWatchlisted(Boolean(data?.isInWatchlist));
       } catch {
         setIsWatchlisted(false);
       }
@@ -302,12 +288,6 @@ export default function Banner({ initialItems }: BannerProps) {
 
     checkWatchlistStatus();
   }, [user, currentItemId, currentContentType]);
-
-  // Deduplication: Use ref to track ongoing/recent fetch
-  const fetchCacheRef = useRef<{
-    promise: Promise<ContinueWatchingOverlayItem[]> | null;
-    userId: string | null;
-  }>({ promise: null, userId: null });
 
   useEffect(() => {
     let isActive = true;
@@ -319,70 +299,38 @@ export default function Banner({ initialItems }: BannerProps) {
         return;
       }
 
-      // Deduplication: If there's an ongoing fetch for this user, reuse it
-      if (
-        fetchCacheRef.current.promise &&
-        fetchCacheRef.current.userId === user.id
-      ) {
-        try {
-          const cachedResult = await fetchCacheRef.current.promise;
-          if (isActive) setContinueWatching(cachedResult);
-        } catch {
-          if (isActive) setContinueWatching([]);
-        } finally {
-          if (isActive) setContinueWatchingLoading(false);
-        }
-        return;
-      }
-
       try {
         setContinueWatchingLoading(true);
 
-        // Create and cache the promise
-        const fetchPromise = (async () => {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
+        const session = await getSupabaseSession();
 
-          if (!session?.access_token) {
-            return [];
-          }
+        if (!session?.access_token) {
+          if (isActive) setContinueWatching([]);
+          return;
+        }
 
-          const response = await fetch("/api/watch-history", {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
+        const response = await fetch("/api/profile/history?page=0", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-          if (!response.ok) {
-            throw new Error("Failed to load watch history");
-          }
+        if (!response.ok) {
+          throw new Error("Failed to load watch history");
+        }
 
-          const payload = (await response.json()) as {
-            data?: WatchHistoryItem[];
-          };
+        const payload = (await response.json()) as {
+          data?: HistoryProp[];
+        };
 
-          return Array.isArray(payload.data)
-            ? payload.data
-                .map(mapWatchHistoryItem)
-                .filter((item) => item.progress <= 95)
-                .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
-            : [];
-        })();
-
-        fetchCacheRef.current = { promise: fetchPromise, userId: user.id };
-
-        const mappedItems = await fetchPromise;
+        const mappedItems = Array.isArray(payload.data)
+          ? payload.data
+            .map(mapWatchHistoryItem)
+            .filter((item) => item.progress <= 95)
+            .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+          : [];
 
         if (isActive) setContinueWatching(mappedItems);
-
-        // Clear cache after successful completion
-        setTimeout(() => {
-          if (fetchCacheRef.current.userId === user.id) {
-            fetchCacheRef.current = { promise: null, userId: null };
-          }
-        }, 1000);
       } catch {
         if (isActive) setContinueWatching([]);
-        fetchCacheRef.current = { promise: null, userId: null };
       } finally {
         if (isActive) setContinueWatchingLoading(false);
       }
@@ -410,33 +358,27 @@ export default function Banner({ initialItems }: BannerProps) {
     };
   }, []);
 
-  // Get the item genres
-  const itemGenres =
-    currentItem?.genre_ids
-      ?.map((id) => GENRE_MAP[id])
-      .filter(Boolean)
-      .slice(0, 2) || [];
+  const itemGenres = currentItem?.genres?.slice(0, 2) || [];
 
-  // Get the metadata parts
   const metadataParts = currentItem
     ? [
-        getMediaTypeLabel(currentItem.contentType),
-        currentItem.date,
-        ...itemGenres,
-      ].filter((part): part is string => Boolean(part))
+      getMediaTypeLabel(currentItem.contentType),
+      currentItem.year,
+      ...itemGenres,
+    ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
   const handlePlay = () => {
     if (!currentItem) return;
-    if (currentItem.contentType === "movie") {
-      router.push(`/player/movie/${currentItem.id}`);
+    if (currentItem.contentType === MediaType.Movie) {
+      router.push(`/watch/movie/${currentItem.tmdbId}`);
       return;
     }
-    router.push(`/player/tvshow/${currentItem.id}?season=1&episode=1`);
+    router.push(`/watch/tvshow/${currentItem.tmdbId}?season=1&episode=1`);
   };
 
-  // Toggle the watchlist
+  // Toggle the watchlist via API
   const toggleWatchlist = async () => {
     if (!currentItem) return;
     if (!user) {
@@ -446,28 +388,35 @@ export default function Banner({ initialItems }: BannerProps) {
 
     setWatchlistLoading(true);
     const mediaTitle = getDisplayTitle(currentItem);
+    const mediaType = toMediaType(currentItem.contentType);
 
     try {
-      if (isWatchlisted) {
-        await removeFromWatchlist(
-          user.id,
-          currentItem.id,
-          toMediaType(currentItem.contentType),
+      const session = await getSupabaseSession();
+      if (!session) {
+        addNotification("Session expired. Please sign in again.", "error");
+        return;
+      }
+
+      const method = isWatchlisted ? "DELETE" : "POST";
+      const res = await fetch("/api/profile/watchlist", {
+        method,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tmdb_id: currentItem.tmdbId, media_type: mediaType }),
+      });
+
+      if (res.ok) {
+        setIsWatchlisted(!isWatchlisted);
+        addNotification(
+          isWatchlisted
+            ? `${mediaTitle} removed from watchlist`
+            : `${mediaTitle} added to watchlist`,
+          "success",
         );
-        setIsWatchlisted(false);
-        addNotification(`${mediaTitle} removed from watchlist`, "success");
       } else {
-        await addToWatchlist(user.id, {
-          tmdb_id: currentItem.id,
-          title: mediaTitle,
-          media_type: toMediaType(currentItem.contentType),
-          poster_path:
-            currentItem.poster_path || currentItem.backdrop_path || null,
-          release_date: currentItem.date || null,
-          vote: currentItem.vote_average || null,
-        });
-        setIsWatchlisted(true);
-        addNotification(`${mediaTitle} added to watchlist`, "success");
+        addNotification("Failed to update watchlist", "error");
       }
     } catch {
       addNotification("Failed to update watchlist", "error");
@@ -502,11 +451,13 @@ export default function Banner({ initialItems }: BannerProps) {
   };
 
   const handlePlayClick = useCallback(
-    (item: any) => {
-      if (item.mediaType === "Movie") {
-        const url = `/player/movie/${item.tmdbId}${
-          item.streamId ? `?stream=${item.streamId}` : ""
-        }`;
+    (cardItem: { image: string; title: string; progress: number; meta: string; remaining: string }) => {
+      // Find the full item to get tmdbId, mediaType, and stream params
+      const item = continueWatching.find((i) => i.title === cardItem.title);
+      if (!item) return;
+      if (item.mediaType === MediaType.Movie) {
+        const url = `/watch/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
+          }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -516,8 +467,7 @@ export default function Banner({ initialItems }: BannerProps) {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${
-            params.toString() ? `?${params.toString()}` : ""
+          `/player/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -558,7 +508,7 @@ export default function Banner({ initialItems }: BannerProps) {
         <AnimatePresence initial={false} custom={direction} mode="sync">
           {currentItem && (
             <motion.div
-              key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
+              key={`${currentItem.contentType}-${currentItem.tmdbId}-${currentSlide}`}
               custom={direction}
               variants={imageVariants}
               initial="enter"
@@ -586,7 +536,7 @@ export default function Banner({ initialItems }: BannerProps) {
               {/* Animate the current item content */}
               {currentItem && (
                 <motion.div
-                  key={`${currentItem.contentType}-${currentItem.id}-${currentSlide}`}
+                  key={`${currentItem.contentType}-${currentItem.tmdbId}-${currentSlide}`}
                   variants={contentVariants}
                   initial="enter"
                   animate="center"
@@ -619,7 +569,7 @@ export default function Banner({ initialItems }: BannerProps) {
                     ))}
 
                     <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-white/70 px-1 text-[10px] font-bold leading-none">
-                      {currentItem.adult ? "A" : "U/A"}
+                      {currentItem.maturityRating}
                     </span>
                   </div>
 
@@ -654,11 +604,10 @@ export default function Banner({ initialItems }: BannerProps) {
                           ? "Remove from watchlist"
                           : "Add to watchlist"
                       }
-                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${
-                        isWatchlisted
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
                           ? "bg-white/35 text-white"
                           : "bg-white/20 text-white hover:bg-white/30"
-                      } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                        } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />
                     </button>
@@ -667,37 +616,6 @@ export default function Banner({ initialItems }: BannerProps) {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Side Navigation
-          {items.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  prevSlide();
-                  resetInterval();
-                }}
-                aria-label="Previous banner"
-                className="pointer-events-auto absolute left-1 top-[50%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:bg-black/20 md:hidden"
-              >
-                <ChevronLeft className="h-5 w-5" strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  nextSlide();
-                  resetInterval();
-                }}
-                aria-label="Next banner"
-                className="pointer-events-auto md:hidden absolute right-1 top-[50%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/10 text-white backdrop-blur-sm transition hover:bg-black/20 md:right-8 md:top-1/2 md:h-14 md:w-14"
-              >
-                <ChevronRight
-                  className="h-5 w-5 md:h-7 md:w-7"
-                  strokeWidth={2}
-                />
-              </button>
-            </>
-          )} */}
         </div>
 
         {/* Slide Dots (kept inside viewport) */}
@@ -718,9 +636,8 @@ export default function Banner({ initialItems }: BannerProps) {
                   width: index === currentSlide ? 32 : 8,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`h-2 rounded-full ${
-                  index === currentSlide ? "bg-white" : "bg-white/50"
-                }`}
+                className={`h-2 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

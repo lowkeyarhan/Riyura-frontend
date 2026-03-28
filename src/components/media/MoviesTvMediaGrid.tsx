@@ -3,42 +3,23 @@
 import React from "react";
 import Image from "next/image";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaGridItem } from "@/src/dto/ui/card";
+import { MediaType } from "@/src/props/global/mediaType";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 interface MoviesTvMediaGridProps {
   mediaType: "movie" | "tv";
-  nowPlaying: MediaGridItem[];
-  trending: MediaGridItem[];
-  popular: MediaGridItem[];
-  comingSoon: MediaGridItem[];
-  onCardClick: (item: MediaGridItem) => void;
+  nowPlaying: MediaCardProp[];
+  trending: MediaCardProp[];
+  popular: MediaCardProp[];
+  comingSoon: MediaCardProp[];
+  onCardClick: (item: MediaCardProp) => void;
 }
 
-const POSTER_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
-const BACKDROP_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w780";
-
-const getTitle = (item: MediaGridItem) => item.title || item.name || "Untitled";
-
-const getYearNumber = (item: MediaGridItem) => {
-  const rawDate = item.release_date || item.first_air_date;
-  if (!rawDate) return undefined;
-  const date = new Date(rawDate);
-  const year = date.getFullYear();
-  return Number.isNaN(year) ? undefined : year;
-};
-
-const getYearText = (item: MediaGridItem) => {
-  const year = getYearNumber(item);
-  return year ? `${year}` : "N/A";
-};
-
 const getMediaLabel = (mediaType: MoviesTvMediaGridProps["mediaType"]) =>
-  mediaType === "movie" ? "Movie" : "TV Show";
+  mediaType === "movie" ? MediaType.Movie : "TV Show";
 
-const getNowPlayingImageUrl = (item: MediaGridItem) => {
-  if (item.poster_path) return `${BACKDROP_IMAGE_BASE_URL}${item.poster_path}`;
-  return "/placeholder-image.jpg";
-};
+const getNowPlayingImageUrl = (item: MediaCardProp) =>
+  item.poster_path || "/placeholder-image.jpg";
 
 function SectionHeader({
   title,
@@ -72,7 +53,7 @@ function NowPlayingCard({
   mediaType,
   onClick,
 }: {
-  item: MediaGridItem;
+  item: MediaCardProp;
   mediaType: MoviesTvMediaGridProps["mediaType"];
   onClick: () => void;
 }) {
@@ -84,7 +65,7 @@ function NowPlayingCard({
     >
       <Image
         src={getNowPlayingImageUrl(item)}
-        alt={getTitle(item)}
+        alt={item.title}
         fill
         sizes="(max-width: 768px) 85vw, (max-width: 1280px) 40vw, 25vw"
         className="object-cover transition-transform duration-500"
@@ -95,10 +76,10 @@ function NowPlayingCard({
           className="mt-2.5 truncate text-lg md:text-xl font-bold text-white"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
-          {getTitle(item)}
+          {item.title}
         </p>
         <p className="mt-1 text-xs md:text-sm text-white/65">
-          {getMediaLabel(mediaType)} • {getYearText(item)}
+          {getMediaLabel(mediaType)} • {item.year}
         </p>
       </div>
     </button>
@@ -112,31 +93,21 @@ function GridSection({
   onCardClick,
 }: {
   title: string;
-  items: MediaGridItem[];
+  items: MediaCardProp[];
   mediaType: MoviesTvMediaGridProps["mediaType"];
-  onCardClick: (item: MediaGridItem) => void;
+  onCardClick: (item: MediaCardProp) => void;
 }) {
   return (
     <section className="mt-12 md:mt-16">
       <SectionHeader title={title} />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
-        {items.map((item) => {
-          const posterUrl = item.poster_path
-            ? `${POSTER_IMAGE_BASE_URL}${item.poster_path}`
-            : "/placeholder-image.jpg";
-
-          return (
-            <MediaCard
-              key={`${item.id}-${mediaType}`}
-              title={getTitle(item)}
-              posterUrl={posterUrl}
-              year={getYearNumber(item)}
-              rating={item.vote_average}
-              type={mediaType === "movie" ? "Movie" : "TV"}
-              onClick={() => onCardClick(item)}
-            />
-          );
-        })}
+        {items.map((item) => (
+          <MediaCard
+            key={`${item.tmdbId}-${item.media_type}-${mediaType}`}
+            item={item}
+            onClick={() => onCardClick(item)}
+          />
+        ))}
       </div>
     </section>
   );
@@ -160,7 +131,7 @@ export default function MoviesTvMediaGrid({
         <div className="flex gap-4 md:gap-5 overflow-x-auto pb-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {nowPlaying.map((item) => (
             <NowPlayingCard
-              key={`${item.id}-${mediaType}`}
+              key={`${item.tmdbId}-${item.media_type}-${mediaType}`}
               item={item}
               mediaType={mediaType}
               onClick={() => onCardClick(item)}

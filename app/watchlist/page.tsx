@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useWatchlist } from "@/src/hooks/useWatchlist";
+import { useWatchlist } from "@/src/hooks/profile/useWatchlist";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { useWatchlistFilters } from "@/src/hooks/useWatchlistFilters";
 import { WatchlistHeader } from "@/src/components/watchlist/WatchlistHeader";
 import { WatchlistGrid } from "@/src/components/watchlist/WatchlistGrid";
 import WatchlistSkeleton from "@/src/components/skeletons/WatchlistSkeleton";
@@ -15,8 +16,16 @@ export default function WatchlistPage() {
   const { addNotification } = useNotification();
   const { items, loading, error, removeItem } = useWatchlist(user?.id);
 
-  const [filter, setFilter] = useState<"all" | "movie" | "tv">("all");
-  const [sortBy, setSortBy] = useState<"recent" | "title" | "year">("recent");
+  const {
+    filter,
+    setFilter,
+    sortBy,
+    setSortBy,
+    counts,
+    visibleItems,
+    handleRemove,
+    handleItemClick,
+  } = useWatchlistFilters({ items, removeItem, addNotification, router });
 
   // Show error notification
   useEffect(() => {
@@ -25,75 +34,6 @@ export default function WatchlistPage() {
       addNotification(`Error loading watchlist: ${error}`, "error");
     }
   }, [error, addNotification]);
-
-  // Count items by type
-  const counts = useMemo(() => {
-    if (!Array.isArray(items)) return { movie: 0, tv: 0, total: 0 };
-    return {
-      movie: items.filter((i) => i.media_type === "Movie").length,
-      tv: items.filter((i) => i.media_type === "TV").length,
-      total: items.length,
-    };
-  }, [items]);
-
-  // Filter and Sort Logic
-  const visibleItems = useMemo(() => {
-    if (!Array.isArray(items)) return [];
-
-    // Filter - convert UI filter values to database format
-    let filtered = items;
-    if (filter === "movie") {
-      filtered = items.filter((i) => i.media_type === "Movie");
-    } else if (filter === "tv") {
-      filtered = items.filter((i) => i.media_type === "TV");
-    }
-
-    // Sort
-    const sorted = [...filtered];
-    if (sortBy === "recent") {
-      sorted.sort((a, b) => {
-        const dateA = a.added_at ? new Date(a.added_at).getTime() : 0;
-        const dateB = b.added_at ? new Date(b.added_at).getTime() : 0;
-        return dateB - dateA;
-      });
-    } else if (sortBy === "title") {
-      sorted.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortBy === "year") {
-      sorted.sort((a, b) => {
-        const yearA = a.release_date
-          ? new Date(a.release_date).getFullYear()
-          : 0;
-        const yearB = b.release_date
-          ? new Date(b.release_date).getFullYear()
-          : 0;
-        return yearB - yearA;
-      });
-    }
-
-    return sorted;
-  }, [items, filter, sortBy]);
-
-  // Remove Handler
-  const handleRemove = async (
-    e: React.MouseEvent,
-    tmdbId: number,
-    mediaType: "movie" | "tv",
-  ) => {
-    e.stopPropagation();
-    const { success } = await removeItem(tmdbId, mediaType);
-    if (success) {
-      addNotification("Removed from watchlist", "success");
-    } else {
-      addNotification("Failed to remove item", "error");
-    }
-  };
-
-  // Navigation Handler
-  const handleItemClick = (tmdbId: number, mediaType: "movie" | "tv") => {
-    router.push(
-      `/details/${mediaType === "movie" ? "movie" : "tvshow"}/${tmdbId}`,
-    );
-  };
 
   // Auth Redirect
   useEffect(() => {

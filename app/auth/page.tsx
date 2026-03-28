@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/auth/supabase";
-import { ensureUserProfile } from "@/src/lib/db/database";
 
 const pageVariants = {
   hidden: { opacity: 0 },

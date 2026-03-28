@@ -6,13 +6,17 @@ import { LogOut } from "lucide-react";
 
 import Footer from "@/src/components/layout/Footer";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useProfileData } from "@/src/hooks/useProfileData";
-import { useGeminiApiKey } from "@/src/hooks/useGeminiApiKey";
-import { useRecommendations } from "@/src/hooks/useRecommendations";
-import { useWatchHistory } from "@/src/hooks/useWatchHistory";
+import { useProfileData } from "@/src/hooks/profile/useProfileData";
+import { useApiKey } from "@/src/lib/contexts/ApiKeyContext";
+import { useRecommendations } from "@/src/hooks/profile/useRecommendations";
+import { useWatchHistory } from "@/src/hooks/profile/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
 import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
+import { MediaType } from "@/src/props/global/mediaType";
+import type { ContinueWatchingItem } from "@/src/props/profile/continueWatching";
+import type { RecommendationProp } from "@/src/props/profile/recommendation";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 import { ProfileHeader } from "@/src/components/profile/ProfileHeader";
 import { SettingsSection } from "@/src/components/profile/SettingsSection";
@@ -36,23 +40,14 @@ export default function ProfilePage() {
     setContinueWatching,
   } = useProfileData(user?.id);
 
-  const {
-    apiKeyInput,
-    apiKeyPreview,
-    hasApiKey,
-    isLoading: isLoadingApiKey,
-    isSaving: isSavingApiKey,
-    setApiKeyInput,
-    saveApiKey,
-    deleteApiKey,
-  } = useGeminiApiKey(user?.id);
+  const apiKey = useApiKey();
 
   const {
     recommendations,
     isLoading: isLoadingRecommendations,
     error: recommendationsError,
     refresh: refreshRecommendations,
-  } = useRecommendations(user?.id, hasApiKey);
+  } = useRecommendations(user?.id, apiKey.hasApiKey);
 
   const { deleteHistoryItem } = useWatchHistory();
 
@@ -69,11 +64,10 @@ export default function ProfilePage() {
   };
 
   const handlePlayClick = useCallback(
-    (item: any) => {
-      if (item.mediaType === "Movie") {
-        const url = `/player/movie/${item.tmdbId}${
-          item.streamId ? `?stream=${item.streamId}` : ""
-        }`;
+    (item: ContinueWatchingItem) => {
+      if (item.mediaType === MediaType.Movie) {
+        const url = `/watch/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
+          }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -83,8 +77,7 @@ export default function ProfilePage() {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${
-            params.toString() ? `?${params.toString()}` : ""
+          `/watch/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -95,37 +88,38 @@ export default function ProfilePage() {
   const handleDeleteHistory = async (e: React.MouseEvent, itemId: number) => {
     e.stopPropagation();
 
-    // Optimistic update
-    setContinueWatching((prev) => prev.filter((item) => item.id !== itemId));
+    const item = continueWatching.find((i) => i.id === itemId);
+    if (!item) return;
 
-    const success = await deleteHistoryItem(itemId);
+    // Optimistic update
+    setContinueWatching((prev) => prev.filter((i) => i.id !== itemId));
+
+    const success = await deleteHistoryItem(item.tmdbId, item.mediaType);
     if (success) {
       addNotification("Removed from watch history", "success");
     } else {
       addNotification("Failed to remove item", "error");
-      // Note: In a production app, you'd want to revert the optimistic update here
     }
   };
 
-  const handleWatchlistItemClick = (item: any) => {
+  const handleWatchlistItemClick = (item: MediaCardProp) => {
     router.push(
-      item.media_type === "Movie"
-        ? `/details/movie/${item.tmdb_id}`
-        : `/details/tvshow/${item.tmdb_id}`,
+      item.media_type === MediaType.Movie
+        ? `/details/movie/${item.tmdbId}`
+        : `/details/tvshow/${item.tmdbId}`,
     );
   };
 
-  const handleRecommendationClick = (item: any) => {
+  const handleRecommendationClick = (item: RecommendationProp) => {
     router.push(
-      item.media_type === "Movie"
-        ? `/details/movie/${item.tmdb_id}`
-        : `/details/tvshow/${item.tmdb_id}`,
+      item.mediaType === MediaType.Movie
+        ? `/details/movie/${item.tmdbId}`
+        : `/details/tvshow/${item.tmdbId}`,
     );
   };
 
   const handleApiKeySave = async (key: string) => {
-    await saveApiKey(key);
-    // Trigger initial recommendation fetch after saving key
+    await apiKey.saveApiKey(key);
     refreshRecommendations();
   };
 
@@ -158,14 +152,10 @@ export default function ProfilePage() {
             {/* Preferences - Desktop Only (Moved to bottom on mobile) */}
             <div className="hidden lg:block mt-6 mb-2">
               <SettingsSection
-                apiKeyInput={apiKeyInput}
-                onApiKeyInputChange={setApiKeyInput}
-                onApiKeySave={handleApiKeySave}
-                onApiKeyDelete={deleteApiKey}
-                isLoadingApiKey={isLoadingApiKey}
-                isSavingApiKey={isSavingApiKey}
-                apiKeyPreview={apiKeyPreview}
-                hasApiKey={hasApiKey}
+                apiKey={{
+                  ...apiKey,
+                  saveApiKey: handleApiKeySave,
+                }}
               />
             </div>
           </div>
@@ -205,7 +195,7 @@ export default function ProfilePage() {
               recommendations={recommendations}
               isLoading={isLoadingRecommendations}
               error={recommendationsError}
-              hasApiKey={hasApiKey}
+              hasApiKey={apiKey.hasApiKey}
               onRefresh={refreshRecommendations}
               onItemClick={handleRecommendationClick}
             />
@@ -213,14 +203,10 @@ export default function ProfilePage() {
             {/* --- MOBILE ONLY SECTIONS (Preferences & Sign Out) --- */}
             <div className="lg:hidden space-y-8 pt-8 border-t border-white/5">
               <SettingsSection
-                apiKeyInput={apiKeyInput}
-                onApiKeyInputChange={setApiKeyInput}
-                onApiKeySave={handleApiKeySave}
-                onApiKeyDelete={deleteApiKey}
-                isLoadingApiKey={isLoadingApiKey}
-                isSavingApiKey={isSavingApiKey}
-                apiKeyPreview={apiKeyPreview}
-                hasApiKey={hasApiKey}
+                apiKey={{
+                  ...apiKey,
+                  saveApiKey: handleApiKeySave,
+                }}
               />
 
               <div className="flex justify-center">

@@ -1,12 +1,6 @@
-import { Calendar, Star, Clock, Wifi, Info, Server } from "lucide-react";
-import { TMDBTVShowDetailsResponse } from "@/src/dto/tmdb/details";
-
-const MetaTag = ({ icon: Icon, text }: { icon: any; text: string }) => (
-  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#0f1115] border border-white/5 text-xs font-medium text-gray-300">
-    <Icon size={12} className="text-gray-500" />
-    {text}
-  </div>
-);
+import { Wifi, Info, Server } from "lucide-react";
+import { TvPlayerProp } from "@/src/props/tv/tvPlayer";
+import { ProviderProp } from "@/src/props/global/provider";
 
 const ServerRow = ({
   name,
@@ -57,8 +51,8 @@ const ServerRow = ({
 );
 
 interface TVShowPlayerSidebarProps {
-  tvShow: TMDBTVShowDetailsResponse | null;
-  servers: Array<{ id: string; name: string; quality: string; link: string }>;
+  tvShow: TvPlayerProp | null;
+  servers: ProviderProp[];
   activeServerIndex: number;
   onServerChange: (index: number) => void;
 }
@@ -77,29 +71,15 @@ export function TVShowPlayerSidebar({
           className="text-xl md:text-2xl font-bold text-white leading-tight mb-3"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
-          {tvShow?.name}
+          {tvShow?.title}
         </h1>
-        <div className="flex flex-wrap gap-2 mb-4">
-          <MetaTag
-            icon={Calendar}
-            text={tvShow?.first_air_date?.split("-")[0] || "N/A"}
-          />
-          <MetaTag
-            icon={Clock}
-            text={`${tvShow?.episode_run_time?.[0] || 45}m`}
-          />
-          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 text-xs font-bold text-yellow-500">
-            <Star size={12} fill="currentColor" />
-            {tvShow?.vote_average?.toFixed(1)}
-          </div>
-        </div>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {tvShow?.genres?.slice(0, 3).map((g: any) => (
+          {tvShow?.genres?.map((genre: string) => (
             <span
-              key={g.id}
-              className="px-2 py-1 rounded text-[10px] font-bold bg-white/5 text-gray-400 border border-white/5 uppercase tracking-wide"
+              key={genre}
+              className="px-2 py-1 rounded text-[10px] font-bold bg-white/5 text-gray-400 border border-white/5 uppercase tracking-wide whitespace-nowrap"
             >
-              {g.name}
+              {genre}
             </span>
           ))}
         </div>

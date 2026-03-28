@@ -1,70 +1,36 @@
+import axios from "axios";
 import { NextResponse } from "next/server";
-import { getCachedData } from "@/src/lib/cache";
-import { MediaGridItem } from "@/src/dto/ui/card";
-import { TMDBBaseListItem, TMDBListResponse } from "@/src/dto/tmdb/common";
+import { backendClient } from "@/src/lib/axios";
+import { normalizeMediaCardPoster } from "@/src/lib/tmdb-images";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const limit = searchParams.get("limit");
-  const maxItems = limit ? parseInt(limit) : 12;
-
-  const apiKey = process.env.TMDB_API_KEY;
-
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Missing TMDB_API_KEY in environment variables" },
-      { status: 500 },
-    );
-  }
-
+export async function GET() {
   try {
-    const data = await getCachedData(
-      `upcoming:movies`,
-      async () => {
-        const response = await fetch(
-          `https://api.themoviedb.org/3/movie/upcoming?api_key=${apiKey}&language=en-US&page=1`,
-          {
-            headers: { accept: "application/json" },
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch upcoming movies: ${response.status}`,
-          );
-        }
-
-        return (await response.json()) as TMDBListResponse<TMDBBaseListItem>;
-      },
-      { ttl: 86400 },
-    );
-
-    // Data is already parsed from cache or fetch
-
-    // Map to MediaGridItem and sanitize
-    const items: MediaGridItem[] = Array.isArray(data?.results)
-      ? data.results
-          .filter((movie) => movie.poster_path) // Only items with posters
-          .slice(0, maxItems) // Limit items
-          .map((movie) => ({
-            id: movie.id,
-            title: movie.title,
-            name: movie.name,
-            poster_path: movie.poster_path,
-            vote_average: Number(movie.vote_average || 0),
-            release_date: movie.release_date,
-            first_air_date: movie.first_air_date,
-            overview: movie.overview || "",
-            media_type: "movie",
-          }))
-      : [];
-
-    return NextResponse.json({ results: items });
-  } catch (error: any) {
+    const response = await backendClient.get("/movies/upcoming", {
+      params: { limit: 12 },
+    });
+    const data = response.data;
+    const raw = Array.isArray(data) ? data : (data?.results ?? []);
+    const results = raw.map(normalizeMediaCardPoster);
+    return NextResponse.json({ results });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error(
+        "Upcoming movies backend error:",
+        error.response?.status,
+        typeof error.response?.data === "string"
+          ? error.response.data.slice(0, 200)
+          : error.message,
+      );
+      return NextResponse.json(
+        { error: "Failed to fetch upcoming movies" },
+        { status: 502 },
+      );
+    }
+    console.error("Upcoming movies API error:", error);
     return NextResponse.json(
-      { error: error?.message || "Something went wrong" },
+      { error: "Failed to fetch upcoming movies" },
       { status: 500 },
     );
   }

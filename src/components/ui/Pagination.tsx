@@ -1,14 +1,19 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { PaginationDTO } from "@/src/dto/ui/home";
+interface PaginationProps {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+}
 
 export default function Pagination({
   currentPage,
   totalItems,
   itemsPerPage,
   onPageChange,
-}: PaginationDTO) {
+}: PaginationProps) {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Don't show pagination if there are no items or only one page

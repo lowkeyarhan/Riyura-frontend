@@ -1,44 +1,41 @@
-import { TMDBSearchResult } from "@/src/dto/tmdb/lists";
+import type { SearchProp } from "@/src/props/search/search";
 import { SearchResultCard } from "./SearchResultCard";
+import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 interface SearchResultsSectionProps {
-  results: TMDBSearchResult[];
+  results: SearchProp[];
   lastQuery: string;
   searchQuery: string;
-  onCardClick: (item: TMDBSearchResult) => void;
-  formatDate: (date: string | null | undefined) => string;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onCardClick: (item: SearchProp) => void;
+  onLoadMore: () => void;
 }
 
 const FONT_STYLE = { fontFamily: "Be Vietnam Pro, sans-serif" };
 
-// Card variants with fade only (no scale)
 const cardVariants = {
-  initial: {
-    opacity: 0,
-  },
-  animate: {
-    opacity: 1,
-  },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
   exit: {
     opacity: 0,
-    transition: {
-      duration: 0.25, // Faster disappear animation
-    },
+    transition: { duration: 0.25 },
   },
 };
 
-// Layout transition config with smooth motion
-const layoutTransition = {
-  duration: 0.3,
-};
+const layoutTransition = { duration: 0.3 };
+
+const SKELETON_COUNT = 10;
 
 export function SearchResultsSection({
   results,
   lastQuery,
   searchQuery,
+  hasMore,
+  isLoadingMore,
   onCardClick,
-  formatDate,
+  onLoadMore,
 }: SearchResultsSectionProps) {
   if (results.length === 0) return null;
 
@@ -67,8 +64,8 @@ export function SearchResultsSection({
             {results.map((item) => (
               <motion.div
                 layout
-                layoutId={`search-card-${item.id}`}
-                key={item.id}
+                layoutId={`search-card-${item.tmdbId}-${item.media_type}`}
+                key={`${item.tmdbId}-${item.media_type}`}
                 variants={cardVariants}
                 initial="initial"
                 animate="animate"
@@ -78,13 +75,29 @@ export function SearchResultsSection({
                 <SearchResultCard
                   item={item}
                   onClick={() => onCardClick(item)}
-                  formatDate={formatDate}
                 />
               </motion.div>
             ))}
           </AnimatePresence>
+          {isLoadingMore &&
+            Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+              <SearchCardSkeleton key={`skeleton-${i}`} />
+            ))}
         </motion.div>
       </LayoutGroup>
+
+      {hasMore && !isLoadingMore && (
+        <div className="mt-10 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            className="px-8 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors"
+            style={FONT_STYLE}
+          >
+            Load More
+          </button>
+        </div>
+      )}
     </div>
   );
 }

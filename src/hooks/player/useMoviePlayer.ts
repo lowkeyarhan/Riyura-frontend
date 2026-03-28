@@ -5,8 +5,6 @@ import { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
 import { ProviderProp } from "@/src/props/global/provider";
 import { HistoryProp } from "@/src/props/profile/history";
 
-const WATCH_TIMER_INTERVAL = 1000;
-
 interface UseMoviePlayerProps {
   movieId: string;
   userId: string | undefined;
@@ -24,8 +22,6 @@ export function useMoviePlayer({
   const [activeServerIndex, setActiveServerIndex] =
     useState(initialServerIndex);
 
-  const watchDuration = useRef(0);
-  const watchTimer = useRef<NodeJS.Timeout | null>(null);
   const hasSavedWatch = useRef(false);
 
   const activeServerIndexRef = useRef(activeServerIndex);
@@ -86,77 +82,64 @@ export function useMoviePlayer({
     if (movieId) fetchAll();
   }, [movieId]);
 
-  // Watch duration tracking
-  useEffect(() => {
-    watchTimer.current = setInterval(() => {
-      watchDuration.current += 1;
-    }, WATCH_TIMER_INTERVAL);
+  const saveWatchHistoryOnUnmount = useCallback(
+    (durationSec: number) => {
+      if (!userId || !movieRef.current || hasSavedWatch.current) {
+        return;
+      }
 
-    return () => {
-      if (watchTimer.current) clearInterval(watchTimer.current);
-    };
-  }, [userId, movieId]);
+      hasSavedWatch.current = true;
+      const providerId =
+        serversRef.current[activeServerIndexRef.current]?.id || "unknown";
+      const watchData: HistoryProp = {
+        tmdbId: parseInt(movieId),
+        title: movieRef.current.title,
+        backdropPath: null,
+        mediaType: MediaType.Movie,
+        providerId,
+        durationSec: Math.floor(durationSec),
+        episodeLength: null,
+        episodeName: null,
+        episodeNumber: null,
+        seasonNumber: null,
+        isAnime: movieRef.current.is_anime,
+        releaseYear: null,
+      };
 
-  const saveWatchHistoryOnUnmount = useCallback(() => {
-    if (
-      !userId ||
-      !movieRef.current ||
-      hasSavedWatch.current ||
-      watchDuration.current < 0
-    ) {
-      return;
-    }
-
-    hasSavedWatch.current = true;
-    const providerId =
-      serversRef.current[activeServerIndexRef.current]?.id || "unknown";
-    const watchData: HistoryProp = {
-      tmdbId: parseInt(movieId),
-      title: movieRef.current.title,
-      backdropPath: null,
-      mediaType: MediaType.Movie,
-      providerId,
-      durationSec: watchDuration.current,
-      episodeLength: null,
-      episodeName: null,
-      episodeNumber: null,
-      seasonNumber: null,
-      isAnime: movieRef.current.is_anime,
-      releaseYear: null,
-    };
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      console.log("📝 Saving movie watch history", {
-        tmdbId: watchData.tmdbId,
-        providerId: watchData.providerId,
-        durationSec: watchData.durationSec,
-      });
-      fetch("/api/profile/history", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(watchData),
-        keepalive: true,
-      })
-        .then(async (res) => {
-          const payload = await res.json().catch(() => null);
-          if (!res.ok) {
-            console.error("❌ Movie watch history save failed", {
-              status: res.status,
-              payload,
-            });
-            return;
-          }
-          console.log("✅ Movie watch history saved", payload);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) return;
+        console.log("📝 Saving movie watch history", {
+          tmdbId: watchData.tmdbId,
+          providerId: watchData.providerId,
+          durationSec: watchData.durationSec,
+        });
+        fetch("/api/profile/history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(watchData),
+          keepalive: true,
         })
-        .catch((err) =>
-          console.error("❌ Failed to save movie watch history:", err),
-        );
-    });
-  }, [userId, movieId]);
+          .then(async (res) => {
+            const payload = await res.json().catch(() => null);
+            if (!res.ok) {
+              console.error("❌ Movie watch history save failed", {
+                status: res.status,
+                payload,
+              });
+              return;
+            }
+            console.log("✅ Movie watch history saved", payload);
+          })
+          .catch((err) =>
+            console.error("❌ Failed to save movie watch history:", err),
+          );
+      });
+    },
+    [userId, movieId],
+  );
 
   return {
     movie,

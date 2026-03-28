@@ -9,8 +9,6 @@ import {
 import { ProviderProp } from "@/src/props/global/provider";
 import { HistoryProp } from "@/src/props/profile/history";
 
-const WATCH_TIMER_INTERVAL = 1000;
-
 interface UseTVShowPlayerProps {
   tvShowId: string;
   userId: string | undefined;
@@ -34,8 +32,6 @@ export function useTVShowPlayer({
   const [activeServerIndex, setActiveServerIndex] =
     useState(initialServerIndex);
 
-  const watchDuration = useRef(0);
-  const watchTimer = useRef<NodeJS.Timeout | null>(null);
   const hasSavedWatch = useRef(false);
 
   const activeServerIndexRef = useRef(activeServerIndex);
@@ -112,87 +108,74 @@ export function useTVShowPlayer({
     if (tvShowId) fetchStreams();
   }, [tvShowId, selectedSeason, selectedEpisode]);
 
-  // Watch duration tracking
-  useEffect(() => {
-    watchTimer.current = setInterval(() => {
-      watchDuration.current += 1;
-    }, WATCH_TIMER_INTERVAL);
+  const saveWatchHistoryOnUnmount = useCallback(
+    (durationSec: number) => {
+      if (!userId || !tvShowRef.current || hasSavedWatch.current) {
+        return;
+      }
 
-    return () => {
-      if (watchTimer.current) clearInterval(watchTimer.current);
-    };
-  }, [userId, tvShowId]);
+      hasSavedWatch.current = true;
+      const providerId =
+        serversRef.current[activeServerIndexRef.current]?.id || "unknown";
 
-  const saveWatchHistoryOnUnmount = useCallback(() => {
-    if (
-      !userId ||
-      !tvShowRef.current ||
-      hasSavedWatch.current ||
-      watchDuration.current < 0
-    ) {
-      return;
-    }
+      const currentSeason = tvShowRef.current.seasons.find(
+        (s: TvPlayerSeason) => s.season_number === selectedSeasonRef.current,
+      );
+      const currentEpisode = currentSeason?.episodes?.find(
+        (e: TvPlayerEpisode) => e.episode_number === selectedEpisodeRef.current,
+      );
 
-    hasSavedWatch.current = true;
-    const providerId =
-      serversRef.current[activeServerIndexRef.current]?.id || "unknown";
+      const watchData: HistoryProp = {
+        tmdbId: parseInt(tvShowId),
+        title: tvShowRef.current.title,
+        backdropPath: null,
+        mediaType: MediaType.TV,
+        providerId,
+        durationSec: Math.floor(durationSec),
+        episodeLength: null,
+        episodeName: currentEpisode?.name ?? null,
+        episodeNumber: selectedEpisodeRef.current,
+        seasonNumber: selectedSeasonRef.current,
+        isAnime: tvShowRef.current.is_anime,
+        releaseYear: null,
+      };
 
-    const currentSeason = tvShowRef.current.seasons.find(
-      (s: TvPlayerSeason) => s.season_number === selectedSeasonRef.current,
-    );
-    const currentEpisode = currentSeason?.episodes?.find(
-      (e: TvPlayerEpisode) => e.episode_number === selectedEpisodeRef.current,
-    );
-
-    const watchData: HistoryProp = {
-      tmdbId: parseInt(tvShowId),
-      title: tvShowRef.current.title,
-      backdropPath: null,
-      mediaType: MediaType.TV,
-      providerId,
-      durationSec: watchDuration.current,
-      episodeLength: null,
-      episodeName: currentEpisode?.name ?? null,
-      episodeNumber: selectedEpisodeRef.current,
-      seasonNumber: selectedSeasonRef.current,
-      isAnime: tvShowRef.current.is_anime,
-      releaseYear: null,
-    };
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      console.log("📝 Saving TV watch history", {
-        tmdbId: watchData.tmdbId,
-        providerId: watchData.providerId,
-        seasonNumber: watchData.seasonNumber,
-        episodeNumber: watchData.episodeNumber,
-        durationSec: watchData.durationSec,
-      });
-      fetch("/api/profile/history", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(watchData),
-        keepalive: true,
-      })
-        .then(async (res) => {
-          const payload = await res.json().catch(() => null);
-          if (!res.ok) {
-            console.error("❌ TV watch history save failed", {
-              status: res.status,
-              payload,
-            });
-            return;
-          }
-          console.log("✅ TV show watch history saved", payload);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) return;
+        console.log("📝 Saving TV watch history", {
+          tmdbId: watchData.tmdbId,
+          providerId: watchData.providerId,
+          seasonNumber: watchData.seasonNumber,
+          episodeNumber: watchData.episodeNumber,
+          durationSec: watchData.durationSec,
+        });
+        fetch("/api/profile/history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(watchData),
+          keepalive: true,
         })
-        .catch((err) =>
-          console.error("❌ Failed to save TV show watch history:", err),
-        );
-    });
-  }, [userId, tvShowId]);
+          .then(async (res) => {
+            const payload = await res.json().catch(() => null);
+            if (!res.ok) {
+              console.error("❌ TV watch history save failed", {
+                status: res.status,
+                payload,
+              });
+              return;
+            }
+            console.log("✅ TV show watch history saved", payload);
+          })
+          .catch((err) =>
+            console.error("❌ Failed to save TV show watch history:", err),
+          );
+      });
+    },
+    [userId, tvShowId],
+  );
 
   // Derive episodes from tvShow data for the selected season
   const episodes = useMemo((): TvPlayerEpisode[] => {

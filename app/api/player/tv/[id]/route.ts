@@ -5,6 +5,8 @@ import type { TvPlayerProp } from "@/src/props/tv/tvPlayer";
 
 export const dynamic = "force-dynamic";
 
+// GET /api/player/tv/[id]
+// Fetches the TV player data for a TV show
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

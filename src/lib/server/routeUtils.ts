@@ -1,25 +1,18 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 
-/**
- * Extracts a valid "Bearer <token>" Authorization header from an incoming Request.
- * Returns null if the header is absent or malformed.
- */
+// Extracts a valid "Bearer <token>" Authorization header from an incoming Request.
 export function getAuthHeader(request: Request): string | null {
   const header = request.headers.get("Authorization");
   return header?.startsWith("Bearer ") ? header : null;
 }
 
-/** Standard 401 Unauthorized response. */
+// Standard 401 Unauthorized response.
 export function unauthorizedResponse() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-/**
- * Converts an Axios or unknown error into a NextResponse.
- * - Axios errors: forwards the backend status (clamped to ≥400) and message.
- * - Unknown errors: returns 500 Internal Server Error.
- */
+// Converts an Axios or unknown error into a NextResponse.
 export function handleBackendError(error: unknown, fallbackMessage: string) {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status ?? 502;
@@ -31,10 +24,7 @@ export function handleBackendError(error: unknown, fallbackMessage: string) {
   return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 }
 
-/**
- * Parses the request JSON body. Returns the parsed value, or a 400 NextResponse
- * on parse failure. The caller must check for NextResponse using `instanceof`.
- */
+// Parses the request JSON body. Returns the parsed value, or a 400 NextResponse
 export async function parseJsonBody<T>(
   request: Request,
 ): Promise<T | NextResponse> {
@@ -48,10 +38,7 @@ export async function parseJsonBody<T>(
   }
 }
 
-/**
- * Forwards a non-200 backend response status/message as a NextResponse.
- * Returns null if the status is acceptable (i.e., within successStatuses).
- */
+// Forwards a non-200 backend response status/message as a NextResponse.
 export function handleNonSuccessStatus(
   status: number,
   data: Record<string, unknown>,

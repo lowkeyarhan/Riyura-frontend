@@ -5,6 +5,8 @@ import type { ProviderProp } from "@/src/props/global/provider";
 
 export const dynamic = "force-dynamic";
 
+// POST /api/stream/tv
+// Fetches the stream URLs for a TV show
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");

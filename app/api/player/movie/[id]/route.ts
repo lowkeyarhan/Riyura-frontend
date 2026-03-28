@@ -5,6 +5,8 @@ import type { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
 
 export const dynamic = "force-dynamic";
 
+// GET /api/player/movie/[id]
+// Fetches the movie player data for a movie
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

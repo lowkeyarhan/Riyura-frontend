@@ -107,6 +107,118 @@ const PARTICIPANTS = [
   { name: "Omar", color: "#F59E0B" },
 ];
 
+function IconSync() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M23 4v6h-6" />
+      <path d="M1 20v-6h6" />
+      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+    </svg>
+  );
+}
+
+function IconForceSync() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+function IconLock() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0110 0v4" />
+    </svg>
+  );
+}
+
+function IconLoader() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+    </svg>
+  );
+}
+
+function IconStop() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+    </svg>
+  );
+}
+
+// ─── Simple Control Button ────────────────────────────────────────────────────
+
+function ControlButton({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex items-center gap-2.5 px-3.5 py-3 rounded-2xl transition-all w-full"
+      style={{
+        backgroundColor: hovered ? "#EBEBEB" : "#F5F5F5",
+        border: "1px solid #EBEBEB",
+      }}
+    >
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "#E5E7EB", color: "#6B7280" }}
+      >
+        {icon}
+      </div>
+      <span className="text-md font-semibold text-gray-700 leading-tight">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function renderText(text: string) {
@@ -120,6 +232,7 @@ function renderText(text: string) {
 export default function PartyMoviePage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [chatInput, setChatInput] = useState("");
+  const [isBuffering, setIsBuffering] = useState(false);
 
   return (
     <PlayerLayout>
@@ -186,47 +299,53 @@ export default function PartyMoviePage() {
 
         {/* ─── RIGHT: Sidebar ─── */}
         <div className="w-full max-w-[30%] flex flex-col gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
-          {/* Host Controls */}
-          <div className="bg-[#10121880] backdrop-blur-lg border border-white/5 rounded-[2rem] p-5 shadow-2xl flex-shrink-0 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] pointer-events-none" />
-            <div className="flex items-center justify-between mb-5 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/20 text-orange-500 flex items-center justify-center">
-                  <Shield size={20} />
-                </div>
-                <div>
-                  <h2
-                    className="text-lg font-bold text-white tracking-wide leading-tight"
-                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                  >
-                    Host Controls
-                  </h2>
-                  <p className="text-xs text-white/50 font-medium">
-                    Manage party settings
-                  </p>
-                </div>
+          <div
+            className="rounded-[2rem] p-5 shadow-2xl flex-shrink-0"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #EBEBEB" }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-2.5 mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 leading-tight">
+                  Host Controls
+                </h2>
+                <p className="text-sm text-gray-400 font-medium">
+                  Party playback settings
+                </p>
               </div>
-              <button className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">
-                <Settings size={18} />
-              </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 relative z-10">
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 transition-all group">
-                <div className="p-2 rounded-full bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform">
-                  <Users size={18} />
+
+            {/* Controls Grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Buffering — toggleable */}
+              <button
+                onClick={() => setIsBuffering(!isBuffering)}
+                className="flex items-center gap-2.5 px-3.5 py-3 rounded-2xl transition-all"
+                style={{
+                  backgroundColor: isBuffering ? "#FEF2F2" : "#F5F5F5",
+                  border: `1px solid ${isBuffering ? "#FECACA" : "#EBEBEB"}`,
+                }}
+              >
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
+                  style={{
+                    backgroundColor: isBuffering ? "#FECACA" : "#E5E7EB",
+                    color: isBuffering ? "#DC2626" : "#6B7280",
+                  }}
+                >
+                  {isBuffering ? <IconStop /> : <IconLoader />}
                 </div>
-                <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">
-                  Manage Guests
+                <span
+                  className="text-md font-semibold leading-tight transition-colors whitespace-nowrap"
+                  style={{ color: isBuffering ? "#DC2626" : "#374151" }}
+                >
+                  {isBuffering ? "Stop Buffering" : "Buffering"}
                 </span>
               </button>
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 transition-all group">
-                <div className="p-2 rounded-full bg-green-500/10 text-green-400 group-hover:scale-110 transition-transform">
-                  <MicOff size={18} />
-                </div>
-                <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">
-                  Mute All
-                </span>
-              </button>
+
+              <ControlButton icon={<IconSync />} label="Sync" />
+              <ControlButton icon={<IconForceSync />} label="Force Sync" />
+              <ControlButton icon={<IconLock />} label="Strict" />
             </div>
           </div>
 

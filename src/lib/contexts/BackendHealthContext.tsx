@@ -21,9 +21,9 @@ interface BackendHealthContextType {
   retry: () => void;
 }
 
-const BackendHealthContext = createContext<BackendHealthContextType | undefined>(
-  undefined,
-);
+const BackendHealthContext = createContext<
+  BackendHealthContextType | undefined
+>(undefined);
 
 export function BackendHealthProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();

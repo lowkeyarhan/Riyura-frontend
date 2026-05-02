@@ -21,11 +21,7 @@ export function SearchResultCard({ item, onClick }: SearchResultCardProps) {
   const getLanguage = () =>
     item.original_language ? item.original_language.toUpperCase() : "";
 
-  const metadataItems = [
-    getMediaTypeLabel(),
-    item.release_year,
-    getLanguage(),
-  ]
+  const metadataItems = [getMediaTypeLabel(), item.release_year, getLanguage()]
     .filter(Boolean)
     .join(" • ");
 

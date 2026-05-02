@@ -9,7 +9,9 @@ interface TrendingCardProps {
 }
 
 const getImageUrl = (posterPath: string) =>
-  posterPath.startsWith("http") ? posterPath : `https://image.tmdb.org/t/p/w780${posterPath}`;
+  posterPath.startsWith("http")
+    ? posterPath
+    : `https://image.tmdb.org/t/p/w780${posterPath}`;
 
 export function TrendingCard({ item, onClick }: TrendingCardProps) {
   const isMovie = item.media_type === MediaType.Movie;

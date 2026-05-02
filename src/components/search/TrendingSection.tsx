@@ -35,22 +35,22 @@ export function TrendingSection({
       <div className="grid grid-cols-1 gap-4 sm:gap-7 md:grid-cols-2 xl:grid-cols-3">
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
-            <TrendingCardSkeleton key={`skeleton-${i}`} />
-          ))
+              <TrendingCardSkeleton key={`skeleton-${i}`} />
+            ))
           : items.map((item) => {
-            const isMovie = item.media_type === MediaType.Movie;
-            const href = isMovie
-              ? `/details/movie/${item.tmdbId}`
-              : `/details/tvshow/${item.tmdbId}`;
+              const isMovie = item.media_type === MediaType.Movie;
+              const href = isMovie
+                ? `/details/movie/${item.tmdbId}`
+                : `/details/tvshow/${item.tmdbId}`;
 
-            return (
-              <TrendingCard
-                key={`${item.tmdbId}-${item.media_type}`}
-                item={item}
-                onClick={() => onCardClick(href)}
-              />
-            );
-          })}
+              return (
+                <TrendingCard
+                  key={`${item.tmdbId}-${item.media_type}`}
+                  item={item}
+                  onClick={() => onCardClick(href)}
+                />
+              );
+            })}
       </div>
     </section>
   );

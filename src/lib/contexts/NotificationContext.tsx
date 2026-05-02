@@ -32,7 +32,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   // Track pending auto-dismiss timeouts so we can clear them on unmount
-  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
 
   // Clear all pending timeouts when the provider unmounts
   useEffect(() => {

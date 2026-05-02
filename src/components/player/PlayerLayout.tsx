@@ -5,7 +5,6 @@ interface PlayerLayoutProps {
 }
 
 export function PlayerLayout({ children }: PlayerLayoutProps) {
-
   return (
     <div className="w-full bg-black text-white font-sans">
       {/* --- ATMOSPHERE --- */}

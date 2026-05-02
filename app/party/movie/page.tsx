@@ -21,6 +21,7 @@ import {
   RotateCcw,
   RotateCw,
   Info,
+  Smile,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -239,7 +240,6 @@ function renderText(text: string) {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function PartyMoviePage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [chatInput, setChatInput] = useState("");
@@ -247,7 +247,14 @@ export default function PartyMoviePage() {
 
   return (
     <PlayerLayout>
-      <div className="min-h-screen relative z-10 flex flex-col bg-linear-to-b from-orange-500/30 to-cyan-500/30 lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4">
+      <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 ">
+        <Image
+          src="/watch_party_page_temp_bg.jpg"
+          alt="Mock WatchPartyPage Background"
+          fill
+          className="object-cover absolute inset-0 -z-10 opacity-20"
+          priority
+        />
         {/* ─── LEFT: Cinema Player ─── */}
         <div className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto bg-black">
           <Image
@@ -436,26 +443,27 @@ export default function PartyMoviePage() {
                 <p className="text-white/50 text-xs">Share party link</p>
               </div>
             </div>
-            <button className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium hover:scale-105 transition-transform shadow-[0_0_20px_rgba(232,71,10,0.4)]">
+            <button className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium cursor-pointer transition-transform shadow-[0_0_20px_rgba(232,71,10,0.4)]">
               Copy
             </button>
           </div>
 
           {/* ─── Chat Panel ─── */}
           <div
-            className="flex-1 flex flex-col overflow-hidden rounded-[2rem] shadow-2xl"
+            className="flex-1 flex flex-col overflow-hidden rounded-[2rem] apple-glass shadow-2xl"
             style={{
-              backgroundColor: "#F5F5F5",
+              // backgroundColor: "#F5F5F5",
               fontFamily:
                 '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
             }}
           >
             {/* Header */}
             <div
-              className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+              className="flex items-center justify-between px-2 py-3 m-2 rounded-[1.5rem] flex-shrink-0"
               style={{
-                backgroundColor: "#FFFFFF",
-                borderBottom: "1px solid #EBEBEB",
+                border: "1px solid rgba(255, 255, 255, 0.05)",
+                boxShadow:
+                  "inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 20px 40px rgba(0, 0, 0, 0.3)",
               }}
             >
               <div
@@ -490,14 +498,14 @@ export default function PartyMoviePage() {
             {/* Messages */}
             <div
               className="flex-1 overflow-y-auto px-5 py-4 space-y-5"
-              style={{ backgroundColor: "#F5F5F5" }}
+              // style={{ backgroundColor: "#F5F5F5" }}
             >
               {MESSAGES.map((msg) => {
                 // ── Event bubble (WhatsApp-style) ──
                 if (msg.type === "event") {
                   return (
                     <div key={msg.id} className="flex justify-center">
-                      <span className="text-[11.5px] font-medium text-gray-500 bg-black/[0.06] px-3 py-1 rounded-full leading-tight">
+                      <span className="text-[11.5px] font-medium text-white-500 bg-black/30 px-3 py-1 rounded-full leading-tight">
                         {msg.text}
                       </span>
                     </div>
@@ -506,26 +514,23 @@ export default function PartyMoviePage() {
 
                 // ── Regular chat message ──
                 return (
-                  <div key={msg.id} className="flex items-start gap-3">
+                  <div key={msg.id} className="flex items-start gap-2">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-[15px] flex-shrink-0"
                       style={{ backgroundColor: msg.avatarColor }}
                     >
                       {msg.sender[0]}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 -mt-1">
                       <div className="flex items-baseline gap-2">
-                        <span
-                          className="text-[14px] font-semibold"
-                          style={{ color: msg.nameColor }}
-                        >
+                        <span className="text-[14px] font-semibold">
                           {msg.sender}
                         </span>
                         <span className="text-[12px] text-gray-400">
                           {msg.time}
                         </span>
                       </div>
-                      <p className="text-[14px] text-gray-800 leading-[1.55] mt-0.5">
+                      <p className="text-[14px] text-white/80 leading-[1.55] mt-0.5">
                         {renderText(msg.text)}
                       </p>
                     </div>
@@ -535,14 +540,14 @@ export default function PartyMoviePage() {
             </div>
 
             {/* Input Bar */}
-            <div
-              className="px-4 py-3 flex-shrink-0 flex items-center gap-3 w-full"
-              style={{ backgroundColor: "#F5F5F5" }}
-            >
-              <div
-                className="flex items-center gap-3 rounded-full px-4 py-3 w-full"
-                style={{ backgroundColor: "#EBEBEB" }}
-              >
+            <div className="px-3 py-3 flex-shrink-0 flex items-center gap-3 w-full ">
+              <div className="flex items-center gap-1 rounded-full pl-3 pr-4 py-2 w-full apple-glass">
+                <button
+                  type="button"
+                  className="p-1 text-gray-400 hover:text-white/80 transition-colors flex-shrink-0 focus:outline-none"
+                >
+                  <Smile size={22} className="stroke-[1.5]" />
+                </button>
                 <input
                   type="text"
                   value={chatInput}
@@ -551,7 +556,7 @@ export default function PartyMoviePage() {
                     if (e.key === "Enter" && chatInput.trim()) setChatInput("");
                   }}
                   placeholder="Say something..."
-                  className="flex-1 bg-transparent text-[14px] text-gray-700 placeholder:text-gray-400 outline-none min-w-0"
+                  className="flex-1 bg-transparent text-[14px] text-white/80 placeholder:text-gray-400 outline-none min-w-0"
                   style={{ fontFamily: "inherit" }}
                 />
               </div>
@@ -559,9 +564,9 @@ export default function PartyMoviePage() {
                 onClick={() => {
                   if (chatInput.trim()) setChatInput("");
                 }}
-                className="h-12 w-12 rounded-full bg-black/80 flex items-center justify-center hover:bg-black transition-colors flex-shrink-0"
+                className="h-full px-4 rounded-full cursor-pointer flex items-center justify-center transition-colors flex-shrink-0 apple-glass"
               >
-                <Send size={25} strokeWidth={1.5} className="text-white" />
+                Send
               </button>
             </div>
           </div>

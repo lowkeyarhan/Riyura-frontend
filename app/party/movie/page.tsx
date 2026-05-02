@@ -10,6 +10,17 @@ import {
   Play,
   Pause,
   MicOff,
+  UserPlus,
+  Type,
+  FastForward,
+  Link as LinkIcon,
+  Upload,
+  Download,
+  Loader2,
+  Lock,
+  RotateCcw,
+  RotateCw,
+  Info,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -236,9 +247,9 @@ export default function PartyMoviePage() {
 
   return (
     <PlayerLayout>
-      <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4">
+      <div className="min-h-screen relative z-10 flex flex-col bg-linear-to-b from-orange-500/30 to-cyan-500/30 lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4">
         {/* ─── LEFT: Cinema Player ─── */}
-        <div className="flex-1 flex flex-col rounded-[2rem] max-w-[70%] overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto bg-black">
+        <div className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto bg-black">
           <Image
             src="/landing-page/perf_card_3.png"
             alt="Mock Player Background"
@@ -298,55 +309,136 @@ export default function PartyMoviePage() {
         </div>
 
         {/* ─── RIGHT: Sidebar ─── */}
-        <div className="w-full max-w-[30%] flex flex-col gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
-          <div
-            className="rounded-[2rem] p-5 shadow-2xl flex-shrink-0"
-            style={{ backgroundColor: "#FFFFFF", border: "1px solid #EBEBEB" }}
-          >
-            {/* Header */}
-            <div className="flex items-center gap-2.5 mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 leading-tight">
-                  Host Controls
-                </h2>
-                <p className="text-sm text-gray-400 font-medium">
-                  Party playback settings
-                </p>
+        <div className="w-full max-w-[25%] flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
+          {/* Host Controls Grid (Apple Control Center Style) */}
+          <div className="grid grid-cols-5 grid-rows-3 gap-3 flex-shrink-0">
+            {/* Row 1, Col 1: Push Sync */}
+            <button className="apple-glass col-span-2 row-span-1 bg-black/20 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ">
+              <div className="w-[37%] h-[50px] rounded-full bg-white/20 group-hover:bg-white/30 flex flex-shrink-0 items-center justify-center transition-colors shadow-inner">
+                <Upload size={25} strokeWidth={2} className="text-white" />
+              </div>
+              <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-1">
+                <span className="text-[13px] text-white font-bold leading-tight tracking-wide truncate block">
+                  Host sync
+                </span>
+                <span className="text-[11px] text-white/50 font-medium leading-tight mt-0.5 tracking-wide block">
+                  Push
+                </span>
+              </div>
+            </button>
+
+            {/* Row 1/2, Col 2/3: Now Watching */}
+            <div className="apple-glass col-span-3 row-span-2 rounded-[32px] p-4 flex flex-col justify-between relative overflow-hidden">
+              <div className="flex gap-3 items-start relative z-10 w-full mt-1">
+                <div className="w-12 h-12 rounded-lg overflow-hidden relative flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                  <Image
+                    src="/landing-page/perf_card_3.png"
+                    alt="Now Playing"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <h3 className="text-white font-bold text-[14px] leading-tight truncate tracking-wide">
+                    Darkhaast [Slowe...
+                  </h3>
+                  <p className="text-white/60 text-[12px] truncate mt-1 tracking-wide font-medium uppercase">
+                    REVIBE
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-center items-center gap-6 relative z-10 mt-3 pb-1">
+                <button className="text-white/60 hover:text-white transition-colors">
+                  <RotateCcw size={20} strokeWidth={2.5} />
+                </button>
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className="text-white transition-transform hover:scale-105"
+                >
+                  {isPlaying ? (
+                    <Pause size={32} fill="currentColor" />
+                  ) : (
+                    <Play
+                      size={32}
+                      fill="currentColor"
+                      className="translate-x-0.5"
+                    />
+                  )}
+                </button>
+                <button className="text-white/60 hover:text-white transition-colors">
+                  <RotateCw size={20} strokeWidth={2.5} />
+                </button>
               </div>
             </div>
 
-            {/* Controls Grid */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Buffering — toggleable */}
-              <button
-                onClick={() => setIsBuffering(!isBuffering)}
-                className="flex items-center gap-2.5 px-3.5 py-3 rounded-2xl transition-all"
-                style={{
-                  backgroundColor: isBuffering ? "#FEF2F2" : "#F5F5F5",
-                  border: `1px solid ${isBuffering ? "#FECACA" : "#EBEBEB"}`,
-                }}
-              >
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
-                  style={{
-                    backgroundColor: isBuffering ? "#FECACA" : "#E5E7EB",
-                    color: isBuffering ? "#DC2626" : "#6B7280",
-                  }}
-                >
-                  {isBuffering ? <IconStop /> : <IconLoader />}
-                </div>
-                <span
-                  className="text-md font-semibold leading-tight transition-colors whitespace-nowrap"
-                  style={{ color: isBuffering ? "#DC2626" : "#374151" }}
-                >
-                  {isBuffering ? "Stop Buffering" : "Buffering"}
+            {/* Row 2, Col 1: Buffering */}
+            <button className="apple-glass col-span-2 row-span-1 bg-black/20 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ">
+              <div className="w-[35%] h-[50px] rounded-full bg-white/20 group-hover:bg-white/30 flex flex-shrink-0 items-center justify-center transition-colors shadow-inner">
+                <Loader2 size={25} strokeWidth={2} className="text-white" />
+              </div>
+              <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-1">
+                <span className="text-[13px] text-white font-bold leading-tight tracking-wide truncate block">
+                  Buffering
                 </span>
-              </button>
+                <span className="text-[11px] text-white/50 font-medium leading-tight mt-0.5 tracking-wide block">
+                  Off
+                </span>
+              </div>
+            </button>
 
-              <ControlButton icon={<IconSync />} label="Sync" />
-              <ControlButton icon={<IconForceSync />} label="Force Sync" />
-              <ControlButton icon={<IconLock />} label="Strict" />
+            {/* Row 3, Col 1: Strict */}
+            <button className="apple-glass col-span-2 row-span-1 bg-black/20 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ">
+              <div className="w-[35%] h-[50px] rounded-full bg-[#ff571e]/90 group-hover:bg-[#ff571e] flex flex-shrink-0 items-center justify-center transition-colors shadow-[0_0_10px_rgba(255,87,30,0.5)]">
+                <Lock size={25} strokeWidth={2} className="text-white" />
+              </div>
+              <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-1">
+                <span className="text-[13px] text-white font-bold leading-tight tracking-wide truncate block">
+                  Strict
+                </span>
+                <span className="text-[11px] text-white/90 font-medium leading-tight mt-0.5 tracking-wide block">
+                  On
+                </span>
+              </div>
+            </button>
+
+            {/* Row 3, Col 2: Request Sync */}
+            <button className="apple-glass col-span-2 row-span-1 bg-black/20 hover:bg-black/30 transition-all rounded-full flex  items-center justify-start p-2 gap-1 relative z-10">
+              <div className="w-[35%] h-[50px] rounded-full bg-white/20 group-hover:bg-white/30 flex flex-shrink-0 items-center justify-center transition-colors">
+                <Download size={25} strokeWidth={2} className="text-white" />
+              </div>
+              <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-1">
+                <span className="text-[13px] text-white font-bold leading-tight tracking-wide truncate block">
+                  Player sync
+                </span>
+                <span className="text-[11px] text-white/90 font-medium leading-tight mt-0.5 tracking-wide block">
+                  Request
+                </span>
+              </div>
+            </button>
+
+            {/* Row 3, Col 3: Info */}
+            <button className="apple-glass col-span-1 row-span-1 transition-all rounded-full flex flex-col items-center justify-center p-2 gap-1 group shadow-[0_8px_32px_rgba(0,0,0,0.2)] relative z-10 w-full h-full">
+              <Info size={25} strokeWidth={2} className="text-white" />
+            </button>
+          </div>
+
+          {/* Middle Card: Invite People */}
+          <div className="rounded-[32px] apple-glass p-4 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                <LinkIcon size={18} className="text-[#ff571e]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white text-sm">
+                  Invite Friends
+                </h3>
+                <p className="text-white/50 text-xs">Share party link</p>
+              </div>
             </div>
+            <button className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium hover:scale-105 transition-transform shadow-[0_0_20px_rgba(232,71,10,0.4)]">
+              Copy
+            </button>
           </div>
 
           {/* ─── Chat Panel ─── */}

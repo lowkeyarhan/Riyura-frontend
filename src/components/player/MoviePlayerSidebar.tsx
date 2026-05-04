@@ -1,7 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Wifi, Info, Server, Users, Link as LinkIcon } from "lucide-react";
-import { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
-import { ProviderProp } from "@/src/props/global/provider";
+import { Wifi, Info, Link as LinkIcon } from "lucide-react";
+import type { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
+import type { ProviderProp } from "@/src/props/global/provider";
 
 const PARTY_AVATARS = [
   { label: "S", color: "#F97316" },
@@ -62,6 +65,7 @@ const ServerRow = ({
 );
 
 const CreatePartyCard = ({ movie }: { movie: MoviePlayerProp | null }) => {
+  const [isConfirming, setIsConfirming] = useState(false);
   const partyHref = movie?.tmdbId
     ? `/party/movie?movie=${movie.tmdbId}`
     : "/party/movie";
@@ -100,13 +104,31 @@ const CreatePartyCard = ({ movie }: { movie: MoviePlayerProp | null }) => {
           </div>
         </div>
 
-        <Link
-          href={partyHref}
+        <button
+          type="button"
+          onClick={() => setIsConfirming(true)}
+          aria-expanded={isConfirming}
           className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-semibold cursor-pointer transition-all hover:scale-[1.03] hover:bg-[#ff571e] shadow-[0_0_20px_rgba(232,71,10,0.4)] flex items-center gap-2 whitespace-nowrap"
         >
           <LinkIcon size={15} />
           Create
-        </Link>
+        </button>
+      </div>
+
+      <div
+        className={`relative z-10 overflow-hidden transition-all duration-300 ease-out ${
+          isConfirming ? "max-h-14 pt-3 opacity-100" : "max-h-0 pt-0 opacity-0"
+        }`}
+      >
+        <div className="flex h-11 items-center justify-between gap-3 rounded-full border border-white/[0.08] bg-black/20 px-3 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <p className="text-xs font-semibold text-white/85">Are you sure?</p>
+          <Link
+            href={partyHref}
+            className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-black transition hover:bg-white/90"
+          >
+            Yes
+          </Link>
+        </div>
       </div>
     </div>
   );

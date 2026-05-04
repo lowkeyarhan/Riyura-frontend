@@ -17,3 +17,14 @@ export type {
   TvPlayerSeason,
   TvPlayerEpisode,
 } from "./tv/tvPlayer";
+export type {
+  CreatePartyRequest,
+  CreatePartyResponse,
+  WatchPartyChatMessage,
+  WatchPartyState,
+  WatchPartyStateResponse,
+  WatchPartyEventType,
+  WatchPartyEvent,
+  SyncAction,
+  SyncPayload,
+} from "./party/watchParty";

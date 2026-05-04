@@ -1,6 +1,13 @@
 import { useState } from "react";
 import Image from "next/image";
-import { Search, LayoutGrid, List, PlayCircle } from "lucide-react";
+import {
+  Search,
+  Filter,
+  ArrowUpDown,
+  Play,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 import { TvPlayerEpisode, TvPlayerSeason } from "@/src/props/tv/tvPlayer";
 
 interface EpisodeBrowserProps {
@@ -13,7 +20,9 @@ interface EpisodeBrowserProps {
 }
 
 const getImageUrl = (path: string | null, w: number) =>
-  path ? `https://image.tmdb.org/t/p/w${w}${path}` : "/placeholder.jpg";
+  path
+    ? `https://image.tmdb.org/t/p/w${w}${path}`
+    : "/images/placeholder-poster.png";
 
 export function EpisodeBrowser({
   validSeasons,
@@ -23,13 +32,8 @@ export function EpisodeBrowser({
   onSeasonChange,
   onEpisodeChange,
 }: EpisodeBrowserProps) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth < 768 ? "list" : "grid";
-    }
-    return "grid";
-  });
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const filteredEpisodes = episodes.filter(
     (ep) =>
@@ -37,232 +41,157 @@ export function EpisodeBrowser({
       ep.episode_number.toString().includes(searchQuery),
   );
 
-  const handleEpisodeClick = (episodeNumber: number) => {
-    onEpisodeChange(episodeNumber);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const currentSeasonBlock = validSeasons.find(
+    (s) => s.season_number === selectedSeason,
+  );
 
   return (
-    <div className="relative z-10 px-4 md:px-8 lg:px-12 pb-16 max-w-[1920px] mx-auto">
-      <div className="flex flex-col bg-[#1518215f] border border-white/5 rounded-3xl overflow-hidden shadow-xl h-auto min-h-[300px]">
-        {/* Header */}
-        <div className="p-4 md:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest">
-              Seasons and episodes
-            </h3>
-            <div className="flex-1 flex justify-center">
-              <div className="relative w-full max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#29292930] border border-white/10 rounded-2xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/20"
-                />
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/40" />
-              </div>
-            </div>
-            <div className="flex rounded-lg p-0.5 border border-white/5">
+    <div className="flex flex-1 gap-6 md:flex-row flex-col w-full mx-auto px-4 md:px-8 lg:px-12 mb-8 font-sans">
+      {/* Sidebar */}
+      <aside className="apple-glass w-full md:w-64 flex flex-col gap-6 p-4 rounded-[24px] flex-shrink-0">
+        <nav className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] scrollbar-thin scrollbar-thumb-white/10">
+          {validSeasons.map((season) => {
+            const isActive = selectedSeason === season.season_number;
+            return (
+              <button
+                key={season.season_number}
+                onClick={() => onSeasonChange(season.season_number)}
+                className={`flex items-center bg-white/[0.06] justify-between px-4 py-3 rounded-full text-sm font-medium border ${isActive ? "border-[#ffffff80]" : "border-none hover:bg-white/[0.08]"}`}
+              >
+                <span>{season.name}</span>
+                <span className="text-white/40 text-xs">
+                  {season.episode_count} Episodes
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 rounded-[2rem] pt-4 pb-6 px-6 flex flex-col gap-8 apple-glass">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold text-white tracking-tight">
+              {currentSeasonBlock?.name || `Season ${selectedSeason}`}
+            </h1>
+            <p className="text-white/40 mt-1 text-sm">
+              {currentSeasonBlock?.overview
+                ? currentSeasonBlock.overview
+                : "Select an episode to start watching."}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <div
+              className="flex items-center rounded-full bg-white/[0.04] p-1 h-10"
+              style={{
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md transition ${
+                className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
                   viewMode === "grid"
-                    ? "bg-white/10 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? "bg-white/10 text-white"
+                    : "text-white/40 hover:text-white"
                 }`}
               >
-                <LayoutGrid size={14} />
+                <LayoutGrid size={16} />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md transition ${
+                className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
                   viewMode === "list"
-                    ? "bg-white/10 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? "bg-white/10 text-white"
+                    : "text-white/40 hover:text-white"
                 }`}
               >
-                <List size={14} />
+                <List size={16} />
               </button>
             </div>
-          </div>
-        </div>
-
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-[240px_1fr] h-auto">
-          {/* Sidebar: Seasons */}
-          <div className="pt-2 px-4 md:px-6 pb-4 md:pb-6 h-auto md:h-full md:max-h-[800px] overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 border-b md:border-b-0 md:border-r border-white/5 mb-4 md:mb-0 flex-shrink-0">
-            <div className="flex flex-row md:flex-col gap-3 md:gap-4 min-w-max md:min-w-0">
-              {validSeasons.map((season: TvPlayerSeason) => {
-                const isActive = selectedSeason === season.season_number;
-                return (
-                  <button
-                    key={season.season_number}
-                    onClick={() => onSeasonChange(season.season_number)}
-                    className={`
-                      w-40 md:w-full flex items-center gap-3 p-2 rounded-lg border border-white/5 transition-all group text-left relative overflow-hidden flex-shrink-0
-                      ${
-                        isActive
-                          ? "bg-white/5 border border-orange-500/30"
-                          : "hover:bg-white/5 border border-transparent"
-                      }
-                    `}
-                  >
-                    {isActive && (
-                      <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-orange-500 rounded-r-full" />
-                    )}
-
-                    <div className="relative w-8 h-11 flex-shrink-0 overflow-hidden rounded bg-black shadow-sm">
-                      <Image
-                        src={getImageUrl(season.poster_path, 200)}
-                        alt={`S${season.season_number}`}
-                        fill
-                        className={`object-cover ${
-                          isActive
-                            ? "opacity-100"
-                            : "opacity-70 group-hover:opacity-100"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <span
-                        className={`text-xs font-bold block ${
-                          isActive
-                            ? "text-white"
-                            : "text-gray-400 group-hover:text-white"
-                        }`}
-                      >
-                        Season {season.season_number}
-                      </span>
-                      <span className="text-[10px] text-gray-600 font-medium">
-                        {season.episode_count} Eps
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+            <div
+              className="flex w-64 items-stretch rounded-full overflow-hidden h-10"
+              style={{
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <div className="text-white/50 flex items-center justify-center pl-4 pr-2">
+                <Search size={16} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search episode..."
+                className="w-full bg-transparent border-none text-white focus:ring-0 placeholder:text-white/40 px-2 text-sm outline-none"
+              />
             </div>
           </div>
-
-          {/* Main: Episodes */}
-          <div className="pt-2 px-4 md:px-6 pb-4 md:pb-6 h-auto md:border-l border-white/5">
-            {viewMode === "grid" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
-                {filteredEpisodes.map((ep) => {
-                  const isSelected = selectedEpisode === ep.episode_number;
-                  return (
-                    <div
-                      key={ep.episode_number}
-                      onClick={() => handleEpisodeClick(ep.episode_number)}
-                      className={`group relative rounded-lg overflow-hidden cursor-pointer border transition-all ${
-                        isSelected
-                          ? "border-orange-500/50 shadow-lg ring-1 ring-orange-500/20"
-                          : "border-white/5 hover:border-white/20 hover:bg-[#1a1d29]"
-                      }`}
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative aspect-video bg-black">
-                        <Image
-                          src={getImageUrl(ep.still_path, 400)}
-                          alt={`${ep.name}`}
-                          fill
-                          className="object-cover opacity-80 group-hover:opacity-100 transition duration-500"
-                        />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition" />
-                        {isSelected && (
-                          <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
-                            <PlayCircle className="text-white drop-shadow-lg w-10 h-10" />
-                          </div>
-                        )}
-                        <span className="absolute top-1.5 left-1.5 bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10">
-                          E{ep.episode_number}
-                        </span>
-                      </div>
-                      {/* Info */}
-                      <div className="p-2.5 bg-[#0f1115]">
-                        <h4
-                          className={`text-xs font-bold line-clamp-1 mb-1 ${
-                            isSelected
-                              ? "text-orange-400"
-                              : "text-gray-200 group-hover:text-white"
-                          }`}
-                        >
-                          {ep.name}
-                        </h4>
-                        <div className="text-[10px] text-gray-600 font-medium text-right">
-                          {ep.air_date
-                            ? new Date(ep.air_date).toLocaleDateString()
-                            : ""}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {filteredEpisodes.map((ep) => {
-                  const isSelected = selectedEpisode === ep.episode_number;
-                  return (
-                    <div
-                      key={ep.episode_number}
-                      onClick={() => handleEpisodeClick(ep.episode_number)}
-                      className={`flex gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
-                        isSelected
-                          ? "bg-white/5 border-orange-500/30"
-                          : "hover:bg-white/5 border-white/5"
-                      }`}
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative w-28 h-16 rounded bg-black flex-shrink-0 overflow-hidden border border-white/5">
-                        <Image
-                          src={getImageUrl(ep.still_path, 300)}
-                          alt={ep.name}
-                          fill
-                          className="object-cover"
-                        />
-                        {isSelected && (
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <PlayCircle className="w-6 h-6 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      {/* Info */}
-                      <div className="flex flex-col justify-center min-w-0 py-0.5">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-px rounded ${
-                              isSelected
-                                ? "bg-orange-500 text-black"
-                                : "bg-white/10 text-gray-300"
-                            }`}
-                          >
-                            E{ep.episode_number}
-                          </span>
-                          <span className="text-[10px] text-gray-500 font-medium">
-                            {ep.air_date}
-                          </span>
-                        </div>
-                        <span
-                          className={`text-sm font-bold truncate ${
-                            isSelected
-                              ? "text-orange-400"
-                              : "text-gray-200 group-hover:text-white"
-                          }`}
-                        >
-                          {ep.name}
-                        </span>
-                        <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">
-                          {ep.overview}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
-      </div>
+
+        <div
+          className={
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+              : "flex flex-col gap-4"
+          }
+        >
+          {filteredEpisodes.map((ep) => {
+            const isActive = selectedEpisode === ep.episode_number;
+            return (
+              <div
+                key={ep.episode_number}
+                onClick={() => {
+                  onEpisodeChange(ep.episode_number);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={`bg-white/[0.06] border ${isActive ? "border-[#ffffff80]" : "border-none hover:bg-white/[0.08]"} rounded-[1rem] overflow-hidden group cursor-pointer transition-colors relative ${viewMode === "grid" ? "flex flex-col" : "flex flex-row"}`}
+              >
+                <div
+                  className={`relative bg-cover bg-center ${viewMode === "grid" ? "aspect-video w-full" : "aspect-video w-40 md:w-64 shrink-0"}`}
+                  style={{
+                    backgroundImage: `linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 100%), url('${getImageUrl(ep.still_path, 500)}')`,
+                  }}
+                >
+                  <div
+                    className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                  >
+                    <div
+                      className={`size-12 rounded-full flex items-center justify-center ${isActive ? "bg-[#ff571e]/80 shadow-[0_0_20px_rgba(232,71,10,0.5)]" : "bg-white/[0.06] border border-white/[0.14]"}`}
+                    >
+                      <Play
+                        fill="currentColor"
+                        className="text-white"
+                        size={24}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className={`flex flex-col gap-1 ${viewMode === "grid" ? "p-2 pb-4" : "p-4 justify-center"}`}
+                >
+                  <h4 className="text-white font-semibold line-clamp-1">
+                    {ep.name}
+                  </h4>
+                  <p className="text-white/40 text-[12px]">
+                    {ep.air_date
+                      ? new Date(ep.air_date).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "Unknown"}{" "}
+                    • EP {ep.episode_number}
+                  </p>
+                  <p className="text-white/60 text-sm mt-2 line-clamp-2">
+                    {ep.overview || "No overview available."}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
     </div>
   );
 }

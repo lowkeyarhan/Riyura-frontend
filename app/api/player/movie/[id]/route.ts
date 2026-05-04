@@ -2,6 +2,7 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
 import type { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
+import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,11 @@ export async function GET(
     });
 
     const data = response.data as MoviePlayerProp;
+    
+    if (data && data.backdrop_path) {
+      data.backdrop_path = normalizeTmdbImageUrl(data.backdrop_path);
+    }
+    
     return NextResponse.json(data);
   } catch (error) {
     if (axios.isAxiosError(error)) {

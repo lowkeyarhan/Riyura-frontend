@@ -4,4 +4,5 @@ export interface MoviePlayerProp {
   genres: string[];
   overview: string;
   is_anime: boolean;
+  backdrop_path: string | null;
 }

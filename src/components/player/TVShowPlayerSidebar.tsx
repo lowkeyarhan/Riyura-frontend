@@ -15,38 +15,33 @@ const ServerRow = ({
 }) => (
   <button
     onClick={onClick}
-    className={`
-      flex items-center justify-between w-full p-3 rounded-xl border cursor-pointer transition-all duration-200 group
-      ${
-        isActive
-          ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-          : "bg-[#29292930] border-white/5 hover:bg-[#1a1d29] hover:border-white/10"
-      }
-    `}
+    className={`transition-all rounded-full flex items-center justify-start p-2 gap-2.5 w-full border border-white/5`}
+    style={{
+      border: "1px solid rgba(255, 255, 255, 0.05)",
+      boxShadow: "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
+      backdropFilter: "blur(40px)",
+      WebkitBackdropFilter: "blur(40px)",
+    }}
   >
-    <div className="flex items-center gap-3">
-      <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-          isActive ? "text-orange-600" : " text-gray-500 group-hover:text-white"
-        }`}
-      >
-        <Wifi size={14} />
-      </div>
-      <span
-        className={`text-sm font-bold ${
-          isActive ? "text-white" : "text-gray-300 group-hover:text-white"
-        }`}
-      >
-        {name}
-      </span>
-    </div>
-    <span
-      className={`text-[10px] font-bold uppercase tracking-wider ${
-        isActive ? "text-orange-500" : "text-gray-600"
+    <div
+      className={`w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center transition-colors shadow-inner ${
+        isActive
+          ? "bg-[#ff571e] text-white shadow-[0_0_10px_rgba(255,87,30,0.5)]"
+          : "bg-white/10 group-hover:bg-white/20 text-white"
       }`}
     >
-      {quality}
-    </span>
+      <Wifi size={22} strokeWidth={2.5} />
+    </div>
+    <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-1">
+      <span className="text-[13px] text-white font-bold leading-tight tracking-wide truncate block">
+        {name}
+      </span>
+      <span
+        className={`text-[11px] font-medium leading-tight mt-0.5 text-white/50 tracking-wide block uppercase`}
+      >
+        {quality}
+      </span>
+    </div>
   </button>
 );
 
@@ -66,7 +61,7 @@ export function TVShowPlayerSidebar({
   return (
     <div className="lg:col-span-3 flex flex-col gap-4 h-auto lg:h-full lg:min-h-0 flex-shrink-0">
       {/* Info Card */}
-      <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0">
+      <div className="apple-glass rounded-3xl p-4 shadow-xl flex-shrink-0">
         <h1
           className="text-xl md:text-2xl font-bold text-white leading-tight mb-3"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
@@ -86,33 +81,29 @@ export function TVShowPlayerSidebar({
       </div>
 
       {/* Server Selector (Scrollable) */}
-      <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl overflow-hidden flex flex-col min-h-[200px] lg:flex-1 lg:min-h-0">
-        <div className="flex items-center gap-2 mb-4 text-gray-400 text-xs font-bold uppercase tracking-widest">
-          <Server size={14} />
-          <span>Source</span>
-        </div>
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2 space-y-2">
-          {servers.map((server, index) => (
-            <ServerRow
-              key={server.id}
-              name={server.name}
-              quality={server.quality}
-              isActive={index === activeServerIndex}
-              onClick={() => onServerChange(index)}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto bg-transparent">
+        {servers.map((server, index) => (
+          <ServerRow
+            key={server.id}
+            name={server.name}
+            quality={server.quality}
+            isActive={index === activeServerIndex}
+            onClick={() => onServerChange(index)}
+          />
+        ))}
       </div>
 
       {/* Synopsis */}
-      <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0 max-h-none lg:max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-        <div className="flex items-center gap-2 mb-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
+      <div className="apple-glass rounded-3xl p-4 shadow-xl flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex items-center gap-2 mb-2 text-gray-400 text-xs font-bold uppercase tracking-widest flex-shrink-0">
           <Info size={14} />
           <span>Synopsis</span>
         </div>
-        <p className="text-sm text-gray-400 leading-relaxed">
-          {tvShow?.overview || "No details available."}
-        </p>
+        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2">
+          <p className="text-sm text-gray-400 leading-relaxed">
+            {tvShow?.overview || "No details available."}
+          </p>
+        </div>
       </div>
     </div>
   );

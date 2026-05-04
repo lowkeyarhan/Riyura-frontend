@@ -23,7 +23,31 @@ import {
   Info,
   Smile,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// ─── Extract colors for dynamic gradient ─────────────────────────────────────
+function extractColors(src: string): Promise<string[]> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.crossOrigin = "Anonymous";
+    img.src = src;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return resolve(["#0f172a", "#000000"]);
+      canvas.width = 2;
+      canvas.height = 2;
+      ctx.drawImage(img, 0, 0, 2, 2);
+      const data = ctx.getImageData(0, 0, 2, 2).data;
+      const colors = [];
+      for (let i = 0; i < data.length; i += 4) {
+        colors.push(`rgb(${data[i]}, ${data[i + 1]}, ${data[i + 2]})`);
+      }
+      resolve(colors);
+    };
+    img.onerror = () => resolve(["#0f172a", "#000000"]);
+  });
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -244,19 +268,45 @@ export default function PartyMoviePage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [chatInput, setChatInput] = useState("");
   const [isBuffering, setIsBuffering] = useState(false);
+  const [gradientColors, setGradientColors] = useState<string[]>([]);
+  const bgImageSrc = "/watch_party_page_temp_bg.jpg";
+
+  useEffect(() => {
+    extractColors(bgImageSrc).then((colors) => setGradientColors(colors));
+  }, [bgImageSrc]);
 
   return (
     <PlayerLayout>
-      <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 ">
-        <Image
-          src="/watch_party_page_temp_bg.jpg"
-          alt="Mock WatchPartyPage Background"
-          fill
-          className="object-cover absolute inset-0 -z-10 opacity-20"
-          priority
-        />
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {gradientColors.length > 0 ? (
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: `radial-gradient(circle at 0% 0%, ${gradientColors[0]} 0%, transparent 50%), radial-gradient(circle at 100% 0%, ${gradientColors[1]} 0%, transparent 50%), radial-gradient(circle at 0% 100%, ${gradientColors[2]} 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${gradientColors[3]} 0%, transparent 50%)`,
+              filter: "blur(80px)",
+              transform: "scale(1.2)",
+            }}
+          />
+        ) : (
+          <Image
+            src={bgImageSrc}
+            alt="Mock WatchPartyPage Background"
+            fill
+            className="object-cover absolute inset-0 opacity-20"
+            priority
+          />
+        )}
+      </div>
+      <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 overflow-hidden">
         {/* ─── LEFT: Cinema Player ─── */}
-        <div className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto bg-black">
+        <div
+          className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative group aspect-video lg:aspect-auto"
+          style={{
+            border: "1px solid rgba(255, 255, 255, 0.05)",
+            boxShadow:
+              "inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 20px 40px rgba(0, 0, 0, 0.4)",
+          }}
+        >
           <Image
             src="/landing-page/perf_card_3.png"
             alt="Mock Player Background"
@@ -265,18 +315,6 @@ export default function PartyMoviePage() {
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6">
-            <div className="flex justify-between items-start">
-              <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-white text-xs font-bold tracking-widest uppercase">
-                  Live Party
-                </span>
-              </div>
-              <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/90 text-sm font-medium flex items-center gap-2">
-                <Users size={14} className="text-gray-400" />
-                12 Viewers
-              </div>
-            </div>
             <div className="flex items-center justify-center flex-1">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}

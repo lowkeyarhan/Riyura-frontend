@@ -21,6 +21,7 @@ export interface WatchPartyChatMessage {
   senderProfilePhoto: string;
   text: string;
   serverTime: number;
+  isSystemMessage?: boolean;
 }
 
 export interface WatchPartyState {
@@ -56,6 +57,7 @@ export type WatchPartyEventType =
   | "STRICT_SYNC_TOGGLED"
   | "HEARTBEAT_ACK"
   | "PARTY_CLOSED"
+  | "PROVIDER_CHANGED"
   | "ERROR";
 
 export interface WatchPartyEvent {
@@ -65,7 +67,7 @@ export interface WatchPartyEvent {
   timestamp: number;
 }
 
-export type SyncAction = "SEEK" | "PLAY" | "PAUSE";
+export type SyncAction = "SEEK" | "PLAY" | "PAUSE" | "UPDATE";
 
 export interface SyncPayload {
   startAt: number;

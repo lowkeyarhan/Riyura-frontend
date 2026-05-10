@@ -3,23 +3,21 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import {
-  Play,
-  Pause,
   Link as LinkIcon,
   Upload,
   Download,
   Loader2,
   Lock,
-  RotateCcw,
-  RotateCw,
   Info,
   Smile,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchParty } from "@/src/hooks/party/useWatchParty";
 import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
+import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import { EpisodeBrowser } from "@/src/components/player/EpisodeBrowser";
 import { MediaType } from "@/src/props/global/mediaType";
 
@@ -38,7 +36,7 @@ function colorForId(id: string) {
   for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
-function fmt(ts: number) {
+function fmtTime(ts: number) {
   const d = new Date(ts);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
@@ -72,6 +70,7 @@ function PartyTVContent() {
   const initEp = parseInt(searchParams.get("e") ?? "1");
   const { user } = useAuth();
 
+  // TV player hook — metadata + stream URLs per episode
   const {
     tvShow,
     servers,
@@ -84,6 +83,7 @@ function PartyTVContent() {
     setSelectedSeason,
     setSelectedEpisode,
     setActiveServerIndex,
+    saveWatchHistoryOnUnmount,
   } = useTVShowPlayer({
     tvShowId: String(tmdbId),
     userId: user?.id,
@@ -91,20 +91,40 @@ function PartyTVContent() {
     initialEpisode: initEp,
   });
 
+  const activeServer = servers[activeServerIndex];
+  const isNanovue =
+    activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
+
+  // Progress tracking via postMessage from iframe
+  const { getLatestProgress, setProgress } = useWatchProgress({
+    serverName: activeServer?.name,
+    isNanovue,
+    initialProgressSec: 0,
+    onProgress: (sec) => {
+      currentTimeRef.current = sec;
+      console.log(`WatchParty [PLAYER TV]: Progress → ${sec.toFixed(2)}s`);
+    },
+  });
+
+  // Watch party hook
   const {
     partyId,
+    partyState,
     messages,
     participantIds,
     isHost,
     strictSync,
     remoteSyncCommand,
     currentTimeRef,
+    currentUserId,
     sendChat,
     pushSync,
     requestSync,
     notifyBuffering,
     notifyBufferingComplete,
     toggleStrictSync,
+    providerId,
+    changeProvider,
   } = useWatchParty({
     partyId: partyIdParam,
     mediaType: MediaType.TV,
@@ -113,48 +133,102 @@ function PartyTVContent() {
     episodeNo: initEp,
   });
 
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [gradientColors, setGradientColors] = useState<string[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync server changes
+  useEffect(() => {
+    if (isHost && activeServerIndex >= 0 && servers[activeServerIndex]) {
+      changeProvider(servers[activeServerIndex].name);
+    }
+  }, [activeServerIndex, isHost, servers, changeProvider]);
+
+  useEffect(() => {
+    if (!isHost && providerId && servers.length > 0) {
+      const idx = servers.findIndex(
+        (s) => s.name === providerId || s.id === providerId,
+      );
+      if (idx !== -1 && idx !== activeServerIndex) {
+        setActiveServerIndex(idx);
+      }
+    }
+  }, [providerId, isHost, servers, activeServerIndex, setActiveServerIndex]);
 
   const bgSrc = tvShow?.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
     : "/watch_party_page_temp_bg.jpg";
 
-  const streamUrl = servers[activeServerIndex]?.url ?? null;
+  // Update stream URL when server/episode changes
+  useEffect(() => {
+    if (!activeServer?.url) {
+      setStreamUrl(null);
+      return;
+    }
+    setStreamUrl(activeServer.url);
+    // Reset currentTime when episode changes
+    currentTimeRef.current = 0;
+  }, [activeServer?.url, currentTimeRef]);
+
+  // Apply remote sync — rebuild URL with startAt
+  useEffect(() => {
+    if (!remoteSyncCommand || !activeServer?.url) return;
+    const { startAt, action } = remoteSyncCommand;
+    console.log(
+      `WatchParty [PLAYER TV]: Remote sync → action=${action} startAt=${startAt}s`,
+    );
+
+    if (action === "SEEK" || action === "PLAY") {
+      try {
+        const url = new URL(activeServer.url);
+        url.searchParams.set("start", Math.floor(startAt).toString());
+        url.searchParams.set("t", Math.floor(startAt).toString());
+        setStreamUrl(url.toString());
+        currentTimeRef.current = startAt;
+        setProgress(startAt);
+        console.log(
+          `WatchParty [PLAYER TV]: Reloading iframe → ${url.toString()}`,
+        );
+      } catch {
+        const sep = activeServer.url.includes("?") ? "&" : "?";
+        setStreamUrl(
+          `${activeServer.url}${sep}start=${Math.floor(startAt)}&t=${Math.floor(startAt)}`,
+        );
+        currentTimeRef.current = startAt;
+        setProgress(startAt);
+      }
+    }
+  }, [remoteSyncCommand, activeServer?.url, currentTimeRef, setProgress]);
 
   useEffect(() => {
     extractColors(bgSrc).then(setGradientColors);
   }, [bgSrc]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Save watch history on unmount — same as regular TV watch page
   useEffect(() => {
-    if (!remoteSyncCommand) return;
-    console.log("WatchParty [PLAYER TV]: Applying sync →", remoteSyncCommand);
-    if (remoteSyncCommand.action === "PLAY") setIsPlaying(true);
-    if (remoteSyncCommand.action === "PAUSE") setIsPlaying(false);
-  }, [remoteSyncCommand]);
+    const handleBeforeUnload = () =>
+      saveWatchHistoryOnUnmount(getLatestProgress());
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveWatchHistoryOnUnmount(getLatestProgress());
+    };
+  }, [getLatestProgress, saveWatchHistoryOnUnmount]);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      currentTimeRef.current += isPlaying ? 1 : 0;
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isPlaying, currentTimeRef]);
-
-  const canControl = isHost || !strictSync;
-  const inviteLink = typeof window !== "undefined" ? window.location.href : "";
-
-  const handlePlayPause = () => {
-    if (!canControl) return;
-    const next = !isPlaying;
-    setIsPlaying(next);
-    pushSync(currentTimeRef.current, next ? "PLAY" : "PAUSE");
-  };
+  const handlePushSync = useCallback(() => {
+    const t = getLatestProgress();
+    console.log(
+      `WatchParty [HOST TV]: Manual push sync → startAt=${t.toFixed(2)}s`,
+    );
+    pushSync(t, "SEEK");
+  }, [getLatestProgress, pushSync]);
 
   const handleBuffering = () => {
     if (isBuffering) {
@@ -173,37 +247,27 @@ function PartyTVContent() {
     }
   };
 
-  const Avatar = ({
-    id,
-    name,
-    photo,
-  }: {
-    id: string;
-    name?: string;
-    photo?: string;
-  }) =>
-    photo ? (
-      <Image
-        src={photo}
-        alt={name ?? id}
-        width={40}
-        height={40}
-        className="rounded-full object-cover flex-shrink-0"
-      />
-    ) : (
-      <div
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-[15px] flex-shrink-0"
-        style={{ backgroundColor: colorForId(id) }}
-      >
-        {(name ?? id).substring(0, 1).toUpperCase()}
-      </div>
-    );
+  const handleCopyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      console.log("WatchParty [INVITE]: Copied →", window.location.href);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = window.location.href;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
 
   return (
     <div className="flex flex-col pb-16">
       <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 overflow-hidden">
         {/* Background */}
-        <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="fixed inset-0 z-0 pointer-events-none bg-black">
           {gradientColors.length > 0 ? (
             <div
               className="absolute inset-0 opacity-30"
@@ -224,9 +288,9 @@ function PartyTVContent() {
           )}
         </div>
 
-        {/* Player */}
+        {/* ─── Player (no overlays) ────────────────────────────────── */}
         <div
-          className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative group"
+          className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative"
           style={{
             border: "1px solid rgba(255,255,255,0.05)",
             boxShadow:
@@ -234,78 +298,37 @@ function PartyTVContent() {
             aspectRatio: "16/9",
           }}
         >
-          {streamUrl ? (
+          {tvLoading ? (
+            <div className="w-full h-full flex items-center justify-center bg-black/80">
+              <Loader2 className="animate-spin text-white" size={48} />
+            </div>
+          ) : streamUrl ? (
             <iframe
+              key={streamUrl}
               src={streamUrl}
               className="w-full h-full border-0"
               allowFullScreen
-              allow="autoplay; fullscreen"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               title="Watch Party TV"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-black/60">
-              <Image
-                src={bgSrc}
-                alt="poster"
-                fill
-                className="object-cover opacity-30"
-              />
-              {tvLoading ? (
-                <Loader2 className="animate-spin text-white z-10" size={48} />
-              ) : (
-                <p className="text-white/60 z-10 text-sm">
-                  No stream available
-                </p>
-              )}
+            <div className="w-full h-full flex items-center justify-center bg-black/80">
+              <p className="text-white/50 text-sm">
+                No stream source available
+              </p>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6 pointer-events-none">
-            <div className="flex flex-col gap-3 pointer-events-auto">
-              <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-orange-600 w-1/3 h-full rounded-full shadow-[0_0_10px_rgba(234,88,12,0.8)]" />
-              </div>
-              <div className="flex items-center gap-4 text-white">
-                <button
-                  onClick={handlePlayPause}
-                  disabled={!canControl}
-                  className={
-                    canControl
-                      ? "hover:text-orange-500 transition-colors"
-                      : "text-gray-400 cursor-not-allowed"
-                  }
-                >
-                  {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-                </button>
-                <span className="text-xs font-mono text-white/70">
-                  00:00 / 00:00
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            <button
-              onClick={handlePlayPause}
-              disabled={!canControl}
-              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(234,88,12,0.4)] backdrop-blur-sm pointer-events-auto transition-transform ${canControl ? "bg-orange-600/90 hover:bg-orange-500 text-white hover:scale-105" : "bg-gray-600/50 text-gray-300 cursor-not-allowed"}`}
-            >
-              {isPlaying ? (
-                <Pause size={32} />
-              ) : (
-                <Play size={32} className="translate-x-1" />
-              )}
-            </button>
-          </div>
         </div>
 
-        {/* Sidebar */}
+        {/* ─── Sidebar ──────────────────────────────────────────────── */}
         <div className="w-full max-w-[25%] flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
+          {/* Controls grid */}
           <div className="grid grid-cols-5 grid-rows-3 gap-3 flex-shrink-0">
+            {/* Host sync */}
             <button
-              onClick={() =>
-                pushSync(currentTimeRef.current, isPlaying ? "PLAY" : "PAUSE")
-              }
+              onClick={handlePushSync}
               disabled={!isHost}
-              className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "bg-black/20 hover:bg-black/30" : "bg-black/10 opacity-50 cursor-not-allowed"}`}
+              className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "hover:bg-black/30" : "opacity-40 cursor-not-allowed"}`}
             >
               <div className="w-[37%] h-[50px] rounded-full bg-white/20 flex flex-shrink-0 items-center justify-center shadow-inner">
                 <Upload size={25} strokeWidth={2} className="text-white" />
@@ -320,6 +343,7 @@ function PartyTVContent() {
               </div>
             </button>
 
+            {/* Now watching */}
             <div className="apple-glass col-span-3 row-span-2 rounded-[32px] p-4 flex flex-col justify-between relative overflow-hidden">
               <div className="flex gap-3 items-start w-full mt-1 relative z-10">
                 <div className="w-12 h-12 rounded-lg overflow-hidden relative flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
@@ -338,45 +362,34 @@ function PartyTVContent() {
                   <h3 className="text-white font-bold text-[14px] leading-tight truncate tracking-wide">
                     {tvLoading ? "Loading…" : (tvShow?.title ?? "TV Show")}
                   </h3>
-                  <p className="text-white/60 text-[12px] truncate mt-1 tracking-wide font-medium uppercase">
+                  <p className="text-white/60 text-[11px] truncate mt-0.5 tracking-wide font-medium uppercase">
                     {isHost ? "You are HOST" : "Participant"}
+                  </p>
+                  <p className="text-white/40 text-[11px] mt-0.5">
+                    S{selectedSeason} E{selectedEpisode}
                   </p>
                 </div>
               </div>
-              <div className="flex justify-center items-center gap-6 relative z-10 mt-3 pb-1">
-                <button
-                  className={`transition-colors ${canControl ? "text-white/60 hover:text-white" : "text-white/20 cursor-not-allowed"}`}
-                  disabled={!canControl}
-                >
-                  <RotateCcw size={20} strokeWidth={2.5} />
-                </button>
-                <button
-                  onClick={handlePlayPause}
-                  disabled={!canControl}
-                  className={`transition-transform ${canControl ? "text-white hover:scale-105" : "text-white/40 cursor-not-allowed"}`}
-                >
-                  {isPlaying ? (
-                    <Pause size={32} fill="currentColor" />
-                  ) : (
-                    <Play
-                      size={32}
-                      fill="currentColor"
-                      className="translate-x-0.5"
-                    />
-                  )}
-                </button>
-                <button
-                  className={`transition-colors ${canControl ? "text-white/60 hover:text-white" : "text-white/20 cursor-not-allowed"}`}
-                  disabled={!canControl}
-                >
-                  <RotateCw size={20} strokeWidth={2.5} />
-                </button>
-              </div>
+              {/* Server switcher */}
+              {servers.length > 1 && (
+                <div className="flex gap-1.5 flex-wrap mt-2 relative z-10">
+                  {servers.map((s, i) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveServerIndex(i)}
+                      className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${i === activeServerIndex ? "bg-[#E8470A] text-white" : "bg-white/10 text-white/60 hover:bg-white/20"}`}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
+            {/* Buffering */}
             <button
               onClick={handleBuffering}
-              className="apple-glass col-span-2 row-span-1 bg-black/20 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5"
+              className="apple-glass col-span-2 row-span-1 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5"
             >
               <div
                 className={`w-[35%] h-[50px] rounded-full flex flex-shrink-0 items-center justify-center shadow-inner ${isBuffering ? "bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" : "bg-white/20"}`}
@@ -397,10 +410,11 @@ function PartyTVContent() {
               </div>
             </button>
 
+            {/* Strict sync — host only */}
             <button
               onClick={toggleStrictSync}
               disabled={!isHost}
-              className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "bg-black/20 hover:bg-black/30" : "bg-black/10 opacity-50 cursor-not-allowed"}`}
+              className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "hover:bg-black/30" : "opacity-40 cursor-not-allowed"}`}
             >
               <div
                 className={`w-[35%] h-[50px] rounded-full flex flex-shrink-0 items-center justify-center transition-colors ${strictSync ? "bg-[#ff571e]/90 shadow-[0_0_10px_rgba(255,87,30,0.5)]" : "bg-white/20"}`}
@@ -419,10 +433,11 @@ function PartyTVContent() {
               </div>
             </button>
 
+            {/* Request sync — participant only */}
             <button
               onClick={requestSync}
               disabled={isHost}
-              className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-1 ${!isHost ? "bg-black/20 hover:bg-black/30" : "bg-black/10 opacity-50 cursor-not-allowed"}`}
+              className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-1 ${!isHost ? "hover:bg-black/30" : "opacity-40 cursor-not-allowed"}`}
             >
               <div className="w-[35%] h-[50px] rounded-full bg-white/20 flex flex-shrink-0 items-center justify-center">
                 <Download size={25} strokeWidth={2} className="text-white" />
@@ -442,6 +457,7 @@ function PartyTVContent() {
             </button>
           </div>
 
+          {/* Invite */}
           <div className="rounded-[32px] apple-glass p-4 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
@@ -451,19 +467,25 @@ function PartyTVContent() {
                 <h3 className="font-semibold text-white text-sm">
                   Invite Friends
                 </h3>
-                <p className="text-white/50 text-xs">Share party link</p>
+                <p className="text-white/50 text-xs truncate max-w-[120px]">
+                  {partyId
+                    ? `Party: ${partyId.substring(0, 8)}…`
+                    : "Creating party…"}
+                </p>
               </div>
             </div>
             <button
-              onClick={() => navigator.clipboard.writeText(inviteLink)}
-              className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium shadow-[0_0_20px_rgba(232,71,10,0.4)]"
+              onClick={handleCopyInvite}
+              disabled={!partyId}
+              className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium shadow-[0_0_20px_rgba(232,71,10,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
-              Copy
+              {copiedInvite ? "Copied!" : "Copy"}
             </button>
           </div>
 
-          {/* Chat */}
+          {/* ─── Chat ───────────────────────────────────────────────── */}
           <div className="flex-1 flex flex-col overflow-hidden rounded-[2rem] apple-glass shadow-2xl">
+            {/* Participants header */}
             <div
               className="flex items-center justify-between px-2 py-3 m-2 rounded-[1.5rem] flex-shrink-0"
               style={{
@@ -495,26 +517,33 @@ function PartyTVContent() {
               </div>
             </div>
 
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-3">
               {messages.map((msg, idx) => {
-                const isOwn = msg.senderId === user?.id;
-                return (
+                const isMe = msg.senderId === currentUserId;
+                return msg.isSystemMessage ? (
+                  <div key={idx} className="flex justify-center my-1">
+                    <span className="text-[11px] font-medium text-white/50 bg-white/5 px-3 py-1 rounded-full">
+                      {msg.text}
+                    </span>
+                  </div>
+                ) : (
                   <div
                     key={idx}
-                    className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
+                    className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""}`}
                   >
-                    {!isOwn &&
+                    {!isMe &&
                       (msg.senderProfilePhoto ? (
                         <Image
                           src={msg.senderProfilePhoto}
-                          alt={msg.senderDisplayName}
-                          width={40}
-                          height={40}
+                          alt={msg.senderDisplayName ?? "user"}
+                          width={36}
+                          height={36}
                           className="rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
                         <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-[15px] flex-shrink-0"
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0"
                           style={{ backgroundColor: colorForId(msg.senderId) }}
                         >
                           {(msg.senderDisplayName ?? msg.senderId)
@@ -523,21 +552,23 @@ function PartyTVContent() {
                         </div>
                       ))}
                     <div
-                      className={`max-w-[75%] flex flex-col ${isOwn ? "items-end" : "items-start"}`}
+                      className={`flex flex-col break-words max-w-[70%] min-w-0 ${isMe ? "items-end" : ""}`}
                     >
-                      {!isOwn && (
-                        <span className="text-[11px] text-white/50 font-semibold mb-1 ml-1">
+                      <div
+                        className={`flex items-baseline gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}
+                      >
+                        <span className="text-[13px] font-semibold text-white truncate max-w-[120px]">
                           {msg.senderDisplayName}
                         </span>
-                      )}
-                      <div
-                        className={`px-3 py-2 rounded-2xl text-[13px] leading-[1.5] ${isOwn ? "bg-[#E8470A] text-white rounded-br-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}
+                        <span className="text-[10px] text-white/30 flex-shrink-0">
+                          {fmtTime(msg.serverTime)}
+                        </span>
+                      </div>
+                      <p
+                        className={`text-[13px] text-white/80 leading-snug break-all ${isMe ? "pl-2 text-right" : "pr-2"}`}
                       >
                         {msg.text}
-                      </div>
-                      <span className="text-[10px] text-white/30 mt-1 mx-1">
-                        {fmt(msg.serverTime)}
-                      </span>
+                      </p>
                     </div>
                   </div>
                 );
@@ -545,11 +576,13 @@ function PartyTVContent() {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Input */}
             <div className="px-3 py-3 flex-shrink-0 flex items-center gap-2">
               <div className="flex items-center gap-1 rounded-full pl-3 pr-2 py-2 flex-1 apple-glass">
-                <button className="p-1 text-gray-400 hover:text-white/80 transition-colors flex-shrink-0">
-                  <Smile size={20} className="stroke-[1.5]" />
-                </button>
+                <Smile
+                  size={20}
+                  className="text-gray-400 flex-shrink-0 stroke-[1.5]"
+                />
                 <input
                   type="text"
                   value={chatInput}
@@ -577,8 +610,14 @@ function PartyTVContent() {
           episodes={episodes}
           selectedSeason={selectedSeason}
           selectedEpisode={selectedEpisode}
-          onSeasonChange={setSelectedSeason}
-          onEpisodeChange={setSelectedEpisode}
+          onSeasonChange={(s) => {
+            setSelectedSeason(s);
+            currentTimeRef.current = 0;
+          }}
+          onEpisodeChange={(e) => {
+            setSelectedEpisode(e);
+            currentTimeRef.current = 0;
+          }}
         />
       </div>
     </div>

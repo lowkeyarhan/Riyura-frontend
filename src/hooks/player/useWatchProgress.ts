@@ -177,5 +177,10 @@ export function useWatchProgress({
   // Expose a getter so the page component can read the latest value on unmount
   const getLatestProgress = useCallback(() => latestProgressRef.current, []);
 
-  return { getLatestProgress };
+  // Expose a setter to force update the progress when remote sync is applied
+  const setProgress = useCallback((sec: number) => {
+    latestProgressRef.current = sec;
+  }, []);
+
+  return { getLatestProgress, setProgress };
 }

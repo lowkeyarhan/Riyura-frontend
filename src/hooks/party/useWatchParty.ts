@@ -38,13 +38,14 @@ export function useWatchParty({
   tmdbId,
   seasonNo = 0,
   episodeNo = 0,
-  providerId = "vidsrc",
+  providerId: initialProviderId = "vidsrc",
   startAt = 0,
 }: UseWatchPartyProps) {
   const [partyId, setPartyId] = useState<string | null>(initialPartyId || null);
   const [partyState, setPartyState] = useState<WatchPartyState | null>(null);
   const [messages, setMessages] = useState<WatchPartyChatMessage[]>([]);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [providerId, setProviderId] = useState<string>(initialProviderId);
   const [isHost, setIsHost] = useState(false);
   const [strictSync, setStrictSync] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -119,6 +120,17 @@ export function useWatchParty({
         if (envelope.payload?.participantIds) {
           setParticipantIds(envelope.payload.participantIds);
         }
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderId: "system",
+            senderDisplayName: "System",
+            senderProfilePhoto: "",
+            text: `${envelope.payload?.userName || "Someone"} joined the party`,
+            serverTime: envelope.timestamp || Date.now(),
+            isSystemMessage: true,
+          },
+        ]);
         break;
 
       case "USER_LEFT":
@@ -126,6 +138,17 @@ export function useWatchParty({
         if (envelope.payload?.participantIds) {
           setParticipantIds(envelope.payload.participantIds);
         }
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderId: "system",
+            senderDisplayName: "System",
+            senderProfilePhoto: "",
+            text: `${envelope.payload?.userName || "Someone"} left the party`,
+            serverTime: envelope.timestamp || Date.now(),
+            isSystemMessage: true,
+          },
+        ]);
         break;
 
       case "NEW_HOST_ASSIGNED":
@@ -138,6 +161,17 @@ export function useWatchParty({
           setIsHost(meIsHost);
           isHostRef.current = meIsHost;
         }
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderId: "system",
+            senderDisplayName: "System",
+            senderProfilePhoto: "",
+            text: `${envelope.payload?.newHostName || "Someone"} is now the host`,
+            serverTime: envelope.timestamp || Date.now(),
+            isSystemMessage: true,
+          },
+        ]);
         break;
 
       case "CHAT":
@@ -145,6 +179,26 @@ export function useWatchParty({
           ...prev,
           envelope.payload as WatchPartyChatMessage,
         ]);
+        break;
+
+      case "PROVIDER_CHANGED":
+        console.log(
+          `[INFO] Provider changed to ${envelope.payload?.providerId}`,
+        );
+        if (envelope.payload?.providerId) {
+          setProviderId(envelope.payload.providerId);
+          setMessages((prev) => [
+            ...prev,
+            {
+              senderId: "system",
+              senderDisplayName: "System",
+              senderProfilePhoto: "",
+              text: `Host changed the source to ${envelope.payload?.providerId}`,
+              serverTime: envelope.timestamp || Date.now(),
+              isSystemMessage: true,
+            },
+          ]);
+        }
         break;
 
       case "SYNC":
@@ -167,6 +221,19 @@ export function useWatchParty({
           action: "PAUSE",
           timestamp: envelope.timestamp ?? Date.now(),
         });
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderId: "system",
+            senderDisplayName: "System",
+            senderProfilePhoto: "",
+            text: envelope.payload?.reason
+              ? `Party paused: ${envelope.payload.reason}`
+              : "Party paused for buffering",
+            serverTime: envelope.timestamp || Date.now(),
+            isSystemMessage: true,
+          },
+        ]);
         break;
 
       case "RESUME":
@@ -176,6 +243,17 @@ export function useWatchParty({
           action: "PLAY",
           timestamp: envelope.timestamp ?? Date.now(),
         });
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderId: "system",
+            senderDisplayName: "System",
+            senderProfilePhoto: "",
+            text: "Party resumed",
+            serverTime: envelope.timestamp || Date.now(),
+            isSystemMessage: true,
+          },
+        ]);
         break;
 
       case "STRICT_SYNC_TOGGLED":
@@ -183,6 +261,17 @@ export function useWatchParty({
           `[INFO] Strict sync is now ${envelope.payload?.strictSync ? "ON" : "OFF"}`,
         );
         setStrictSync(Boolean(envelope.payload?.strictSync));
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderId: "system",
+            senderDisplayName: "System",
+            senderProfilePhoto: "",
+            text: `Strict sync is now ${envelope.payload?.strictSync ? "ON" : "OFF"}`,
+            serverTime: envelope.timestamp || Date.now(),
+            isSystemMessage: true,
+          },
+        ]);
         break;
 
       case "HEARTBEAT_ACK":
@@ -235,7 +324,14 @@ export function useWatchParty({
           );
           const res = await backendClient.post(
             `/party/create`,
-            { tmdbId, mediaType, seasonNo, episodeNo, providerId, startAt },
+            {
+              tmdbId,
+              mediaType,
+              seasonNo,
+              episodeNo,
+              providerId: initialProviderId,
+              startAt,
+            },
             { headers },
           );
 
@@ -307,6 +403,7 @@ export function useWatchParty({
             setMessages(state.recentChat ?? []);
             setParticipantIds(state.participantIds ?? []);
             setStrictSync(state.strictSync ?? false);
+            setProviderId(state.providerId ?? initialProviderId);
             const meIsHost = state.hostId === userId;
             setIsHost(meIsHost);
             isHostRef.current = meIsHost;
@@ -391,7 +488,7 @@ export function useWatchParty({
               body: JSON.stringify({
                 startAt: t,
                 clientTime: Date.now(),
-                action: "SEEK",
+                action: "UPDATE",
               }),
             });
           }
@@ -472,11 +569,19 @@ export function useWatchParty({
     publishRef.current("/toggle-strict-sync");
   }, []);
 
+  const changeProvider = useCallback((newProviderId: string) => {
+    console.log(
+      `WatchParty [HOST]: Emitted Change Provider → ${newProviderId}`,
+    );
+    publishRef.current("/change-provider", { providerId: newProviderId });
+  }, []);
+
   return {
     partyId,
     partyState,
     messages,
     participantIds,
+    providerId,
     isHost,
     strictSync,
     isConnected,
@@ -491,5 +596,6 @@ export function useWatchParty({
     notifyBuffering,
     notifyBufferingComplete,
     toggleStrictSync,
+    changeProvider,
   };
 }

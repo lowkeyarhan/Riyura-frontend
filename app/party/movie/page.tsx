@@ -3,23 +3,21 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import {
-  Play,
-  Pause,
   Link as LinkIcon,
   Upload,
   Download,
   Loader2,
   Lock,
-  RotateCcw,
-  RotateCw,
   Info,
   Smile,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchParty } from "@/src/hooks/party/useWatchParty";
 import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
+import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import { MediaType } from "@/src/props/global/mediaType";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -37,7 +35,7 @@ function colorForId(id: string) {
   for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
-function fmt(ts: number) {
+function fmtTime(ts: number) {
   const d = new Date(ts);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
@@ -69,89 +67,148 @@ function PartyMovieContent() {
   const partyIdParam = searchParams.get("party");
   const { user } = useAuth();
 
-  // Player data + stream URLs
+  // Player hook — fetches movie metadata + stream URLs
   const {
     movie,
     servers,
     loading: movieLoading,
     activeServerIndex,
     setActiveServerIndex,
+    saveWatchHistoryOnUnmount,
   } = useMoviePlayer({ movieId: String(tmdbId), userId: user?.id });
 
-  // Watch party
+  const activeServer = servers[activeServerIndex];
+  const isNanovue =
+    activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
+
+  // Watch progress — listens to postMessage from iframe
+  const { getLatestProgress } = useWatchProgress({
+    serverName: activeServer?.name,
+    isNanovue,
+    initialProgressSec: 0,
+    onProgress: (sec) => {
+      // Keep currentTimeRef in sync for the auto push-sync
+      currentTimeRef.current = sec;
+      console.log(`WatchParty [PLAYER]: Progress update → ${sec.toFixed(2)}s`);
+    },
+  });
+
+  // Watch party hook
   const {
     partyId,
+    partyState,
     messages,
     participantIds,
     isHost,
     strictSync,
     remoteSyncCommand,
     currentTimeRef,
+    currentUserId,
     sendChat,
     pushSync,
     requestSync,
     notifyBuffering,
     notifyBufferingComplete,
     toggleStrictSync,
+    providerId,
+    changeProvider,
   } = useWatchParty({
     partyId: partyIdParam,
     mediaType: MediaType.Movie,
     tmdbId,
   });
 
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [gradientColors, setGradientColors] = useState<string[]>([]);
   const [chatInput, setChatInput] = useState("");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync server changes
+  useEffect(() => {
+    if (isHost && activeServerIndex >= 0 && servers[activeServerIndex]) {
+      changeProvider(servers[activeServerIndex].name);
+    }
+  }, [activeServerIndex, isHost, servers, changeProvider]);
+
+  useEffect(() => {
+    if (!isHost && providerId && servers.length > 0) {
+      const idx = servers.findIndex(
+        (s) => s.name === providerId || s.id === providerId,
+      );
+      if (idx !== -1 && idx !== activeServerIndex) {
+        setActiveServerIndex(idx);
+      }
+    }
+  }, [providerId, isHost, servers, activeServerIndex, setActiveServerIndex]);
 
   const bgSrc = movie?.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : "/watch_party_page_temp_bg.jpg";
 
-  const streamUrl = servers[activeServerIndex]?.url ?? null;
+  // Build stream URL with startAt when remote sync arrives
+  useEffect(() => {
+    if (!activeServer?.url) {
+      setStreamUrl(null);
+      return;
+    }
+    setStreamUrl(activeServer.url);
+  }, [activeServer?.url]);
 
-  // Dynamic gradient from backdrop
+  // Apply remote sync — rebuild URL with new startAt param
+  useEffect(() => {
+    if (!remoteSyncCommand || !activeServer?.url) return;
+    const { startAt, action } = remoteSyncCommand;
+    console.log(
+      `WatchParty [PLAYER]: Remote sync → action=${action} startAt=${startAt}s`,
+    );
+
+    if (action === "SEEK" || action === "PLAY") {
+      // Rebuild stream URL with ?start= so the iframe seeks on reload
+      try {
+        const url = new URL(activeServer.url);
+        url.searchParams.set("start", Math.floor(startAt).toString());
+        setStreamUrl(url.toString());
+        currentTimeRef.current = startAt;
+        console.log(
+          `WatchParty [PLAYER]: Reloading iframe to ${url.toString()}`,
+        );
+      } catch {
+        // If URL parsing fails, just set directly
+        setStreamUrl(
+          `${activeServer.url}${activeServer.url.includes("?") ? "&" : "?"}start=${Math.floor(startAt)}`,
+        );
+      }
+    }
+  }, [remoteSyncCommand, activeServer?.url, currentTimeRef]);
+
   useEffect(() => {
     extractColors(bgSrc).then(setGradientColors);
   }, [bgSrc]);
 
-  // Scroll chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Apply remote sync commands to iframe player
+  // Save watch history on unmount (like regular watch page)
   useEffect(() => {
-    if (!remoteSyncCommand) return;
+    const handleBeforeUnload = () =>
+      saveWatchHistoryOnUnmount(getLatestProgress());
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveWatchHistoryOnUnmount(getLatestProgress());
+    };
+  }, [getLatestProgress, saveWatchHistoryOnUnmount]);
+
+  const handlePushSync = useCallback(() => {
+    const t = getLatestProgress();
     console.log(
-      "WatchParty [PLAYER]: Applying sync command →",
-      remoteSyncCommand,
+      `WatchParty [HOST]: Manual push sync → startAt=${t.toFixed(2)}s`,
     );
-    if (remoteSyncCommand.action === "PLAY") setIsPlaying(true);
-    if (remoteSyncCommand.action === "PAUSE") setIsPlaying(false);
-    // For iframe players we can't directly seek, but we update the visual state
-  }, [remoteSyncCommand]);
-
-  // Update currentTimeRef every second (used by auto host push-sync)
-  useEffect(() => {
-    const id = setInterval(() => {
-      // Increment a rough tracker — real seek tracking requires postMessage with the provider
-      currentTimeRef.current += isPlaying ? 1 : 0;
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isPlaying, currentTimeRef]);
-
-  const canControl = isHost || !strictSync;
-  const inviteLink = typeof window !== "undefined" ? window.location.href : "";
-
-  const handlePlayPause = () => {
-    if (!canControl) return;
-    const next = !isPlaying;
-    setIsPlaying(next);
-    pushSync(currentTimeRef.current, next ? "PLAY" : "PAUSE");
-  };
+    pushSync(t, "SEEK");
+  }, [getLatestProgress, pushSync]);
 
   const handleBuffering = () => {
     if (isBuffering) {
@@ -170,37 +227,30 @@ function PartyMovieContent() {
     }
   };
 
-  // Avatar: use senderProfilePhoto if available, else initials
-  const Avatar = ({
-    id,
-    name,
-    photo,
-  }: {
-    id: string;
-    name?: string;
-    photo?: string;
-  }) =>
-    photo ? (
-      <Image
-        src={photo}
-        alt={name ?? id}
-        width={40}
-        height={40}
-        className="rounded-full object-cover flex-shrink-0"
-      />
-    ) : (
-      <div
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-[15px] flex-shrink-0"
-        style={{ backgroundColor: colorForId(id) }}
-      >
-        {(name ?? id).substring(0, 1).toUpperCase()}
-      </div>
-    );
+  const handleCopyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      console.log(
+        "WatchParty [INVITE]: Invite link copied →",
+        window.location.href,
+      );
+    } catch {
+      // Fallback for browsers that block clipboard without user gesture
+      const ta = document.createElement("textarea");
+      ta.value = window.location.href;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
 
   return (
     <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 overflow-hidden">
-      {/* Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
+      {/* Background gradient */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black">
         {gradientColors.length > 0 ? (
           <div
             className="absolute inset-0 opacity-30"
@@ -221,9 +271,9 @@ function PartyMovieContent() {
         )}
       </div>
 
-      {/* ─── Player ──────────────────────────────────────────────────────── */}
+      {/* ─── Player ─────── */}
       <div
-        className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative group"
+        className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative"
         style={{
           border: "1px solid rgba(255,255,255,0.05)",
           boxShadow:
@@ -231,43 +281,35 @@ function PartyMovieContent() {
           aspectRatio: "16/9",
         }}
       >
-        {streamUrl ? (
+        {movieLoading ? (
+          <div className="w-full h-full flex items-center justify-center bg-black/80">
+            <Loader2 className="animate-spin text-white" size={48} />
+          </div>
+        ) : streamUrl ? (
           <iframe
-            ref={iframeRef}
+            key={streamUrl}
             src={streamUrl}
-            className="w-full h-full border-0"
+            className="w-full h-full border-0 object-cover"
             allowFullScreen
-            allow="autoplay; fullscreen"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             title="Watch Party Player"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/60">
-            <Image
-              src={bgSrc}
-              alt="poster"
-              fill
-              className="object-cover opacity-30"
-            />
-            {movieLoading ? (
-              <Loader2 className="animate-spin text-white z-10" size={48} />
-            ) : (
-              <p className="text-white/60 z-10 text-sm">No stream available</p>
-            )}
+          <div className="w-full h-full flex items-center justify-center bg-black/80">
+            <p className="text-white/50 text-sm">No stream source available</p>
           </div>
         )}
       </div>
 
-      {/* ─── Sidebar ─────────────────────────────────────────────────────── */}
+      {/* ─── Sidebar ─────────────────────────────────────────────────── */}
       <div className="w-full max-w-[25%] flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
         {/* Controls grid */}
         <div className="grid grid-cols-5 grid-rows-3 gap-3 flex-shrink-0">
-          {/* Push sync – host only */}
+          {/* Host sync — host only */}
           <button
-            onClick={() =>
-              pushSync(currentTimeRef.current, isPlaying ? "PLAY" : "PAUSE")
-            }
+            onClick={handlePushSync}
             disabled={!isHost}
-            className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "bg-black/20 hover:bg-black/30" : "bg-black/10 opacity-50 cursor-not-allowed"}`}
+            className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "hover:bg-black/30" : "opacity-40 cursor-not-allowed"}`}
           >
             <div className="w-[37%] h-[50px] rounded-full bg-white/20 flex flex-shrink-0 items-center justify-center shadow-inner">
               <Upload size={25} strokeWidth={2} className="text-white" />
@@ -282,7 +324,7 @@ function PartyMovieContent() {
             </div>
           </button>
 
-          {/* Now watching */}
+          {/* Now watching card */}
           <div className="apple-glass col-span-3 row-span-2 rounded-[32px] p-4 flex flex-col justify-between relative overflow-hidden">
             <div className="flex gap-3 items-start w-full mt-1 relative z-10">
               <div className="w-12 h-12 rounded-lg overflow-hidden relative flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
@@ -306,41 +348,26 @@ function PartyMovieContent() {
                 </p>
               </div>
             </div>
-            <div className="flex justify-center items-center gap-6 relative z-10 mt-3 pb-1">
-              <button
-                className={`transition-colors ${canControl ? "text-white/60 hover:text-white" : "text-white/20 cursor-not-allowed"}`}
-                disabled={!canControl}
-              >
-                <RotateCcw size={20} strokeWidth={2.5} />
-              </button>
-              <button
-                onClick={handlePlayPause}
-                disabled={!canControl}
-                className={`transition-transform ${canControl ? "text-white hover:scale-105" : "text-white/40 cursor-not-allowed"}`}
-              >
-                {isPlaying ? (
-                  <Pause size={32} fill="currentColor" />
-                ) : (
-                  <Play
-                    size={32}
-                    fill="currentColor"
-                    className="translate-x-0.5"
-                  />
-                )}
-              </button>
-              <button
-                className={`transition-colors ${canControl ? "text-white/60 hover:text-white" : "text-white/20 cursor-not-allowed"}`}
-                disabled={!canControl}
-              >
-                <RotateCw size={20} strokeWidth={2.5} />
-              </button>
-            </div>
+            {/* Server switcher */}
+            {servers.length > 1 && (
+              <div className="flex gap-1.5 flex-wrap mt-2 relative z-10">
+                {servers.map((s, i) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveServerIndex(i)}
+                    className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${i === activeServerIndex ? "bg-[#E8470A] text-white" : "bg-white/10 text-white/60 hover:bg-white/20"}`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Buffering */}
           <button
             onClick={handleBuffering}
-            className="apple-glass col-span-2 row-span-1 bg-black/20 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5"
+            className="apple-glass col-span-2 row-span-1 hover:bg-black/30 transition-all rounded-full flex items-center justify-start p-2 gap-2.5"
           >
             <div
               className={`w-[35%] h-[50px] rounded-full flex flex-shrink-0 items-center justify-center shadow-inner ${isBuffering ? "bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" : "bg-white/20"}`}
@@ -361,11 +388,11 @@ function PartyMovieContent() {
             </div>
           </button>
 
-          {/* Strict sync – host only */}
+          {/* Strict sync — host only */}
           <button
             onClick={toggleStrictSync}
             disabled={!isHost}
-            className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "bg-black/20 hover:bg-black/30" : "bg-black/10 opacity-50 cursor-not-allowed"}`}
+            className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-2.5 ${isHost ? "hover:bg-black/30" : "opacity-40 cursor-not-allowed"}`}
           >
             <div
               className={`w-[35%] h-[50px] rounded-full flex flex-shrink-0 items-center justify-center transition-colors ${strictSync ? "bg-[#ff571e]/90 shadow-[0_0_10px_rgba(255,87,30,0.5)]" : "bg-white/20"}`}
@@ -384,11 +411,11 @@ function PartyMovieContent() {
             </div>
           </button>
 
-          {/* Request sync – participant only */}
+          {/* Request sync — participant only */}
           <button
             onClick={requestSync}
             disabled={isHost}
-            className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-1 ${!isHost ? "bg-black/20 hover:bg-black/30" : "bg-black/10 opacity-50 cursor-not-allowed"}`}
+            className={`apple-glass col-span-2 row-span-1 transition-all rounded-full flex items-center justify-start p-2 gap-1 ${!isHost ? "hover:bg-black/30" : "opacity-40 cursor-not-allowed"}`}
           >
             <div className="w-[35%] h-[50px] rounded-full bg-white/20 flex flex-shrink-0 items-center justify-center">
               <Download size={25} strokeWidth={2} className="text-white" />
@@ -418,22 +445,25 @@ function PartyMovieContent() {
               <h3 className="font-semibold text-white text-sm">
                 Invite Friends
               </h3>
-              <p className="text-white/50 text-xs">Share party link</p>
+              <p className="text-white/50 text-xs truncate max-w-[120px]">
+                {partyId
+                  ? `Party: ${partyId.substring(0, 8)}…`
+                  : "Creating party…"}
+              </p>
             </div>
           </div>
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(inviteLink);
-            }}
-            className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium shadow-[0_0_20px_rgba(232,71,10,0.4)]"
+            onClick={handleCopyInvite}
+            disabled={!partyId}
+            className="bg-[#E8470A] text-white rounded-full px-4 py-2 text-sm font-medium shadow-[0_0_20px_rgba(232,71,10,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            Copy
+            {copiedInvite ? "Copied!" : "Copy"}
           </button>
         </div>
 
-        {/* ─── Chat ──────────────────────────────────────────────────────── */}
+        {/* ─── Chat ─────────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden rounded-[2rem] apple-glass shadow-2xl">
-          {/* Chat header — participant avatars */}
+          {/* Participants header */}
           <div
             className="flex items-center justify-between px-2 py-3 m-2 rounded-[1.5rem] flex-shrink-0"
             style={{
@@ -465,39 +495,57 @@ function PartyMovieContent() {
             </div>
           </div>
 
-          {/* Messages — sent right, received left */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-3">
+          <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-4">
             {messages.map((msg, idx) => {
-              const isOwn = msg.senderId === user?.id;
-              return (
+              const isMe = msg.senderId === currentUserId;
+              return msg.isSystemMessage ? (
+                <div key={idx} className="flex justify-center my-1">
+                  <span className="text-[11px] font-medium text-white/50 bg-white/5 px-3 py-1 rounded-full">
+                    {msg.text}
+                  </span>
+                </div>
+              ) : (
                 <div
                   key={idx}
-                  className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
+                  className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""}`}
                 >
-                  {/* Avatar */}
-                  {!isOwn && (
-                    <Avatar
-                      id={msg.senderId}
-                      name={msg.senderDisplayName}
-                      photo={msg.senderProfilePhoto}
-                    />
-                  )}
+                  {!isMe &&
+                    (msg.senderProfilePhoto ? (
+                      <Image
+                        src={msg.senderProfilePhoto}
+                        alt={msg.senderDisplayName ?? "user"}
+                        width={36}
+                        height={36}
+                        className="rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-[13px] flex-shrink-0"
+                        style={{ backgroundColor: colorForId(msg.senderId) }}
+                      >
+                        {(msg.senderDisplayName ?? msg.senderId)
+                          .substring(0, 1)
+                          .toUpperCase()}
+                      </div>
+                    ))}
                   <div
-                    className={`max-w-[75%] flex flex-col ${isOwn ? "items-end" : "items-start"}`}
+                    className={`flex flex-col max-w-[70%] min-w-0 ${isMe ? "items-end" : ""}`}
                   >
-                    {!isOwn && (
-                      <span className="text-[11px] text-white/50 font-semibold mb-1 ml-1">
+                    <div
+                      className={`flex items-baseline gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}
+                    >
+                      <span className="text-[13px] font-semibold text-white truncate max-w-[120px]">
                         {msg.senderDisplayName}
                       </span>
-                    )}
-                    <div
-                      className={`px-3 py-2 rounded-2xl text-[13px] leading-[1.5] ${isOwn ? "bg-[#E8470A] text-white rounded-br-sm" : "bg-white/10 text-white/90 rounded-bl-sm"}`}
+                      <span className="text-[10px] text-white/30 flex-shrink-0">
+                        {fmtTime(msg.serverTime)}
+                      </span>
+                    </div>
+                    <p
+                      className={`text-[13px] text-white/80 leading-snug break-all ${isMe ? "pl-2 text-right" : "pr-2"}`}
                     >
                       {msg.text}
-                    </div>
-                    <span className="text-[10px] text-white/30 mt-1 mx-1">
-                      {fmt(msg.serverTime)}
-                    </span>
+                    </p>
                   </div>
                 </div>
               );
@@ -507,10 +555,11 @@ function PartyMovieContent() {
 
           {/* Input */}
           <div className="px-3 py-3 flex-shrink-0 flex items-center gap-2">
-            <div className="flex items-center gap-1 rounded-full pl-3 pr-2 py-2 flex-1 apple-glass">
-              <button className="p-1 text-gray-400 hover:text-white/80 transition-colors flex-shrink-0">
-                <Smile size={20} className="stroke-[1.5]" />
-              </button>
+            <div className="flex items-center gap-1 rounded-full pl-3 pr-2 py-3 flex-1 apple-glass">
+              <Smile
+                size={20}
+                className="text-gray-400 flex-shrink-0 stroke-[1.5]"
+              />
               <input
                 type="text"
                 value={chatInput}
@@ -522,7 +571,7 @@ function PartyMovieContent() {
             </div>
             <button
               onClick={handleSendChat}
-              className="px-4 py-2 rounded-full apple-glass hover:bg-white/10 text-white text-[13px] font-medium flex-shrink-0"
+              className="px-4 py-3 rounded-full apple-glass hover:bg-white/10 text-white text-[13px] font-medium flex-shrink-0"
             >
               Send
             </button>

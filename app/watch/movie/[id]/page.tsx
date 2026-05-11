@@ -10,30 +10,7 @@ import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { MoviePlayerSidebar } from "@/src/components/player/MoviePlayerSidebar";
 import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
-
-// ─── Extract colors for dynamic gradient ─────────────────────────────────────
-function extractColors(src: string): Promise<string[]> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.crossOrigin = "Anonymous";
-    img.src = src;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return resolve(["#0f172a", "#000000"]);
-      canvas.width = 2;
-      canvas.height = 2;
-      ctx.drawImage(img, 0, 0, 2, 2);
-      const data = ctx.getImageData(0, 0, 2, 2).data;
-      const colors = [];
-      for (let i = 0; i < data.length; i += 4) {
-        colors.push(`rgb(${data[i]}, ${data[i + 1]}, ${data[i + 2]})`);
-      }
-      resolve(colors);
-    };
-    img.onerror = () => resolve(["#0f172a", "#000000"]);
-  });
-}
+import { extractColors } from "@/src/lib/utils/color";
 
 export default function MoviePlayer() {
   const params = useParams();

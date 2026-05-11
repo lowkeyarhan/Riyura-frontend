@@ -9,6 +9,8 @@ import { InfoRow } from "@/src/components/ui/InfoRow";
 import MediaCard from "@/src/components/media/MediaCard";
 import { useTVShowDetails } from "@/src/hooks/details/useTVShowDetails";
 import { formatRuntime, formatDate } from "@/src/lib/utils/format";
+import { useState, useEffect } from "react";
+import { extractColors } from "@/src/lib/utils/color";
 
 const BG_COLOR = "rgb(7, 9, 16)";
 const FONT = "Be Vietnam Pro, sans-serif";
@@ -29,21 +31,18 @@ export default function TVShowDetails() {
     similarShows,
   } = useTVShowDetails(id);
 
+  const [gradientColors, setGradientColors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (tvShow?.backdrop_path) {
+      extractColors(tvShow.backdrop_path, 0.15).then(setGradientColors);
+    }
+  }, [tvShow?.backdrop_path]);
+
   if (loading) {
     return (
-      <div className="min-h-screen relative">
-        {/* Background Effects */}
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-black" />
-          <div className="hidden md:block">
-            <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-            <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-          </div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
-        </div>
-        <div className="relative z-10">
-          <DetailsSkeleton />
-        </div>
+      <div className="min-h-screen">
+        <DetailsSkeleton />
       </div>
     );
   }
@@ -62,23 +61,39 @@ export default function TVShowDetails() {
   }
 
   return (
-    <div className="min-h-screen relative">
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-black" />
-
-        {/* Mobile Background */}
-        <div className="block md:hidden">
-          {/* <div className="absolute -top-[10%] -left-[10%] w-[160vw] h-[160vw] rounded-full bg-[#155f75b5] blur-[120px] opacity-40" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[160vw] h-[160vw] rounded-full bg-[#9a341299] blur-[120px] opacity-30 mix-blend-screen" /> */}
-        </div>
-
-        {/* Desktop Background */}
-        <div className="hidden md:block">
-          <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-        </div>
-
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+    <div
+      className="min-h-screen relative"
+      style={{
+        backgroundColor: BG_COLOR,
+        backgroundImage: gradientColors.length > 0 ? `
+          radial-gradient(circle at 0% 0%, ${gradientColors[0]} 0%, transparent 50%),
+          radial-gradient(circle at 100% 0%, ${gradientColors[1]} 0%, transparent 50%),
+          radial-gradient(circle at 0% 100%, ${gradientColors[2]} 0%, transparent 50%),
+          radial-gradient(circle at 100% 100%, ${gradientColors[3]} 0%, transparent 50%)
+        ` : undefined,
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* Hero Background Image */}
+      <div
+        className="fixed inset-0 z-0 h-[70vh] w-full overflow-hidden pointer-events-none"
+        style={{
+          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)'
+        }}
+      >
+        {tvShow.backdrop_path ? (
+          <Image
+            src={tvShow.backdrop_path}
+            alt={tvShow.name}
+            fill
+            className="object-cover brightness-50 mix-blend-screen"
+            priority
+            sizes="100vw"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#1a1d26]" />
+        )}
       </div>
 
       {/* Trailer Modal */}
@@ -104,28 +119,6 @@ export default function TVShowDetails() {
 
       {/* Hero Banner */}
       <div className="relative z-10 h-[70vh] min-h-[500px] overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            maskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)",
-          }}
-        >
-          {tvShow.backdrop_path ? (
-            <Image
-              src={tvShow.backdrop_path}
-              alt={tvShow.name}
-              fill
-              className="object-cover brightness-50"
-              priority
-              sizes="100vw"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-[#1a1d26]" />
-          )}
-        </div>
         <div className="relative h-full flex flex-col justify-end px-4 md:px-16 lg:px-20 md:pb-12">
           <div className="max-w-3xl">
             <h1
@@ -164,11 +157,10 @@ export default function TVShowDetails() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleWatchlist}
-                  className={`p-3 rounded-full transition ${
-                    isWatchlisted
-                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
+                  className={`p-3 rounded-full transition ${isWatchlisted
+                    ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                    }`}
                 >
                   <Bookmark
                     className="w-4 h-4 md:w-5 md:h-5"

@@ -19,6 +19,7 @@ import { useWatchParty } from "@/src/hooks/party/useWatchParty";
 import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
 import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import { MediaType } from "@/src/props/global/mediaType";
+import { extractColors } from "@/src/lib/utils/color";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -39,26 +40,7 @@ function fmtTime(ts: number) {
   const d = new Date(ts);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
-async function extractColors(src: string): Promise<string[]> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.crossOrigin = "Anonymous";
-    img.src = src;
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      const ctx = c.getContext("2d");
-      if (!ctx) return resolve(["#0f172a", "#000"]);
-      c.width = c.height = 2;
-      ctx.drawImage(img, 0, 0, 2, 2);
-      const d = ctx.getImageData(0, 0, 2, 2).data;
-      const out: string[] = [];
-      for (let i = 0; i < d.length; i += 4)
-        out.push(`rgb(${d[i]},${d[i + 1]},${d[i + 2]})`);
-      resolve(out);
-    };
-    img.onerror = () => resolve(["#0f172a", "#000"]);
-  });
-}
+
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 function PartyMovieContent() {

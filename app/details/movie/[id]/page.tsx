@@ -2,12 +2,14 @@
 
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { Play, X, Star } from "lucide-react";
+import { Play, X, Star, Share2 } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import MediaCard from "@/src/components/media/MediaCard";
 import { useMovieDetails } from "@/src/hooks/details/useMovieDetails";
 import { formatRuntime, formatDate, formatMoney } from "@/src/lib/utils/format";
+import { extractColors } from "@/src/lib/utils/color";
+import { useEffect, useState } from "react";
 
 export default function MovieDetails() {
   const router = useRouter();
@@ -16,6 +18,14 @@ export default function MovieDetails() {
 
   const { movie, loading, error, showTrailer, setShowTrailer, similarMovies } =
     useMovieDetails(id);
+
+  const [gradientColors, setGradientColors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (movie?.backdrop_path) {
+      extractColors(movie.backdrop_path, 0.15).then(setGradientColors);
+    }
+  }, [movie?.backdrop_path]);
 
   if (loading) {
     return (
@@ -45,10 +55,12 @@ export default function MovieDetails() {
       className="text-white font-body-md overflow-x-hidden antialiased min-h-screen relative"
       style={{
         backgroundColor: "#0b0718",
-        backgroundImage: `
-          radial-gradient(circle at 15% 50%, rgba(232, 71, 10, 0.08) 0%, transparent 50%),
-          radial-gradient(circle at 85% 30%, rgba(57, 144, 255, 0.05) 0%, transparent 50%)
-        `,
+        backgroundImage: gradientColors.length > 0 ? `
+          radial-gradient(circle at 0% 0%, ${gradientColors[0]} 0%, transparent 50%),
+          radial-gradient(circle at 100% 0%, ${gradientColors[1]} 0%, transparent 50%),
+          radial-gradient(circle at 0% 100%, ${gradientColors[2]} 0%, transparent 50%),
+          radial-gradient(circle at 100% 100%, ${gradientColors[3]} 0%, transparent 50%)
+        ` : undefined,
         backgroundAttachment: "fixed",
       }}
     >
@@ -73,7 +85,13 @@ export default function MovieDetails() {
       )}
 
       {/* Hero Background Image */}
-      <div className="absolute inset-0 z-0 h-[70vh] w-full">
+      <div
+        className="fixed inset-0 z-0 h-[70vh] w-full overflow-hidden pointer-events-none"
+        style={{
+          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)'
+        }}
+      >
         {movie.backdrop_path ? (
           <Image
             src={movie.backdrop_path}
@@ -86,14 +104,20 @@ export default function MovieDetails() {
         ) : (
           <div className="w-full h-full bg-[#1a1d26] opacity-60 mix-blend-screen" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0718] via-[#0b0718]/60 to-transparent"></div>
       </div>
 
-      <div className="relative z-10 w-full px-8 md:px-16 lg:px-24 pt-55 pb-24 flex flex-col md:flex-row gap-10 md:gap-16">
+      <div className="relative px-8 md:px-16 lg:px-24 z-10 w-full pt-55 flex flex-col md:flex-row gap-10 md:gap-16">
         {/* Left Column: Poster & Actions */}
         <div className="w-full md:w-1/3 flex flex-col gap-6 shrink-0">
           {/* Poster Card */}
-          <div className="apple-glass rounded-xl aspect-[2/3] overflow-hidden relative group">
+          <div
+            className="rounded-[2rem] aspect-[2/3] overflow-hidden relative group"
+            style={{
+              border: "1px solid rgba(255,255,255,0.05)",
+              boxShadow:
+                "inset 0 1px 0 0 rgba(255,255,255,0.1),0 20px 40px rgba(0,0,0,0.4)",
+            }}
+          >
             {movie.poster_path ? (
               <Image
                 src={movie.poster_path}
@@ -111,20 +135,24 @@ export default function MovieDetails() {
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-5 gap-2">
             <button
               onClick={() => router.push(`/watch/movie/${movie.id}`)}
-              className="bg-[#E8470A] shadow-[0_10px_30px_rgba(232,71,10,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white font-medium text-sm w-full transition-all hover:brightness-110 active:scale-95"
+              className="apple-glass col-span-2 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white font-medium text-sm transition-all hover:brightness-110 active:scale-95"
             >
               <Play className="w-5 h-5" fill="currentColor" />
               Play Movie
             </button>
             <button
               onClick={() => setShowTrailer(true)}
-              className="bg-white/5 backdrop-blur-[20px] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white/80 hover:text-white font-medium text-sm transition-all hover:bg-white/10 active:scale-95 w-full"
+              className="apple-glass col-span-2 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white/80 hover:text-white font-medium text-sm transition-all hover:bg-white/10 active:scale-95"
             >
               <Play className="w-5 h-5" />
               Trailer
+            </button>
+            <button className="apple-glass col-span-1 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white/80 hover:text-white font-medium text-sm transition-all hover:bg-white/10 active:scale-95">
+              <Share2 className="w-5 h-5" />
+              Share
             </button>
           </div>
         </div>
@@ -269,7 +297,7 @@ export default function MovieDetails() {
                 Details
               </h3>
 
-              <div className="grid grid-cols-2 gap-y-4 gap-x-4 px-4 mb-6">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-4 px-4 mb-4">
                 <div className="flex flex-col gap-1">
                   <span className="text-white/50 text-sm">Director</span>
                   <span className="text-white text-base">
@@ -310,7 +338,7 @@ export default function MovieDetails() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 mb-4">
                 <span className="text-white/50 text-sm px-4">Language</span>
                 <div className="flex flex-wrap gap-2 px-4">
                   <span className="bg-white/5 backdrop-blur-[10px] border border-white/10 px-3 py-1.5 rounded-full text-sm text-white/80">
@@ -322,26 +350,26 @@ export default function MovieDetails() {
               </div>
             </div>
           </div>
-
-          {/* Similar Movies */}
-          {similarMovies.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-xl md:text-2xl font-semibold text-white/90 mb-6">
-                More Like This
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {similarMovies.slice(0, 5).map((item) => (
-                  <MediaCard
-                    key={item.tmdbId}
-                    item={item}
-                    onClick={() => router.push(`/details/movie/${item.tmdbId}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Similar Movies */}
+      {similarMovies.length > 0 && (
+        <div className="px-8 md:px-16 lg:px-24 pb-16">
+          <h3 className="text-xl md:text-2xl font-semibold text-white/90 mb-6">
+            More Like This
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {similarMovies.slice(0, 6).map((item) => (
+              <MediaCard
+                key={item.tmdbId}
+                item={item}
+                onClick={() => router.push(`/details/movie/${item.tmdbId}`)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

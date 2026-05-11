@@ -251,7 +251,7 @@ export default function MovieDetails() {
                   {movie.casts.slice(0, 4).map((person, index) => (
                     <div
                       key={`${person.character}-${person.original_name}-${index}`}
-                      className="flex items-start gap-4 group cursor-pointer"
+                      className="flex items-start gap-4 group"
                     >
                       <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 relative shrink-0">
                         {person.profile_path ? (
@@ -259,7 +259,7 @@ export default function MovieDetails() {
                             src={person.profile_path}
                             alt={person.original_name}
                             fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="object-cover"
                             sizes="56px"
                           />
                         ) : (
@@ -269,7 +269,7 @@ export default function MovieDetails() {
                         )}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-white font-medium text-base group-hover:text-orange-400 transition-colors">
+                        <span className="text-white font-medium text-base">
                           {person.original_name}
                         </span>
                         <span className="text-white/50 text-sm">

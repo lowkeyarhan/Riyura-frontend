@@ -33,7 +33,7 @@ interface TvDetailSeason {
 }
 
 export interface TvDetailProp {
-  adult: boolean;
+  maturityRating: string;
   backdrop_path: string | null;
   poster_path?: string | null;
   budget: number | null;

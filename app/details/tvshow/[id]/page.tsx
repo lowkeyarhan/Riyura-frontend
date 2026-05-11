@@ -114,7 +114,7 @@ export default function TVShowDetails() {
 
       <div className="relative px-8 md:px-16 lg:px-24 z-10 w-full pt-55 flex flex-col md:flex-row gap-10 md:gap-16">
         {/* Left Column: Poster & Actions */}
-        <div className="w-full md:w-1/3 flex flex-col gap-6 shrink-0">
+        <div className="w-full md:w-1/3 flex flex-col gap-4 shrink-0">
           {/* Poster Card */}
           <div
             className="rounded-[2rem] aspect-[2/3] overflow-hidden relative group"
@@ -139,6 +139,13 @@ export default function TVShowDetails() {
               </div>
             )}
           </div>
+
+          {/*Tagline*/}
+          {
+            tvShow.tagline && (
+              <span className="text-center text-white/80 text-sm italic"> "{tvShow.tagline}"</span>
+            )
+          }
 
           {/* Action Buttons */}
           <div className="grid grid-cols-5 gap-2">

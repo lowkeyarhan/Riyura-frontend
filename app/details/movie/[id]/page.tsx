@@ -108,7 +108,7 @@ export default function MovieDetails() {
 
       <div className="relative px-8 md:px-16 lg:px-24 z-10 w-full pt-55 flex flex-col md:flex-row gap-10 md:gap-16">
         {/* Left Column: Poster & Actions */}
-        <div className="w-full md:w-1/3 flex flex-col gap-6 shrink-0">
+        <div className="w-full md:w-1/3 flex flex-col gap-4 shrink-0">
           {/* Poster Card */}
           <div
             className="rounded-[2rem] aspect-[2/3] overflow-hidden relative group"
@@ -133,6 +133,13 @@ export default function MovieDetails() {
               </div>
             )}
           </div>
+
+          {/*Tagline*/}
+          {
+            movie.tagline && (
+              <span className="text-center text-white/80 text-sm italic"> "{movie.tagline}"</span>
+            )
+          }
 
           {/* Action Buttons */}
           <div className="grid grid-cols-5 gap-2">
@@ -355,7 +362,7 @@ export default function MovieDetails() {
 
       {/* Similar Movies */}
       {similarMovies.length > 0 && (
-        <div className="px-8 md:px-16 lg:px-24 pb-16">
+        <div className="px-8 md:px-16 lg:px-24 py-16">
           <h3 className="text-xl md:text-2xl font-semibold text-white/90 mb-6">
             More Like This
           </h3>

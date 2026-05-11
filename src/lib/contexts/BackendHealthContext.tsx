@@ -18,12 +18,13 @@ interface BackendHealthContextType {
   status: HealthStatus;
   isUp: boolean;
   isChecking: boolean;
+  shouldBlockProtectedContent: boolean;
   retry: () => void;
 }
 
-const BackendHealthContext = createContext<BackendHealthContextType | undefined>(
-  undefined,
-);
+const BackendHealthContext = createContext<
+  BackendHealthContextType | undefined
+>(undefined);
 
 export function BackendHealthProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -35,6 +36,8 @@ export function BackendHealthProvider({ children }: { children: ReactNode }) {
     pathname === "/" ||
     pathname?.startsWith("/landing") ||
     pathname?.startsWith("/auth");
+  const shouldBlockProtectedContent =
+    !isPublic && (authLoading || (Boolean(user) && status !== "up"));
 
   const checkHealth = useCallback(async () => {
     setStatus("checking");
@@ -71,6 +74,7 @@ export function BackendHealthProvider({ children }: { children: ReactNode }) {
         status,
         isUp: status === "up",
         isChecking: status === "checking",
+        shouldBlockProtectedContent,
         retry,
       }}
     >

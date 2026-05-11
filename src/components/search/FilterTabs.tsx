@@ -31,10 +31,11 @@ export function FilterTabs({
           <button
             key={tab.key}
             onClick={() => onTabChange(tab.key as "all" | "movies" | "tv")}
-            className={`px-7 py-2 rounded-full text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === tab.key
-              ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-              : "text-white border border-white hover:text-white cursor-pointer"
-              }`}
+            className={`px-7 py-2 rounded-full text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${
+              activeTab === tab.key
+                ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                : "text-white border border-white hover:text-white cursor-pointer"
+            }`}
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             {tab.label}
@@ -50,7 +51,11 @@ export function FilterTabs({
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           {Object.values(SearchSortBy).map((value) => (
-            <option key={value} value={value} className="bg-[#0a0e1a] text-white">
+            <option
+              key={value}
+              value={value}
+              className="bg-[#0a0e1a] text-white"
+            >
               {SEARCH_SORT_LABELS[value]}
             </option>
           ))}

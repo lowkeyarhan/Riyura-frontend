@@ -167,7 +167,6 @@ export default function Banner({ initialItems }: BannerProps) {
   const [items, setItems] = useState<BannerProp[]>(safeInitialItems);
   const [loading, setLoading] = useState(safeInitialItems.length === 0);
   const [error, setError] = useState<string | null>(null);
-  const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
   const [continueWatching, setContinueWatching] = useState<
     ContinueWatchingOverlayItem[]
@@ -260,34 +259,6 @@ export default function Banner({ initialItems }: BannerProps) {
 
   // Get the current item
   const currentItem = items[currentSlide];
-  const currentItemId = currentItem?.tmdbId;
-  const currentContentType = currentItem?.contentType;
-
-  // Check the watchlist status via API
-  useEffect(() => {
-    const checkWatchlistStatus = async () => {
-      if (!user || !currentItemId || !currentContentType) {
-        setIsWatchlisted(false);
-        return;
-      }
-
-      try {
-        const session = await getSupabaseSession();
-        if (!session) { setIsWatchlisted(false); return; }
-
-        const res = await fetch(
-          `/api/profile/watchlist?tmdbId=${currentItemId}&mediaType=${currentContentType}`,
-          { headers: { Authorization: `Bearer ${session.access_token}` } },
-        );
-        const data = await res.json();
-        setIsWatchlisted(Boolean(data?.isInWatchlist));
-      } catch {
-        setIsWatchlisted(false);
-      }
-    };
-
-    checkWatchlistStatus();
-  }, [user, currentItemId, currentContentType]);
 
   useEffect(() => {
     let isActive = true;
@@ -323,9 +294,9 @@ export default function Banner({ initialItems }: BannerProps) {
 
         const mappedItems = Array.isArray(payload.data)
           ? payload.data
-            .map(mapWatchHistoryItem)
-            .filter((item) => item.progress <= 95)
-            .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+              .map(mapWatchHistoryItem)
+              .filter((item) => item.progress <= 95)
+              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
           : [];
 
         if (isActive) setContinueWatching(mappedItems);
@@ -362,10 +333,10 @@ export default function Banner({ initialItems }: BannerProps) {
 
   const metadataParts = currentItem
     ? [
-      getMediaTypeLabel(currentItem.contentType),
-      currentItem.year,
-      ...itemGenres,
-    ].filter((part): part is string => Boolean(part))
+        getMediaTypeLabel(currentItem.contentType),
+        currentItem.year,
+        ...itemGenres,
+      ].filter((part): part is string => Boolean(part))
     : [];
 
   // Handle the play button click
@@ -397,24 +368,29 @@ export default function Banner({ initialItems }: BannerProps) {
         return;
       }
 
-      const method = isWatchlisted ? "DELETE" : "POST";
+      // We just post it, backend handles logic and returns status
       const res = await fetch("/api/profile/watchlist", {
-        method,
+        method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tmdb_id: currentItem.tmdbId, media_type: mediaType }),
+        body: JSON.stringify({
+          tmdb_id: currentItem.tmdbId,
+          media_type: mediaType,
+        }),
       });
 
       if (res.ok) {
-        setIsWatchlisted(!isWatchlisted);
-        addNotification(
-          isWatchlisted
-            ? `${mediaTitle} removed from watchlist`
-            : `${mediaTitle} added to watchlist`,
-          "success",
-        );
+        const data = await res.json();
+        if (data?.message === "Already exists in watchlist") {
+          addNotification(
+            `${mediaTitle} is already in your watchlist`,
+            "success",
+          );
+        } else {
+          addNotification(`${mediaTitle} added to watchlist`, "success");
+        }
       } else {
         addNotification("Failed to update watchlist", "error");
       }
@@ -451,13 +427,20 @@ export default function Banner({ initialItems }: BannerProps) {
   };
 
   const handlePlayClick = useCallback(
-    (cardItem: { image: string; title: string; progress: number; meta: string; remaining: string }) => {
+    (cardItem: {
+      image: string;
+      title: string;
+      progress: number;
+      meta: string;
+      remaining: string;
+    }) => {
       // Find the full item to get tmdbId, mediaType, and stream params
       const item = continueWatching.find((i) => i.title === cardItem.title);
       if (!item) return;
       if (item.mediaType === MediaType.Movie) {
-        const url = `/watch/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
-          }`;
+        const url = `/watch/movie/${item.tmdbId}${
+          item.streamId ? `?stream=${item.streamId}` : ""
+        }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -467,7 +450,8 @@ export default function Banner({ initialItems }: BannerProps) {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
+          `/player/tvshow/${item.tmdbId}${
+            params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -599,15 +583,8 @@ export default function Banner({ initialItems }: BannerProps) {
                     <button
                       onClick={toggleWatchlist}
                       disabled={watchlistLoading}
-                      aria-label={
-                        isWatchlisted
-                          ? "Remove from watchlist"
-                          : "Add to watchlist"
-                      }
-                      className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 transition ${isWatchlisted
-                          ? "bg-white/35 text-white"
-                          : "bg-white/20 text-white hover:bg-white/30"
-                        } ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                      aria-label="Add to watchlist"
+                      className={`flex h-14 w-14 items-center apple-glass justify-center rounded-full border border-white/15 transition ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       <Plus className="h-8 w-8" strokeWidth={1.5} />
                     </button>
@@ -636,8 +613,9 @@ export default function Banner({ initialItems }: BannerProps) {
                   width: index === currentSlide ? 32 : 8,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className={`h-2 rounded-full ${index === currentSlide ? "bg-white" : "bg-white/50"
-                  }`}
+                className={`h-2 rounded-full ${
+                  index === currentSlide ? "bg-white" : "bg-white/50"
+                }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

@@ -7,7 +7,7 @@ import { LogOut } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useProfileData } from "@/src/hooks/profile/useProfileData";
-import { useApiKey } from "@/src/lib/contexts/ApiKeyContext";
+import { ApiKeyProvider, useApiKey } from "@/src/lib/contexts/ApiKeyContext";
 import { useRecommendations } from "@/src/hooks/profile/useRecommendations";
 import { useWatchHistory } from "@/src/hooks/profile/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
@@ -25,6 +25,14 @@ import { WatchlistSection } from "@/src/components/profile/WatchlistSection";
 import { RecommendationsSection } from "@/src/components/profile/RecommendationsSection";
 
 export default function ProfilePage() {
+  return (
+    <ApiKeyProvider>
+      <ProfilePageContent />
+    </ApiKeyProvider>
+  );
+}
+
+function ProfilePageContent() {
   const { user, loading, firstName, avatarUrl } = useAuth();
   const router = useRouter();
   const { addNotification } = useNotification();

@@ -16,7 +16,6 @@ export function WatchlistSection({
   onItemClick,
   onViewAll,
 }: WatchlistSectionProps) {
-
   return (
     <section>
       <div className="flex items-center justify-between mb-4 md:mb-5">

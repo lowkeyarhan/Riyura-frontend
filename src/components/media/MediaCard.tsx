@@ -95,13 +95,16 @@ export default function MediaCard({
   return (
     <div
       className={`
-        group relative cursor-pointer rounded-xl overflow-hidden 
-        bg-[#0f1115]
-        border border-white/5 
+        group relative cursor-pointer rounded-[2rem] overflow-hidden 
         transition-all duration-300 
-        shadow-md
         ${isLongPressing ? "scale-[0.98]" : ""}
       `}
+      style={{
+        border: "1px solid rgba(255,255,255,0.05)",
+        background: "#0000004e",
+        boxShadow:
+          "inset 0 1px 0 0 rgba(255,255,255,0.1),0 20px 40px rgba(0,0,0,0.4)",
+      }}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onTouchStart={handleTouchStart}
@@ -119,7 +122,7 @@ export default function MediaCard({
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0f1115] via-[#0f1115]/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#000000] to-transparent" />
 
         {/* Hover Action Overlay (Desktop) - Only Play button, no Remove */}
         <div className="hidden md:flex absolute inset-0 bg-[#0f1115]/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center z-20">

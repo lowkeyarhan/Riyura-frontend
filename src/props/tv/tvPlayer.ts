@@ -23,4 +23,5 @@ export interface TvPlayerProp {
   seasons: TvPlayerSeason[];
   title: string;
   tmdbId: number;
+  backdrop_path: string | null;
 }

@@ -14,6 +14,12 @@ interface MovieDetailCast {
   profile_path: string | null;
 }
 
+interface MovieDetailCrew {
+  job: string;
+  original_name: string;
+  profile_path: string | null;
+}
+
 export interface MovieDetailProp {
   id: number;
   title: string;
@@ -21,7 +27,6 @@ export interface MovieDetailProp {
   backdrop_path: string | null;
   poster_path?: string | null;
   budget: number;
-  adult: boolean;
   genres: MovieDetailGenre[];
   production_companies: MovieDetailProductionCompany[];
   release_date: string;
@@ -32,5 +37,8 @@ export interface MovieDetailProp {
   tagline: string;
   vote_average: number;
   casts: MovieDetailCast[];
+  directors?: MovieDetailCrew[];
+  writers?: MovieDetailCrew[];
   is_anime: boolean;
+  maturityRating?: string;
 }

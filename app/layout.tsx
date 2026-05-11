@@ -6,7 +6,7 @@ import { ChunkErrorBoundary } from "@/src/components/layout/ChunkErrorBoundary";
 import { ChunkErrorHandler } from "@/src/components/layout/ChunkErrorHandler";
 import { NotificationProvider } from "@/src/lib/contexts/NotificationContext";
 import { BackendHealthProvider } from "@/src/lib/contexts/BackendHealthContext";
-import { ApiKeyProvider } from "@/src/lib/contexts/ApiKeyContext";
+import { BackendHealthGate } from "@/src/components/layout/BackendHealthGate";
 import Notification from "@/src/components/ui/Notification";
 import { ServersDownModal } from "@/src/components/ui/ServersDownModal";
 import { Analytics } from "@vercel/analytics/next";
@@ -40,10 +40,10 @@ export default function RootLayout({
         <ChunkErrorBoundary>
           <NotificationProvider>
             <BackendHealthProvider>
-              <ApiKeyProvider>
-                <AuthGate>{children}</AuthGate>
-                <ServersDownModal />
-              </ApiKeyProvider>
+              <AuthGate>
+                <BackendHealthGate>{children}</BackendHealthGate>
+              </AuthGate>
+              <ServersDownModal />
             </BackendHealthProvider>
             <Notification />
           </NotificationProvider>

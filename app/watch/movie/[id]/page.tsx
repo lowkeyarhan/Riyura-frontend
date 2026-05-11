@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
@@ -8,6 +9,8 @@ import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { MoviePlayerSidebar } from "@/src/components/player/MoviePlayerSidebar";
+import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { extractColors } from "@/src/lib/utils/color";
 
 export default function MoviePlayer() {
   const params = useParams();
@@ -36,6 +39,16 @@ export default function MoviePlayer() {
   const activeServer = servers[activeServerIndex];
   const isNanovue =
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
+
+  const [gradientColors, setGradientColors] = useState<string[]>([]);
+
+  const bgImageSrc = movie?.backdrop_path
+    ? normalizeTmdbImageUrl(movie.backdrop_path, "w500")
+    : "/watch_party_page_temp_bg.jpg";
+
+  useEffect(() => {
+    extractColors(bgImageSrc).then((colors) => setGradientColors(colors));
+  }, [bgImageSrc]);
 
   // Keep URL in sync with current stream + progress
   const syncUrl = useCallback(
@@ -109,7 +122,31 @@ export default function MoviePlayer() {
 
   return (
     <PlayerLayout>
-      <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4">
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black">
+        {gradientColors.length > 0 ? (
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: `radial-gradient(circle at 0% 0%, ${gradientColors[0]} 0%, transparent 50%), radial-gradient(circle at 100% 0%, ${gradientColors[1]} 0%, transparent 50%), radial-gradient(circle at 0% 100%, ${gradientColors[2]} 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${gradientColors[3]} 0%, transparent 50%)`,
+              filter: "blur(80px)",
+              transform: "scale(1.2)",
+            }}
+          />
+        ) : (
+          <Image
+            src={
+              movie?.backdrop_path
+                ? normalizeTmdbImageUrl(movie.backdrop_path, "w500")
+                : "/watch_party_page_temp_bg.jpg"
+            }
+            alt="Movie Backdrop"
+            fill
+            className="object-cover absolute inset-0 opacity-20"
+            priority
+          />
+        )}
+      </div>
+      <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 overflow-hidden">
         {/* --- LEFT: CINEMA PLAYER --- */}
         <div className="flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto">
           <iframe

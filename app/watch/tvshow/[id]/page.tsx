@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
@@ -9,6 +10,10 @@ import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
 import { TVShowPlayerSidebar } from "@/src/components/player/TVShowPlayerSidebar";
 import { EpisodeBrowser } from "@/src/components/player/EpisodeBrowser";
+import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { extractColors } from "@/src/lib/utils/color";
+
+
 
 export default function TVShowPlayer() {
   const params = useParams();
@@ -50,6 +55,16 @@ export default function TVShowPlayer() {
   const activeServer = servers[activeServerIndex];
   const isNanovue =
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
+
+  const [gradientColors, setGradientColors] = useState<string[]>([]);
+
+  useEffect(() => {
+    const bgImageSrc = tvShow?.backdrop_path
+      ? normalizeTmdbImageUrl(tvShow.backdrop_path, "w500")
+      : "/watch_party_page_temp_bg.jpg";
+
+    extractColors(bgImageSrc).then((colors) => setGradientColors(colors));
+  }, [tvShow?.backdrop_path]);
 
   // Keep all URL params in sync: stream, season, episode, progress
   const syncUrl = useCallback(
@@ -124,8 +139,34 @@ export default function TVShowPlayer() {
 
   return (
     <PlayerLayout>
+      {/* Dynamic Background Gradient */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black">
+        {gradientColors.length > 0 ? (
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: `radial-gradient(circle at 0% 0%, ${gradientColors[0]} 0%, transparent 50%), radial-gradient(circle at 100% 0%, ${gradientColors[1]} 0%, transparent 50%), radial-gradient(circle at 0% 100%, ${gradientColors[2]} 0%, transparent 50%), radial-gradient(circle at 100% 100%, ${gradientColors[3]} 0%, transparent 50%)`,
+              filter: "blur(80px)",
+              transform: "scale(1.2)",
+            }}
+          />
+        ) : (
+          <Image
+            src={
+              tvShow?.backdrop_path
+                ? normalizeTmdbImageUrl(tvShow.backdrop_path, "w500")
+                : "/watch_party_page_temp_bg.jpg"
+            }
+            alt="TV Show Backdrop"
+            fill
+            className="object-cover absolute inset-0 opacity-20"
+            priority
+          />
+        )}
+      </div>
+
       {/* --- SECTION 1: THEATER (Full Viewport) --- */}
-      <div className="min-h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto">
+      <div className="min-h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto z-10 relative">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-full">
           {/* Left: Player (9 cols) */}
           <div className="lg:col-span-9 flex flex-col h-auto lg:h-full border border-white/5 rounded-3xl aspect-video lg:aspect-auto">

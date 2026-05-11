@@ -15,7 +15,7 @@ interface TvDetailCast {
 }
 
 interface TvDetailCreatedBy {
-  name: string;
+  original_name: string;
 }
 
 interface TvDetailNetwork {

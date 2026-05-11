@@ -181,7 +181,7 @@ export default function TVShowDetails() {
               <span>{releaseYear}</span>
               <span className="w-1 h-1 rounded-full bg-white/20"></span>
               <span>
-                {tvShow.number_of_seasons} Season{tvShow.number_of_seasons !== 1 ? "s" : ""}
+                {tvShow.number_of_seasons || tvShow.seasons?.filter(s => s.season_number > 0).length || 0} Season{(tvShow.number_of_seasons || tvShow.seasons?.filter(s => s.season_number > 0).length) !== 1 ? "s" : ""}
               </span>
               {tvShow.maturityRating && (
                 <>
@@ -308,7 +308,7 @@ export default function TVShowDetails() {
                   <span className="text-white/50 text-sm">Created By</span>
                   <span className="text-white text-base">
                     {tvShow.created_by && tvShow.created_by.length > 0
-                      ? tvShow.created_by.map((c) => c.name).join(", ")
+                      ? tvShow.created_by.map((c) => c.original_name).join(", ")
                       : "N/A"}
                   </span>
                 </div>
@@ -373,7 +373,7 @@ export default function TVShowDetails() {
                   key={season.season_number}
                   className="apple-glass rounded-[2rem] overflow-hidden flex flex-shrink-0 w-[300px] md:w-[350px] gap-4 p-2 transition hover:bg-white/5 cursor-pointer"
                 >
-                  <div className="relative w-24 h-36 rounded-[2rem] overflow-hidden flex-shrink-0">
+                  <div className="relative w-24 h-36 rounded-[1.5rem] overflow-hidden flex-shrink-0">
                     {season.poster_path ? (
                       <Image
                         src={season.poster_path}

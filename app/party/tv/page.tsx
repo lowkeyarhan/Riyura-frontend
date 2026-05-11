@@ -116,6 +116,7 @@ function PartyTVContent() {
     strictSync,
     remoteSyncCommand,
     currentTimeRef,
+    currentProviderRef,
     currentUserId,
     sendChat,
     pushSync,
@@ -131,6 +132,8 @@ function PartyTVContent() {
     tmdbId,
     seasonNo: initSeason,
     episodeNo: initEp,
+    // Pass the current server name so party create stores it in party state
+    providerId: activeServer?.name,
   });
 
   const [isBuffering, setIsBuffering] = useState(false);
@@ -140,13 +143,21 @@ function PartyTVContent() {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Sync server changes
+  // Keep currentProviderRef updated whenever the active server changes
+  useEffect(() => {
+    if (activeServer?.name) {
+      currentProviderRef.current = activeServer.name;
+    }
+  }, [activeServer?.name, currentProviderRef]);
+
+  // Host: broadcast server change to participants
   useEffect(() => {
     if (isHost && activeServerIndex >= 0 && servers[activeServerIndex]) {
       changeProvider(servers[activeServerIndex].name);
     }
   }, [activeServerIndex, isHost, servers, changeProvider]);
 
+  // Participants: switch local server when host switches
   useEffect(() => {
     if (!isHost && providerId && servers.length > 0) {
       const idx = servers.findIndex(
@@ -162,15 +173,38 @@ function PartyTVContent() {
     ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
     : "/watch_party_page_temp_bg.jpg";
 
-  // Update stream URL when server/episode changes
+  // Rebuild stream URL whenever the server changes.
+  // If there's a pending remoteSyncCommand, embed its startAt so the
+  // new iframe starts from the synced position immediately.
   useEffect(() => {
     if (!activeServer?.url) {
       setStreamUrl(null);
       return;
     }
+    const pendingStart = remoteSyncCommand?.startAt ?? 0;
+    if (pendingStart > 0) {
+      try {
+        const url = new URL(activeServer.url);
+        url.searchParams.set("start", Math.floor(pendingStart).toString());
+        url.searchParams.set("t", Math.floor(pendingStart).toString());
+        setStreamUrl(url.toString());
+        currentTimeRef.current = pendingStart;
+        setProgress(pendingStart);
+        return;
+      } catch {
+        const sep = activeServer.url.includes("?") ? "&" : "?";
+        setStreamUrl(
+          `${activeServer.url}${sep}start=${Math.floor(pendingStart)}&t=${Math.floor(pendingStart)}`,
+        );
+        currentTimeRef.current = pendingStart;
+        setProgress(pendingStart);
+        return;
+      }
+    }
     setStreamUrl(activeServer.url);
-    // Reset currentTime when episode changes
+    // Reset currentTime when episode/server changes with no pending sync
     currentTimeRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeServer?.url, currentTimeRef]);
 
   // Apply remote sync — rebuild URL with startAt

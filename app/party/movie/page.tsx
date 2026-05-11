@@ -82,7 +82,7 @@ function PartyMovieContent() {
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
 
   // Watch progress — listens to postMessage from iframe
-  const { getLatestProgress } = useWatchProgress({
+  const { getLatestProgress, setProgress } = useWatchProgress({
     serverName: activeServer?.name,
     isNanovue,
     initialProgressSec: 0,
@@ -103,6 +103,7 @@ function PartyMovieContent() {
     strictSync,
     remoteSyncCommand,
     currentTimeRef,
+    currentProviderRef,
     currentUserId,
     sendChat,
     pushSync,
@@ -116,6 +117,8 @@ function PartyMovieContent() {
     partyId: partyIdParam,
     mediaType: MediaType.Movie,
     tmdbId,
+    // Pass the current server name so party create stores it in party state
+    providerId: activeServer?.name,
   });
 
   const [isBuffering, setIsBuffering] = useState(false);
@@ -125,13 +128,21 @@ function PartyMovieContent() {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Sync server changes
+  // Keep currentProviderRef updated whenever the host switches server
+  useEffect(() => {
+    if (activeServer?.name) {
+      currentProviderRef.current = activeServer.name;
+    }
+  }, [activeServer?.name, currentProviderRef]);
+
+  // Host: broadcast server change to participants
   useEffect(() => {
     if (isHost && activeServerIndex >= 0 && servers[activeServerIndex]) {
       changeProvider(servers[activeServerIndex].name);
     }
   }, [activeServerIndex, isHost, servers, changeProvider]);
 
+  // Participants: switch local server when host switches
   useEffect(() => {
     if (!isHost && providerId && servers.length > 0) {
       const idx = servers.findIndex(
@@ -147,16 +158,40 @@ function PartyMovieContent() {
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : "/watch_party_page_temp_bg.jpg";
 
-  // Build stream URL with startAt when remote sync arrives
+  // Rebuild stream URL whenever the active server changes.
+  // If there's a pending remoteSyncCommand we apply its startAt immediately
+  // so the new iframe starts from the synced position.
   useEffect(() => {
     if (!activeServer?.url) {
       setStreamUrl(null);
       return;
     }
+    // If we have a remote sync command with a meaningful startAt, embed it
+    const pendingStart = remoteSyncCommand?.startAt ?? 0;
+    if (pendingStart > 0) {
+      try {
+        const url = new URL(activeServer.url);
+        url.searchParams.set("start", Math.floor(pendingStart).toString());
+        url.searchParams.set("t", Math.floor(pendingStart).toString());
+        setStreamUrl(url.toString());
+        currentTimeRef.current = pendingStart;
+        setProgress(pendingStart);
+        return;
+      } catch {
+        const sep = activeServer.url.includes("?") ? "&" : "?";
+        setStreamUrl(
+          `${activeServer.url}${sep}start=${Math.floor(pendingStart)}&t=${Math.floor(pendingStart)}`,
+        );
+        currentTimeRef.current = pendingStart;
+        setProgress(pendingStart);
+        return;
+      }
+    }
     setStreamUrl(activeServer.url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeServer?.url]);
 
-  // Apply remote sync — rebuild URL with new startAt param
+  // Apply remote sync command — rebuild iframe URL with startAt
   useEffect(() => {
     if (!remoteSyncCommand || !activeServer?.url) return;
     const { startAt, action } = remoteSyncCommand;
@@ -165,23 +200,26 @@ function PartyMovieContent() {
     );
 
     if (action === "SEEK" || action === "PLAY") {
-      // Rebuild stream URL with ?start= so the iframe seeks on reload
       try {
         const url = new URL(activeServer.url);
         url.searchParams.set("start", Math.floor(startAt).toString());
+        url.searchParams.set("t", Math.floor(startAt).toString());
         setStreamUrl(url.toString());
         currentTimeRef.current = startAt;
+        setProgress(startAt);
         console.log(
           `WatchParty [PLAYER]: Reloading iframe to ${url.toString()}`,
         );
       } catch {
-        // If URL parsing fails, just set directly
+        const sep = activeServer.url.includes("?") ? "&" : "?";
         setStreamUrl(
-          `${activeServer.url}${activeServer.url.includes("?") ? "&" : "?"}start=${Math.floor(startAt)}`,
+          `${activeServer.url}${sep}start=${Math.floor(startAt)}&t=${Math.floor(startAt)}`,
         );
+        currentTimeRef.current = startAt;
+        setProgress(startAt);
       }
     }
-  }, [remoteSyncCommand, activeServer?.url, currentTimeRef]);
+  }, [remoteSyncCommand, activeServer?.url, currentTimeRef, setProgress]);
 
   useEffect(() => {
     extractColors(bgSrc).then(setGradientColors);

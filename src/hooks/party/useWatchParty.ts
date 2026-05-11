@@ -21,13 +21,18 @@ interface UseWatchPartyProps {
   tmdbId: number;
   seasonNo?: number;
   episodeNo?: number;
+  /** The server/provider the host is currently using. Passed at create time and updated whenever host switches server. */
   providerId?: string;
+  /** The current playback position in seconds at party creation time (host only). */
   startAt?: number;
 }
 
 export interface RemoteSyncCommand {
+  /** Playback position in seconds */
   startAt: number;
   action: SyncAction;
+  /** The server/provider the host is currently using — may be undefined for older events */
+  providerId?: string;
   partyStartedAt?: number;
   timestamp: number;
 }
@@ -61,6 +66,10 @@ export function useWatchParty({
   const isHostRef = useRef(false);
   // currentTime ref is updated externally by the player page
   const currentTimeRef = useRef(0);
+  // The active server name from the player — updated externally by the page
+  const currentProviderRef = useRef<string>(initialProviderId);
+  // Snapshot of the last-fetched party state (used as fallback for request-sync)
+  const partyStateRef = useRef<WatchPartyState | null>(null);
 
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
@@ -131,6 +140,25 @@ export function useWatchParty({
             isSystemMessage: true,
           },
         ]);
+        // ── HOST auto-push: when a new user joins, immediately broadcast the
+        // host's current position so the joiner gets synced without relying on
+        // the backend's (potentially stale) party state startAt.
+        if (isHostRef.current) {
+          const t = currentTimeRef.current;
+          const provider = currentProviderRef.current;
+          console.log(
+            `WatchParty [AUTO SYNC on JOIN]: Host pushing → startAt=${t.toFixed(2)}s  provider=${provider}`,
+          );
+          // Small delay so the joining user's topic subscription is confirmed
+          setTimeout(() => {
+            publishRef.current("/sync", {
+              startAt: t,
+              clientTime: Date.now(),
+              action: "SEEK",
+              providerId: provider,
+            });
+          }, 800);
+        }
         break;
 
       case "USER_LEFT":
@@ -201,18 +229,34 @@ export function useWatchParty({
         }
         break;
 
-      case "SYNC":
-        // Directed sync (response to request-sync or auto host push)
+      case "SYNC": {
+        // SEEK / PLAY / PAUSE / UPDATE — all trigger a player seek
+        // "UPDATE" is used by the background auto-push; it should still seek participants
+        const startAt = envelope.payload?.startAt ?? 0;
+        const rawAction: SyncAction = envelope.payload?.action ?? "SEEK";
+        // Normalise UPDATE → SEEK so player pages always apply it
+        const action: SyncAction = rawAction === "UPDATE" ? "SEEK" : rawAction;
+        const payloadProviderId: string | undefined =
+          envelope.payload?.providerId;
+
         console.log(
-          `[SYNC] startAt=${envelope.payload?.startAt}s  action=${envelope.payload?.action}  partyStartedAt=${envelope.payload?.partyStartedAt}`,
+          `[SYNC] startAt=${startAt}s  action=${rawAction}→${action}  provider=${payloadProviderId ?? "n/a"}  partyStartedAt=${envelope.payload?.partyStartedAt}`,
         );
+
+        // If the event also carries a provider, update state so player switches server first
+        if (payloadProviderId && payloadProviderId !== providerId) {
+          setProviderId(payloadProviderId);
+        }
+
         setRemoteSyncCommand({
-          startAt: envelope.payload?.startAt ?? 0,
-          action: envelope.payload?.action ?? "SEEK",
+          startAt,
+          action,
+          providerId: payloadProviderId,
           partyStartedAt: envelope.payload?.partyStartedAt,
           timestamp: envelope.timestamp ?? Date.now(),
         });
         break;
+      }
 
       case "FORCE_PAUSE":
         console.log(`[INFO] Party paused: ${envelope.payload?.reason}`);
@@ -292,6 +336,26 @@ export function useWatchParty({
         );
         break;
 
+      // ── Sent by backend when a participant presses "Request Sync".
+      // The HOST responds by pushing their current timestamp to everyone.
+      // Requires backend to broadcast SYNC_REQUESTED to /topic/party/{id}
+      // instead of (or in addition to) the private /user/queue/sync response.
+      case "SYNC_REQUESTED":
+        if (isHostRef.current) {
+          const t = currentTimeRef.current;
+          const provider = currentProviderRef.current;
+          console.log(
+            `WatchParty [SYNC_REQUESTED]: Host responding → startAt=${t.toFixed(2)}s  provider=${provider}`,
+          );
+          publishRef.current("/sync", {
+            startAt: t,
+            clientTime: Date.now(),
+            action: "SEEK",
+            providerId: provider,
+          });
+        }
+        break;
+
       default:
         console.log(
           `[EVENT: ${envelope.event}] → ${JSON.stringify(envelope.payload)}`,
@@ -319,8 +383,14 @@ export function useWatchParty({
       try {
         if (!initialPartyId) {
           // HOST: create party
+          // Use the current player time and provider at the moment of creation
+          const hostStartAt =
+            currentTimeRef.current > 0 ? currentTimeRef.current : startAt;
+          const hostProviderId =
+            currentProviderRef.current || initialProviderId;
+
           console.log(
-            `WatchParty [REST]: Creating new party… tmdbId=${tmdbId} mediaType=${mediaType}`,
+            `WatchParty [REST]: Creating new party… tmdbId=${tmdbId} mediaType=${mediaType} providerId=${hostProviderId} startAt=${hostStartAt}`,
           );
           const res = await backendClient.post(
             `/party/create`,
@@ -329,8 +399,8 @@ export function useWatchParty({
               mediaType,
               seasonNo,
               episodeNo,
-              providerId: initialProviderId,
-              startAt,
+              providerId: hostProviderId,
+              startAt: Math.floor(hostStartAt),
             },
             { headers },
           );
@@ -364,15 +434,7 @@ export function useWatchParty({
 
     initParty();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    initialPartyId,
-    tmdbId,
-    mediaType,
-    seasonNo,
-    episodeNo,
-    providerId,
-    startAt,
-  ]);
+  }, [initialPartyId, tmdbId, mediaType, seasonNo, episodeNo]);
 
   // ─── 2. Fetch State + Connect WS once partyId is set ─────────────────────
   useEffect(() => {
@@ -400,13 +462,36 @@ export function useWatchParty({
 
           if (isActive) {
             setPartyState(state);
+            partyStateRef.current = state; // keep ref in sync for request-sync fallback
             setMessages(state.recentChat ?? []);
             setParticipantIds(state.participantIds ?? []);
             setStrictSync(state.strictSync ?? false);
-            setProviderId(state.providerId ?? initialProviderId);
+
             const meIsHost = state.hostId === userId;
             setIsHost(meIsHost);
             isHostRef.current = meIsHost;
+
+            // Apply provider from party state for BOTH host & participants
+            if (state.providerId) {
+              setProviderId(state.providerId);
+              currentProviderRef.current = state.providerId;
+            }
+
+            // For participants: inject the party's startAt + server as an
+            // initial remote sync command so the player seeks on first render.
+            // The backend also sends a SYNC via /user/queue/sync on JOIN, but
+            // setting it here ensures it fires even before WS connects.
+            if (!meIsHost && state.startAt != null && state.startAt > 0) {
+              console.log(
+                `WatchParty [REST]: Participant initial seek → startAt=${state.startAt}s  provider=${state.providerId}`,
+              );
+              setRemoteSyncCommand({
+                startAt: state.startAt,
+                action: "SEEK",
+                providerId: state.providerId,
+                timestamp: Date.now(),
+              });
+            }
           }
         }
       } catch (err) {
@@ -476,19 +561,22 @@ export function useWatchParty({
           });
         }, 5000);
 
-        // 30-second automatic host push-sync
+        // 30-second automatic host push-sync (background resilience)
+        // Uses SEEK so participants always apply the timestamp
         autoSyncIntervalRef.current = setInterval(() => {
           if (isHostRef.current) {
             const t = currentTimeRef.current;
+            const provider = currentProviderRef.current;
             console.log(
-              `WatchParty [AUTO SYNC]: Host push-sync → startAt=${t.toFixed(2)}s`,
+              `WatchParty [AUTO SYNC]: Host background push → startAt=${t.toFixed(2)}s  provider=${provider}`,
             );
             client.publish({
               destination: `/app/party/${partyId}/sync`,
               body: JSON.stringify({
                 startAt: t,
                 clientTime: Date.now(),
-                action: "UPDATE",
+                action: "SEEK",
+                providerId: provider,
               }),
             });
           }
@@ -538,19 +626,54 @@ export function useWatchParty({
     publishRef.current("/chat", { text });
   }, []);
 
+  /**
+   * Push a manual sync to all participants.
+   * Always includes the current provider so participants switch server if needed.
+   */
   const pushSync = useCallback((syncStartAt: number, action: SyncAction) => {
+    const provider = currentProviderRef.current;
     console.log(
-      `WatchParty [SYNC]: Pushing → startAt=${syncStartAt}s action=${action}`,
+      `WatchParty [SYNC]: Pushing → startAt=${syncStartAt}s action=${action}  provider=${provider}`,
     );
     publishRef.current("/sync", {
       startAt: syncStartAt,
       clientTime: Date.now(),
       action,
+      providerId: provider,
     });
   }, []);
 
+  /**
+   * Participant: request a sync from the host.
+   * - Immediately applies the party state's startAt as a local fallback so
+   *   the player seeks to at least the last-known position even if the backend
+   *   returns a stale 0.
+   * - Sends the WS message so the backend can broadcast SYNC_REQUESTED and
+   *   the host will push their exact live position.
+   */
   const requestSync = useCallback(() => {
     console.log("WatchParty [SYNC]: Participant requesting sync from host…");
+    // Local fallback: apply the party state's last-known startAt + provider
+    const snapshot = partyStateRef.current;
+    if (snapshot && snapshot.startAt > 0) {
+      console.log(
+        `WatchParty [SYNC]: Applying party-state fallback → startAt=${snapshot.startAt}s  provider=${snapshot.providerId}`,
+      );
+      if (
+        snapshot.providerId &&
+        snapshot.providerId !== currentProviderRef.current
+      ) {
+        setProviderId(snapshot.providerId);
+      }
+      setRemoteSyncCommand({
+        startAt: snapshot.startAt,
+        action: "SEEK",
+        providerId: snapshot.providerId,
+        timestamp: Date.now(),
+      });
+    }
+    // Also send WS message — backend should broadcast SYNC_REQUESTED to topic
+    // so the host picks it up and pushes their exact live position
     publishRef.current("/request-sync");
   }, []);
 
@@ -573,6 +696,8 @@ export function useWatchParty({
     console.log(
       `WatchParty [HOST]: Emitted Change Provider → ${newProviderId}`,
     );
+    // Update our ref so the next auto-sync / manual push carries the new provider
+    currentProviderRef.current = newProviderId;
     publishRef.current("/change-provider", { providerId: newProviderId });
   }, []);
 
@@ -589,6 +714,11 @@ export function useWatchParty({
     remoteSyncCommand,
     /** Assign this ref.current = player.currentTime in your player's time-update handler */
     currentTimeRef,
+    /**
+     * Update this ref whenever the active server/provider name changes on the HOST side.
+     * Used by auto-sync and manual push-sync to include the correct provider.
+     */
+    currentProviderRef,
 
     sendChat,
     pushSync,

@@ -52,6 +52,7 @@ export type WatchPartyEventType =
   | "NEW_HOST_ASSIGNED"
   | "CHAT"
   | "SYNC"
+  | "SYNC_REQUESTED"
   | "FORCE_PAUSE"
   | "RESUME"
   | "STRICT_SYNC_TOGGLED"
@@ -73,4 +74,6 @@ export interface SyncPayload {
   startAt: number;
   clientTime: number;
   action: SyncAction;
+  /** Optional: the server/provider the host is currently on */
+  providerId?: string;
 }

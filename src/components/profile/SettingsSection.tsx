@@ -17,27 +17,27 @@ const SETTINGS_LINKS: SettingsLinkItem[] = [
 
 export function SettingsSection({ apiKey }: { apiKey: ApiKeyProp }) {
   return (
-    <div className="space-y-3">
-      <h3 className="px-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
-        Preferences
-      </h3>
-      {SETTINGS_LINKS.map((link) =>
-        link.hasInput ? (
-          <GeminiApiKeyInput
-            key={link.label}
-            value={apiKey.apiKeyInput}
-            onChange={apiKey.setApiKeyInput}
-            onSave={apiKey.saveApiKey}
-            onDelete={apiKey.deleteApiKey}
-            isLoading={apiKey.isLoading}
-            isSaving={apiKey.isSaving}
-            keyPreview={apiKey.apiKeyPreview}
-            hasKey={apiKey.hasApiKey}
-          />
-        ) : (
-          <SettingsLink key={link.label} item={link} />
-        ),
-      )}
+    <div className="mt-4">
+      <div className="grid grid-cols-2 gap-3">
+        {SETTINGS_LINKS.map((link) =>
+          link.hasInput ? (
+            <div key={link.label} className="col-span-2">
+              <GeminiApiKeyInput
+                value={apiKey.apiKeyInput}
+                onChange={apiKey.setApiKeyInput}
+                onSave={apiKey.saveApiKey}
+                onDelete={apiKey.deleteApiKey}
+                isLoading={apiKey.isLoading}
+                isSaving={apiKey.isSaving}
+                keyPreview={apiKey.apiKeyPreview}
+                hasKey={apiKey.hasApiKey}
+              />
+            </div>
+          ) : (
+            <SettingsLink key={link.label} item={link} />
+          ),
+        )}
+      </div>
     </div>
   );
 }

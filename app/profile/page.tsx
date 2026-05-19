@@ -23,6 +23,7 @@ import { SettingsSection } from "@/src/components/profile/SettingsSection";
 import { ContinueWatchingSection } from "@/src/components/profile/ContinueWatchingSection";
 import { WatchlistSection } from "@/src/components/profile/WatchlistSection";
 import { RecommendationsSection } from "@/src/components/profile/RecommendationsSection";
+import { StatBadge } from "@/src/components/profile/StatBadge";
 
 export default function ProfilePage() {
   return (
@@ -33,7 +34,7 @@ export default function ProfilePage() {
 }
 
 function ProfilePageContent() {
-  const { user, loading, firstName, avatarUrl } = useAuth();
+  const { user, loading, fullName, avatarUrl } = useAuth();
   const router = useRouter();
   const { addNotification } = useNotification();
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
@@ -144,21 +145,47 @@ function ProfilePageContent() {
       </div>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="relative z-10 w-full h-full pt-20 md:pb-24 px-4 md:pt-32 pb-8 md:px-16 lg:px-16">
+      <div className="relative z-10 w-full h-full pt-20 px-4 md:pt-32 pb-8 md:px-16 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
           {/* --- LEFT COLUMN: Identity & Navigation --- */}
-          <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-fit">
+          <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32">
             <ProfileHeader
-              firstName={firstName || "User"}
+              fullName={fullName || "User"}
               email={user.email || ""}
               avatarUrl={avatarUrl}
-              stats={stats}
-              onSignOut={handleSignOut}
-              isSigningOut={isSignOutLoading}
             />
 
+            {/* Control Center Grid: Stats & Sign Out */}
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              {stats.map((stat) => (
+                <StatBadge key={stat.label} stat={stat} />
+              ))}
+
+              <button
+                onClick={handleSignOut}
+                disabled={isSignOutLoading}
+                className="hidden lg:flex apple-glass rounded-full items-center justify-start p-2 gap-3 transition-all hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
+              >
+                <div className="w-[50px] h-[50px] rounded-full flex flex-shrink-0 items-center justify-center bg-red-500/20">
+                  {isSignOutLoading ? (
+                    <span className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <LogOut size={24} className="text-red-500" />
+                  )}
+                </div>
+                <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-2">
+                  <span className="text-[15px] md:text-[17px] text-red-500 font-bold leading-tight tracking-wide truncate">
+                    Sign Out
+                  </span>
+                  <span className="text-[10px] md:text-[11px] text-red-500/50 font-medium uppercase tracking-wider mt-0.5 truncate">
+                    Disconnect
+                  </span>
+                </div>
+              </button>
+            </div>
+
             {/* Preferences - Desktop Only (Moved to bottom on mobile) */}
-            <div className="hidden lg:block mt-6 mb-2">
+            <div className="hidden lg:block">
               <SettingsSection
                 apiKey={{
                   ...apiKey,

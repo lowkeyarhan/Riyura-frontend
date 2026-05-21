@@ -1,19 +1,21 @@
+"use client";
+
 import { useState, useEffect, useRef, useCallback } from "react";
-import SockJS from "sockjs-client";
-import { Client, StompSubscription } from "@stomp/stompjs";
 import { supabase } from "@/src/lib/auth/supabase";
 import { MediaType } from "@/src/props/global/mediaType";
 import {
-  WatchPartyState,
-  WatchPartyChatMessage,
-  WatchPartyEvent,
-  SyncAction,
+  PartyState,
+  PartyParticipant,
+  ChatMessage,
+  SyncResponse,
+  SSEEnvelope,
 } from "@/src/props/party/watchParty";
-import { backendClient } from "@/src/lib/axios";
 
-const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_URL
-  ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/ws`
-  : "http://localhost:8080/ws";
+const BASE = "/api/watchalong/party";
+const PROGRESS_PUSH_INTERVAL_MS = 5 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 2.5 * 60 * 1000;
+const SSE_RECONNECT_DELAY_MS = 3_000;
+const SSE_MAX_RECONNECTS = 5;
 
 interface UseWatchPartyProps {
   partyId?: string | null;
@@ -21,20 +23,27 @@ interface UseWatchPartyProps {
   tmdbId: number;
   seasonNo?: number;
   episodeNo?: number;
-  /** The server/provider the host is currently using. Passed at create time and updated whenever host switches server. */
   providerId?: string;
-  /** The current playback position in seconds at party creation time (host only). */
-  startAt?: number;
 }
 
-export interface RemoteSyncCommand {
-  /** Playback position in seconds */
-  startAt: number;
-  action: SyncAction;
-  /** The server/provider the host is currently using — may be undefined for older events */
-  providerId?: string;
-  partyStartedAt?: number;
-  timestamp: number;
+export interface UseWatchPartyReturn {
+  partyId: string | null;
+  partyState: PartyState | null;
+  participants: PartyParticipant[];
+  messages: ChatMessage[];
+  isHost: boolean;
+  isConnected: boolean;
+  currentUserId: string | undefined;
+  streamUrl: string | null;
+  currentTimeRef: React.MutableRefObject<number>;
+  currentProviderRef: React.MutableRefObject<string>;
+  sendChat: (content: string) => Promise<void>;
+  leaveParty: () => Promise<void>;
+  syncPlayer: () => Promise<SyncResponse | null>;
+  pushProgress: (
+    newProviderId?: string,
+    currentProgress?: number,
+  ) => Promise<void>;
 }
 
 export function useWatchParty({
@@ -43,689 +52,645 @@ export function useWatchParty({
   tmdbId,
   seasonNo = 0,
   episodeNo = 0,
-  providerId: initialProviderId = "vidsrc",
-  startAt = 0,
-}: UseWatchPartyProps) {
-  const [partyId, setPartyId] = useState<string | null>(initialPartyId || null);
-  const [partyState, setPartyState] = useState<WatchPartyState | null>(null);
-  const [messages, setMessages] = useState<WatchPartyChatMessage[]>([]);
-  const [participantIds, setParticipantIds] = useState<string[]>([]);
-  const [providerId, setProviderId] = useState<string>(initialProviderId);
+  providerId: initialProviderId = "ironlink",
+}: UseWatchPartyProps): UseWatchPartyReturn {
+  const [partyId, setPartyId] = useState<string | null>(initialPartyId ?? null);
+  const [partyState, setPartyState] = useState<PartyState | null>(null);
+  const [participants, setParticipants] = useState<PartyParticipant[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isHost, setIsHost] = useState(false);
-  const [strictSync, setStrictSync] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
-  const [remoteSyncCommand, setRemoteSyncCommand] =
-    useState<RemoteSyncCommand | null>(null);
-
-  // ─── Refs so closures always see latest values ────────────────────────────
-  const stompClientRef = useRef<Client | null>(null);
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const autoSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const currentUserIdRef = useRef<string | undefined>(currentUserId);
-  const isHostRef = useRef(false);
-  // currentTime ref is updated externally by the player page
-  const currentTimeRef = useRef(0);
-  // The active server name from the player — updated externally by the page
-  const currentProviderRef = useRef<string>(initialProviderId);
-  // Snapshot of the last-fetched party state (used as fallback for request-sync)
-  const partyStateRef = useRef<WatchPartyState | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    currentUserIdRef.current = currentUserId;
-  }, [currentUserId]);
+    console.log("[useWatchParty] streamUrl state updated to:", streamUrl);
+  }, [streamUrl]);
+
+  const isHostRef = useRef(false);
+  const currentUserIdRef = useRef<string | undefined>(undefined);
+  const partyIdRef = useRef<string | null>(initialPartyId ?? null);
+  const sseAbortControllerRef = useRef<AbortController | null>(null);
+  const heartbeatTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectCountRef = useRef(0);
+  const isMountedRef = useRef(true);
+  const isLeavingRef = useRef(false);
+
+  const currentTimeRef = useRef<number>(0);
+  const currentProviderRef = useRef<string>(initialProviderId);
 
   useEffect(() => {
     isHostRef.current = isHost;
   }, [isHost]);
-
-  // ─── Auth helpers ─────────────────────────────────────────────────────────
-  const getAuthToken = async () => {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token;
-  };
-
-  const getUserId = async () => {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.user?.id;
-  };
-
-  // ─── Core WS publish (ref-based, always fresh) ───────────────────────────
-  const publishRef = useRef<(dest: string, body?: object) => void>(() => {
-    console.warn("WatchParty [WS]: publish called before client ready");
-  });
-
-  const publishFn = useCallback(
-    (destination: string, body: object = {}) => {
-      const client = stompClientRef.current;
-      if (client && client.connected && partyId) {
-        const fullDest = `/app/party/${partyId}${destination}`;
-        console.log(`WatchParty [WS Action]: → ${fullDest}`, body);
-        client.publish({ destination: fullDest, body: JSON.stringify(body) });
-      } else {
-        console.warn(
-          `WatchParty [WS Action]: Cannot send to ${destination} — WS not connected.`,
-        );
-      }
-    },
-    [partyId],
-  );
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
+  useEffect(() => {
+    partyIdRef.current = partyId;
+  }, [partyId]);
 
   useEffect(() => {
-    publishRef.current = publishFn;
-  }, [publishFn]);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-  // ─── Incoming event handler (ref to avoid stale closures in subscriptions) ─
-  const handleIncomingEventRef = useRef<(envelope: WatchPartyEvent) => void>(
+  const getAuthToken = async (): Promise<string | null> => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("[WATCH PARTY] Auth session error:", error.message);
+      return null;
+    }
+    return data.session?.access_token ?? null;
+  };
+
+  const getHeaders = async (): Promise<Record<string, string>> => {
+    const token = await getAuthToken();
+    if (!token)
+      throw new Error("[WATCH PARTY] No auth token — user not signed in");
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const getSSEHeaders = async (): Promise<Record<string, string>> => {
+    const token = await getAuthToken();
+    if (!token) throw new Error("[WATCH PARTY] No auth token for SSE");
+    return {
+      Authorization: `Bearer ${token}`,
+      Accept: "text/event-stream",
+      "Cache-Control": "no-cache",
+    };
+  };
+
+  const clearTimers = useCallback(() => {
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }, []);
+
+  const startHeartbeatTimer = useCallback((id: string) => {
+    if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
+    heartbeatTimerRef.current = setInterval(async () => {
+      try {
+        const headers = await getHeaders();
+        await fetch(`${BASE}/heartbeat?partyId=${id}`, {
+          method: "POST",
+          headers,
+        });
+      } catch (err) {
+        console.warn("[WATCH PARTY] Heartbeat failed:", err);
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+  }, []);
+
+  const syncPlayer = useCallback(async (): Promise<SyncResponse | null> => {
+    const id = partyIdRef.current;
+    if (!id) {
+      console.warn(
+        "[WATCH PARTY] syncPlayer called but partyIdRef.current is empty",
+      );
+      return null;
+    }
+    console.log("[WATCH PARTY] syncPlayer initiated for party:", id);
+    try {
+      const headers = await getHeaders();
+      const res = await fetch(`${BASE}/${id}/sync`, { headers });
+      if (!res.ok) {
+        console.error("[WATCH PARTY] syncPlayer response not ok:", res.status);
+        return null;
+      }
+      const data: SyncResponse = await res.json();
+      console.log("[WATCH PARTY] syncPlayer received data:", data);
+      if (data.streamUrl && isMountedRef.current) {
+        // Parse the stream URL and append a unique partySync timestamp.
+        // This forces the iframe key/src to change, prompting a reload.
+        try {
+          const u = new URL(data.streamUrl);
+          u.searchParams.set("partySync", Date.now().toString());
+          const finalUrl = u.toString();
+          console.log(
+            "[WATCH PARTY] syncPlayer setting streamUrl state to:",
+            finalUrl,
+          );
+          setStreamUrl(finalUrl);
+        } catch {
+          // If URL parsing fails, fallback to appending query param manually
+          const separator = data.streamUrl.includes("?") ? "&" : "?";
+          const finalUrl = `${data.streamUrl}${separator}partySync=${Date.now()}`;
+          console.log(
+            "[WATCH PARTY] syncPlayer setting streamUrl state (fallback) to:",
+            finalUrl,
+          );
+          setStreamUrl(finalUrl);
+        }
+      } else {
+        console.warn(
+          "[WATCH PARTY] syncPlayer did not set streamUrl. data.streamUrl:",
+          data.streamUrl,
+          "isMounted:",
+          isMountedRef.current,
+        );
+      }
+      return data;
+    } catch (err) {
+      console.error("[WATCH PARTY] syncPlayer error:", err);
+      return null;
+    }
+  }, []);
+
+  const pushProgress = useCallback(
+    async (newProviderId?: string, currentProgress?: number) => {
+      const id = partyIdRef.current;
+      if (!isHostRef.current || !id) return;
+
+      if (newProviderId) {
+        currentProviderRef.current = newProviderId;
+        setPartyState((prev) =>
+          prev ? { ...prev, providerId: newProviderId } : prev,
+        );
+      }
+
+      if (currentProgress !== undefined) {
+        currentTimeRef.current = currentProgress;
+      }
+
+      const progress = currentTimeRef.current;
+      const provider = currentProviderRef.current;
+      console.log(
+        `[WATCH PARTY] Manual progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
+      );
+      try {
+        const headers = await getHeaders();
+        const res = await fetch(`${BASE}/progress`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ partyId: id, progress, providerId: provider }),
+        });
+
+        if (res.ok) {
+          if (newProviderId) {
+            await syncPlayer();
+          }
+        }
+      } catch (err) {
+        console.warn("[WATCH PARTY] Manual progress push failed:", err);
+      }
+    },
+    [getHeaders, syncPlayer],
+  );
+
+  const startProgressTimer = useCallback(
+    (id: string) => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      progressTimerRef.current = setInterval(async () => {
+        if (!isHostRef.current || !id) return;
+        const progress = currentTimeRef.current;
+        const provider = currentProviderRef.current;
+        console.log(
+          `[WATCH PARTY] Auto progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
+        );
+        try {
+          const headers = await getHeaders();
+          await fetch(`${BASE}/progress`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              partyId: id,
+              progress,
+              providerId: provider,
+            }),
+          });
+        } catch (err) {
+          console.warn("[WATCH PARTY] Auto progress push failed:", err);
+        }
+      }, PROGRESS_PUSH_INTERVAL_MS);
+    },
+    [getHeaders],
+  );
+
+  const refreshParticipants = useCallback(async () => {
+    const id = partyIdRef.current;
+    if (!id) return;
+    try {
+      const headers = await getHeaders();
+      const res = await fetch(`${BASE}/${id}`, { headers });
+      if (!res.ok) return;
+      const data: PartyState = await res.json();
+      if (isMountedRef.current) {
+        setParticipants(data.participants ?? []);
+        setPartyState(data);
+      }
+    } catch (err) {
+      console.error("[WATCH PARTY] refreshParticipants error:", err);
+    }
+  }, []);
+
+  const cleanupLocalState = useCallback(() => {
+    if (sseAbortControllerRef.current) {
+      sseAbortControllerRef.current.abort();
+      sseAbortControllerRef.current = null;
+    }
+    clearTimers();
+    if (isMountedRef.current) {
+      setPartyId(null);
+      setPartyState(null);
+      setParticipants([]);
+      setMessages([]);
+      setIsHost(false);
+      setIsConnected(false);
+      setStreamUrl(null);
+    }
+    isHostRef.current = false;
+    partyIdRef.current = null;
+    reconnectCountRef.current = 0;
+  }, [clearTimers]);
+
+  const handleSSEEventRef = useRef<(name: string, data: string) => void>(
     () => {},
   );
 
-  handleIncomingEventRef.current = (envelope: WatchPartyEvent) => {
-    console.log(`WatchParty [WS Event] ← ${envelope.event}`, envelope.payload);
+  handleSSEEventRef.current = (eventName: string, dataStr: string) => {
+    let envelope: SSEEnvelope;
+    try {
+      envelope = JSON.parse(dataStr);
+    } catch {
+      return;
+    }
 
-    switch (envelope.event) {
-      case "USER_JOINED":
-        console.log(`[INFO] User ${envelope.payload?.userId} joined the party`);
-        if (envelope.payload?.participantIds) {
-          setParticipantIds(envelope.payload.participantIds);
-        }
-        setMessages((prev) => [
-          ...prev,
-          {
+    const { payload, eventType } = envelope;
+    const typeToSwitch = eventType || eventName;
+
+    console.log(`[WATCH PARTY] SSE Event received: ${typeToSwitch}`, payload);
+
+    switch (typeToSwitch) {
+      case "CONNECTED":
+        if (isMountedRef.current) setIsConnected(true);
+        reconnectCountRef.current = 0;
+        break;
+
+      case "USER_JOINED": {
+        const username = payload?.username as string | undefined;
+        if (username) {
+          const sysMsg: ChatMessage = {
+            id: `sys-${Date.now()}-${Math.random()}`,
             senderId: "system",
-            senderDisplayName: "System",
-            senderProfilePhoto: "",
-            text: `${envelope.payload?.userName || "Someone"} joined the party`,
-            serverTime: envelope.timestamp || Date.now(),
-            isSystemMessage: true,
-          },
-        ]);
-        // ── HOST auto-push: when a new user joins, immediately broadcast the
-        // host's current position so the joiner gets synced without relying on
-        // the backend's (potentially stale) party state startAt.
-        if (isHostRef.current) {
-          const t = currentTimeRef.current;
-          const provider = currentProviderRef.current;
-          console.log(
-            `WatchParty [AUTO SYNC on JOIN]: Host pushing → startAt=${t.toFixed(2)}s  provider=${provider}`,
-          );
-          // Small delay so the joining user's topic subscription is confirmed
-          setTimeout(() => {
-            publishRef.current("/sync", {
-              startAt: t,
-              clientTime: Date.now(),
-              action: "SEEK",
-              providerId: provider,
-            });
-          }, 800);
+            senderName: "System",
+            avatarUrl: null,
+            content: `${username} joined`,
+            sentAt: new Date().toISOString(),
+            isSystem: true,
+          };
+          setMessages((prev) => [...prev, sysMsg]);
         }
-        break;
-
-      case "USER_LEFT":
-        console.log(`[INFO] User ${envelope.payload?.userId} disconnected`);
-        if (envelope.payload?.participantIds) {
-          setParticipantIds(envelope.payload.participantIds);
-        }
-        setMessages((prev) => [
-          ...prev,
-          {
-            senderId: "system",
-            senderDisplayName: "System",
-            senderProfilePhoto: "",
-            text: `${envelope.payload?.userName || "Someone"} left the party`,
-            serverTime: envelope.timestamp || Date.now(),
-            isSystemMessage: true,
-          },
-        ]);
-        break;
-
-      case "NEW_HOST_ASSIGNED":
-        console.log(
-          `[INFO] User ${envelope.payload?.newHostId} is the new host`,
-        );
-        if (envelope.payload?.newHostId) {
-          const meIsHost =
-            envelope.payload.newHostId === currentUserIdRef.current;
-          setIsHost(meIsHost);
-          isHostRef.current = meIsHost;
-        }
-        setMessages((prev) => [
-          ...prev,
-          {
-            senderId: "system",
-            senderDisplayName: "System",
-            senderProfilePhoto: "",
-            text: `${envelope.payload?.newHostName || "Someone"} is now the host`,
-            serverTime: envelope.timestamp || Date.now(),
-            isSystemMessage: true,
-          },
-        ]);
-        break;
-
-      case "CHAT":
-        setMessages((prev) => [
-          ...prev,
-          envelope.payload as WatchPartyChatMessage,
-        ]);
-        break;
-
-      case "PROVIDER_CHANGED":
-        console.log(
-          `[INFO] Provider changed to ${envelope.payload?.providerId}`,
-        );
-        if (envelope.payload?.providerId) {
-          setProviderId(envelope.payload.providerId);
-          setMessages((prev) => [
-            ...prev,
-            {
-              senderId: "system",
-              senderDisplayName: "System",
-              senderProfilePhoto: "",
-              text: `Host changed the source to ${envelope.payload?.providerId}`,
-              serverTime: envelope.timestamp || Date.now(),
-              isSystemMessage: true,
-            },
-          ]);
-        }
-        break;
-
-      case "SYNC": {
-        // SEEK / PLAY / PAUSE / UPDATE — all trigger a player seek
-        // "UPDATE" is used by the background auto-push; it should still seek participants
-        const startAt = envelope.payload?.startAt ?? 0;
-        const rawAction: SyncAction = envelope.payload?.action ?? "SEEK";
-        // Normalise UPDATE → SEEK so player pages always apply it
-        const action: SyncAction = rawAction === "UPDATE" ? "SEEK" : rawAction;
-        const payloadProviderId: string | undefined =
-          envelope.payload?.providerId;
-
-        console.log(
-          `[SYNC] startAt=${startAt}s  action=${rawAction}→${action}  provider=${payloadProviderId ?? "n/a"}  partyStartedAt=${envelope.payload?.partyStartedAt}`,
-        );
-
-        // If the event also carries a provider, update state so player switches server first
-        if (payloadProviderId && payloadProviderId !== providerId) {
-          setProviderId(payloadProviderId);
-        }
-
-        setRemoteSyncCommand({
-          startAt,
-          action,
-          providerId: payloadProviderId,
-          partyStartedAt: envelope.payload?.partyStartedAt,
-          timestamp: envelope.timestamp ?? Date.now(),
-        });
+        refreshParticipants();
         break;
       }
 
-      case "FORCE_PAUSE":
-        console.log(`[INFO] Party paused: ${envelope.payload?.reason}`);
-        setRemoteSyncCommand({
-          startAt: envelope.payload?.startAt ?? 0,
-          action: "PAUSE",
-          timestamp: envelope.timestamp ?? Date.now(),
-        });
-        setMessages((prev) => [
-          ...prev,
-          {
-            senderId: "system",
-            senderDisplayName: "System",
-            senderProfilePhoto: "",
-            text: envelope.payload?.reason
-              ? `Party paused: ${envelope.payload.reason}`
-              : "Party paused for buffering",
-            serverTime: envelope.timestamp || Date.now(),
-            isSystemMessage: true,
-          },
-        ]);
-        break;
-
-      case "RESUME":
-        console.log(`[INFO] Party resumed: ${envelope.payload?.reason}`);
-        setRemoteSyncCommand({
-          startAt: envelope.payload?.startAt ?? 0,
-          action: "PLAY",
-          timestamp: envelope.timestamp ?? Date.now(),
-        });
-        setMessages((prev) => [
-          ...prev,
-          {
-            senderId: "system",
-            senderDisplayName: "System",
-            senderProfilePhoto: "",
-            text: "Party resumed",
-            serverTime: envelope.timestamp || Date.now(),
-            isSystemMessage: true,
-          },
-        ]);
-        break;
-
-      case "STRICT_SYNC_TOGGLED":
-        console.log(
-          `[INFO] Strict sync is now ${envelope.payload?.strictSync ? "ON" : "OFF"}`,
-        );
-        setStrictSync(Boolean(envelope.payload?.strictSync));
-        setMessages((prev) => [
-          ...prev,
-          {
-            senderId: "system",
-            senderDisplayName: "System",
-            senderProfilePhoto: "",
-            text: `Strict sync is now ${envelope.payload?.strictSync ? "ON" : "OFF"}`,
-            serverTime: envelope.timestamp || Date.now(),
-            isSystemMessage: true,
-          },
-        ]);
-        break;
-
-      case "HEARTBEAT_ACK":
-        // Silent ack — logged by heartbeat subscription
-        break;
-
-      case "PARTY_CLOSED":
-        console.log(`[INFO] Party closed: ${envelope.payload?.reason}`);
-        window.alert(
-          `This party has been closed: ${envelope.payload?.reason ?? "due to inactivity."}`,
-        );
-        window.location.href = "/";
-        break;
-
-      case "ERROR":
-        console.error(
-          `WatchParty [ERROR] ${envelope.payload?.message ?? JSON.stringify(envelope.payload)}`,
-        );
-        break;
-
-      // ── Sent by backend when a participant presses "Request Sync".
-      // The HOST responds by pushing their current timestamp to everyone.
-      // Requires backend to broadcast SYNC_REQUESTED to /topic/party/{id}
-      // instead of (or in addition to) the private /user/queue/sync response.
-      case "SYNC_REQUESTED":
-        if (isHostRef.current) {
-          const t = currentTimeRef.current;
-          const provider = currentProviderRef.current;
-          console.log(
-            `WatchParty [SYNC_REQUESTED]: Host responding → startAt=${t.toFixed(2)}s  provider=${provider}`,
+      case "USER_LEFT": {
+        const leftUserId = payload?.userId as string | undefined;
+        if (leftUserId) {
+          const departedUser = participants.find(
+            (p) => p.userId === leftUserId,
           );
-          publishRef.current("/sync", {
-            startAt: t,
-            clientTime: Date.now(),
-            action: "SEEK",
-            providerId: provider,
+          const name = departedUser?.username ?? "Someone";
+          const sysMsg: ChatMessage = {
+            id: `sys-${Date.now()}-${Math.random()}`,
+            senderId: "system",
+            senderName: "System",
+            avatarUrl: null,
+            content: `${name} left`,
+            sentAt: new Date().toISOString(),
+            isSystem: true,
+          };
+          setMessages((prev) => [...prev, sysMsg]);
+        }
+        refreshParticipants();
+        break;
+      }
+
+      case "USER_EVICTED": {
+        const evictedId = payload?.userId as string | undefined;
+        if (evictedId && evictedId === currentUserIdRef.current) {
+          cleanupLocalState();
+          setTimeout(() => {
+            if (typeof window !== "undefined") window.location.href = "/";
+          }, 500);
+          return;
+        }
+        refreshParticipants();
+        break;
+      }
+
+      case "HOST_MIGRATED": {
+        const newHostId = payload?.newHostId as string | undefined;
+        const newHostName = payload?.newHostName as string | undefined;
+        if (newHostName) {
+          const sysMsg: ChatMessage = {
+            id: `sys-${Date.now()}-${Math.random()}`,
+            senderId: "system",
+            senderName: "System",
+            avatarUrl: null,
+            content: `${newHostName} is the new host`,
+            sentAt: new Date().toISOString(),
+            isSystem: true,
+          };
+          setMessages((prev) => [...prev, sysMsg]);
+        }
+        if (!newHostId || !isMountedRef.current) break;
+        const meIsHost = newHostId === currentUserIdRef.current;
+        setIsHost(meIsHost);
+        isHostRef.current = meIsHost;
+        if (meIsHost && partyIdRef.current) {
+          startProgressTimer(partyIdRef.current);
+        } else {
+          if (progressTimerRef.current) {
+            clearInterval(progressTimerRef.current);
+            progressTimerRef.current = null;
+          }
+        }
+        break;
+      }
+
+      case "PARTY_STATE_UPDATED": {
+        const progress = payload?.progress as number | undefined;
+        const updatedProvider = payload?.providerId as string | undefined;
+        const newStreamUrl = payload?.streamUrl as string | undefined;
+        if (isMountedRef.current && progress !== undefined) {
+          const providerChanged =
+            updatedProvider &&
+            partyState?.providerId &&
+            partyState.providerId !== updatedProvider;
+
+          setPartyState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  progress,
+                  providerId: updatedProvider ?? prev.providerId,
+                }
+              : prev,
+          );
+          if (newStreamUrl) {
+            setStreamUrl(newStreamUrl);
+          } else if (providerChanged && !isHostRef.current) {
+            console.log(
+              `[WATCH PARTY] Provider changed to ${updatedProvider}. Syncing player...`,
+            );
+            syncPlayer();
+          }
+        }
+        break;
+      }
+
+      case "NEW_CHAT": {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const msg = payload as any;
+        if (isMountedRef.current && msg?.id) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg as ChatMessage];
           });
         }
+        break;
+      }
+
+      case "HEARTBEAT":
+        break;
+
+      case "PARTY_ENDED":
+        cleanupLocalState();
+        setTimeout(() => {
+          if (typeof window !== "undefined") window.location.href = "/";
+        }, 2000);
         break;
 
       default:
         console.log(
-          `[EVENT: ${envelope.event}] → ${JSON.stringify(envelope.payload)}`,
+          `[WATCH PARTY] Unrecognised SSE event: ${typeToSwitch}`,
+          payload,
         );
     }
   };
 
-  // ─── 1. Initialise Party (create or join) ─────────────────────────────────
+  const connectSSE = useCallback(
+    async (id: string) => {
+      if (sseAbortControllerRef.current) sseAbortControllerRef.current.abort();
+      const controller = new AbortController();
+      sseAbortControllerRef.current = controller;
+      const { signal } = controller;
+
+      try {
+        const headers = await getSSEHeaders();
+        const res = await fetch(`${BASE}/events?partyId=${id}`, {
+          signal,
+          headers,
+        });
+
+        if (!res.ok) {
+          if (isMountedRef.current) setIsConnected(false);
+          return;
+        }
+
+        if (!res.body) return;
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let eventName = "message";
+        let dataLine = "";
+
+        signal.addEventListener("abort", () => reader.cancel(), { once: true });
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const clean = line.trim();
+            if (clean.startsWith("event:")) {
+              eventName = clean.slice(6).trim();
+            } else if (clean.startsWith("data:")) {
+              dataLine = clean.slice(5).trim();
+            } else if (clean === "" && dataLine) {
+              handleSSEEventRef.current(eventName, dataLine);
+              eventName = "message";
+              dataLine = "";
+            }
+          }
+        }
+
+        if (!signal.aborted && isMountedRef.current) {
+          if (reconnectCountRef.current < SSE_MAX_RECONNECTS) {
+            reconnectCountRef.current++;
+            setTimeout(() => connectSSE(id), SSE_RECONNECT_DELAY_MS);
+          } else {
+            if (isMountedRef.current) setIsConnected(false);
+          }
+        }
+      } catch (err: unknown) {
+        if ((err as Error)?.name === "AbortError") return;
+        if (isMountedRef.current) setIsConnected(false);
+        if (!signal.aborted && isMountedRef.current) {
+          if (reconnectCountRef.current < SSE_MAX_RECONNECTS) {
+            reconnectCountRef.current++;
+            setTimeout(() => connectSSE(id), SSE_RECONNECT_DELAY_MS);
+          }
+        }
+      }
+    },
+    [refreshParticipants, cleanupLocalState, startProgressTimer, clearTimers],
+  );
+
   useEffect(() => {
     const initParty = async () => {
-      const userId = await getUserId();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+      const token = sessionData.session?.access_token;
+
+      if (!userId || !token) return;
+
       setCurrentUserId(userId);
       currentUserIdRef.current = userId;
 
-      const token = await getAuthToken();
-      if (!token) {
-        console.error(
-          "WatchParty [REST]: No auth token found. Cannot init party.",
-        );
-        return;
-      }
-
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
 
       try {
         if (!initialPartyId) {
-          // HOST: create party
-          // Use the current player time and provider at the moment of creation
-          const hostStartAt =
-            currentTimeRef.current > 0 ? currentTimeRef.current : startAt;
-          const hostProviderId =
-            currentProviderRef.current || initialProviderId;
-
-          console.log(
-            `WatchParty [REST]: Creating new party… tmdbId=${tmdbId} mediaType=${mediaType} providerId=${hostProviderId} startAt=${hostStartAt}`,
-          );
-          const res = await backendClient.post(
-            `/party/create`,
-            {
-              tmdbId,
+          const res = await fetch(`${BASE}/create`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
               mediaType,
+              tmdbId,
+              providerId: currentProviderRef.current,
               seasonNo,
               episodeNo,
-              providerId: hostProviderId,
-              startAt: Math.floor(hostStartAt),
-            },
-            { headers },
-          );
+            }),
+          });
 
-          if (res.data.success && res.data.partyId) {
-            console.log(
-              `WatchParty [REST]: Party created → ${res.data.partyId}`,
-            );
-            setPartyId(res.data.partyId);
-            // Persist partyId in URL without reload
-            const url = new URL(window.location.href);
-            url.searchParams.set("party", res.data.partyId);
-            window.history.replaceState(null, "", url.toString());
-          } else {
-            console.error(
-              "WatchParty [REST]: Failed to create party",
-              res.data,
-            );
-          }
+          if (!res.ok) return;
+
+          const data: PartyState = await res.json();
+          if (!isMountedRef.current) return;
+
+          const url = new URL(window.location.href);
+          url.searchParams.set("party", data.partyId);
+          window.history.replaceState(null, "", url.toString());
+
+          setPartyId(data.partyId);
+          partyIdRef.current = data.partyId;
+          setPartyState(data);
+          setParticipants(data.participants ?? []);
+          setMessages(data.recentMessages ?? []);
+          setIsHost(true);
+          isHostRef.current = true;
+          setStreamUrl(data.streamUrl);
+
+          startHeartbeatTimer(data.partyId);
+          startProgressTimer(data.partyId);
+          connectSSE(data.partyId);
         } else {
-          // PARTICIPANT: use existing partyId
-          console.log(
-            `WatchParty [REST]: Joining existing party ${initialPartyId}`,
-          );
-          setPartyId(initialPartyId);
+          const res = await fetch(`${BASE}/join`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ partyId: initialPartyId.toUpperCase() }),
+          });
+
+          if (!res.ok) return;
+
+          const data: PartyState = await res.json();
+          if (!isMountedRef.current) return;
+
+          const meIsHost = data.hostId === userId;
+          setPartyId(data.partyId);
+          partyIdRef.current = data.partyId;
+          setPartyState(data);
+          setParticipants(data.participants ?? []);
+          setMessages(data.recentMessages ?? []);
+          setIsHost(meIsHost);
+          isHostRef.current = meIsHost;
+          setStreamUrl(data.streamUrl);
+
+          startHeartbeatTimer(data.partyId);
+          if (meIsHost) startProgressTimer(data.partyId);
+          connectSSE(data.partyId);
         }
       } catch (err) {
-        console.error("WatchParty [REST]: Error initializing party", err);
+        console.error("[WATCH PARTY] Initialisation error:", err);
       }
     };
 
     initParty();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPartyId, tmdbId, mediaType, seasonNo, episodeNo]);
-
-  // ─── 2. Fetch State + Connect WS once partyId is set ─────────────────────
-  useEffect(() => {
-    if (!partyId) return;
-
-    let isActive = true;
-
-    const setupConnection = async () => {
-      const token = await getAuthToken();
-      const userId = await getUserId();
-      if (!token || !userId) {
-        console.error("WatchParty [WS]: Missing token or userId, aborting.");
-        return;
-      }
-
-      // Fetch initial party state
-      try {
-        console.log(`WatchParty [REST]: Fetching state for party ${partyId}…`);
-        const res = await backendClient.get(`/party/${partyId}/state`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data.success && res.data.data) {
-          const state: WatchPartyState = res.data.data;
-          console.log("WatchParty [REST]: State fetched →", state);
-
-          if (isActive) {
-            setPartyState(state);
-            partyStateRef.current = state; // keep ref in sync for request-sync fallback
-            setMessages(state.recentChat ?? []);
-            setParticipantIds(state.participantIds ?? []);
-            setStrictSync(state.strictSync ?? false);
-
-            const meIsHost = state.hostId === userId;
-            setIsHost(meIsHost);
-            isHostRef.current = meIsHost;
-
-            // Apply provider from party state for BOTH host & participants
-            if (state.providerId) {
-              setProviderId(state.providerId);
-              currentProviderRef.current = state.providerId;
-            }
-
-            // For participants: inject the party's startAt + server as an
-            // initial remote sync command so the player seeks on first render.
-            // The backend also sends a SYNC via /user/queue/sync on JOIN, but
-            // setting it here ensures it fires even before WS connects.
-            if (!meIsHost && state.startAt != null && state.startAt > 0) {
-              console.log(
-                `WatchParty [REST]: Participant initial seek → startAt=${state.startAt}s  provider=${state.providerId}`,
-              );
-              setRemoteSyncCommand({
-                startAt: state.startAt,
-                action: "SEEK",
-                providerId: state.providerId,
-                timestamp: Date.now(),
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.error("WatchParty [REST]: Error fetching state", err);
-        return;
-      }
-
-      // Connect STOMP
-      console.log("WatchParty [WS]: Initialising STOMP client…");
-      const client = new Client({
-        webSocketFactory: () => new SockJS(BACKEND_WS_URL),
-        connectHeaders: { Authorization: `Bearer ${token}` },
-        debug: (str) => {
-          // Only log non-heartbeat lines to reduce noise
-          if (!str.includes(">>>") || str.includes("SEND")) return;
-          console.debug("WatchParty [STOMP]:", str);
-        },
-        reconnectDelay: 5000,
-        heartbeatIncoming: 4000,
-        heartbeatOutgoing: 4000,
-      });
-
-      client.onConnect = () => {
-        console.log("WatchParty [WS]: Connection established ✓");
-        if (isActive) setIsConnected(true);
-
-        // Subscribe: party broadcast topic
-        client.subscribe(`/topic/party/${partyId}`, (msg) => {
-          handleIncomingEventRef.current(JSON.parse(msg.body));
-        });
-
-        // Subscribe: directed sync (sent directly to this user by server)
-        client.subscribe(`/user/queue/sync`, (msg) => {
-          const parsed = JSON.parse(msg.body);
-          console.log(
-            `WatchParty [DIRECTED SYNC] startAt=${parsed.payload?.startAt}s  partyStartedAt=${parsed.payload?.partyStartedAt}`,
-          );
-          handleIncomingEventRef.current(parsed);
-        });
-
-        // Subscribe: server error messages
-        client.subscribe(`/user/queue/error`, (msg) => {
-          const parsed = JSON.parse(msg.body);
-          console.error(
-            `WatchParty [ERROR QUEUE] ${parsed.payload?.message ?? JSON.stringify(parsed)}`,
-          );
-        });
-
-        // Subscribe: heartbeat ack
-        client.subscribe(`/user/queue/heartbeat-ack`, () => {
-          console.log("WatchParty [HEARTBEAT ACK] Received ✓");
-        });
-
-        // Send JOIN
-        console.log("WatchParty [WS]: Sending JOIN command…");
-        client.publish({
-          destination: `/app/party/${partyId}/join`,
-          body: "{}",
-        });
-
-        // 5-second heartbeat
-        heartbeatIntervalRef.current = setInterval(() => {
-          console.log("WatchParty [WS]: Sending heartbeat →");
-          client.publish({
-            destination: `/app/party/${partyId}/heartbeat-ws`,
-            body: "{}",
-          });
-        }, 5000);
-
-        // 30-second automatic host push-sync (background resilience)
-        // Uses SEEK so participants always apply the timestamp
-        autoSyncIntervalRef.current = setInterval(() => {
-          if (isHostRef.current) {
-            const t = currentTimeRef.current;
-            const provider = currentProviderRef.current;
-            console.log(
-              `WatchParty [AUTO SYNC]: Host background push → startAt=${t.toFixed(2)}s  provider=${provider}`,
-            );
-            client.publish({
-              destination: `/app/party/${partyId}/sync`,
-              body: JSON.stringify({
-                startAt: t,
-                clientTime: Date.now(),
-                action: "SEEK",
-                providerId: provider,
-              }),
-            });
-          }
-        }, 30_000);
-      };
-
-      client.onStompError = (frame) => {
-        console.error(
-          "WatchParty [WS]: STOMP error →",
-          frame.headers["message"],
-          frame.body,
-        );
-      };
-
-      client.onWebSocketClose = () => {
-        console.warn("WatchParty [WS]: WebSocket closed.");
-        if (isActive) setIsConnected(false);
-        if (heartbeatIntervalRef.current)
-          clearInterval(heartbeatIntervalRef.current);
-        if (autoSyncIntervalRef.current)
-          clearInterval(autoSyncIntervalRef.current);
-      };
-
-      client.activate();
-      stompClientRef.current = client;
-    };
-
-    setupConnection();
 
     return () => {
-      isActive = false;
-      if (heartbeatIntervalRef.current)
-        clearInterval(heartbeatIntervalRef.current);
-      if (autoSyncIntervalRef.current)
-        clearInterval(autoSyncIntervalRef.current);
-      if (stompClientRef.current) {
-        console.log("WatchParty [WS]: Deactivating client…");
-        stompClientRef.current.deactivate();
-      }
+      isMountedRef.current = false;
+      cleanupLocalState();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [partyId]);
-
-  // ─── Exposed Actions ──────────────────────────────────────────────────────
-  const sendChat = useCallback((text: string) => {
-    console.log(`WatchParty [CHAT]: Sending → "${text}"`);
-    publishRef.current("/chat", { text });
   }, []);
 
-  /**
-   * Push a manual sync to all participants.
-   * Always includes the current provider so participants switch server if needed.
-   */
-  const pushSync = useCallback((syncStartAt: number, action: SyncAction) => {
-    const provider = currentProviderRef.current;
-    console.log(
-      `WatchParty [SYNC]: Pushing → startAt=${syncStartAt}s action=${action}  provider=${provider}`,
-    );
-    publishRef.current("/sync", {
-      startAt: syncStartAt,
-      clientTime: Date.now(),
-      action,
-      providerId: provider,
-    });
-  }, []);
-
-  /**
-   * Participant: request a sync from the host.
-   * - Immediately applies the party state's startAt as a local fallback so
-   *   the player seeks to at least the last-known position even if the backend
-   *   returns a stale 0.
-   * - Sends the WS message so the backend can broadcast SYNC_REQUESTED and
-   *   the host will push their exact live position.
-   */
-  const requestSync = useCallback(() => {
-    console.log("WatchParty [SYNC]: Participant requesting sync from host…");
-    // Local fallback: apply the party state's last-known startAt + provider
-    const snapshot = partyStateRef.current;
-    if (snapshot && snapshot.startAt > 0) {
-      console.log(
-        `WatchParty [SYNC]: Applying party-state fallback → startAt=${snapshot.startAt}s  provider=${snapshot.providerId}`,
-      );
-      if (
-        snapshot.providerId &&
-        snapshot.providerId !== currentProviderRef.current
-      ) {
-        setProviderId(snapshot.providerId);
-      }
-      setRemoteSyncCommand({
-        startAt: snapshot.startAt,
-        action: "SEEK",
-        providerId: snapshot.providerId,
-        timestamp: Date.now(),
+  const sendChat = useCallback(async (content: string) => {
+    const id = partyIdRef.current;
+    if (!id || !content.trim()) return;
+    const capped = content.trim().slice(0, 500);
+    try {
+      const headers = await getHeaders();
+      const res = await fetch(`${BASE}/chat`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ partyId: id, content: capped }),
       });
+      if (!res.ok) console.warn("[WATCH PARTY] Chat send failed");
+    } catch (err) {
+      console.error("[WATCH PARTY] sendChat error:", err);
     }
-    // Also send WS message — backend should broadcast SYNC_REQUESTED to topic
-    // so the host picks it up and pushes their exact live position
-    publishRef.current("/request-sync");
   }, []);
 
-  const notifyBuffering = useCallback(() => {
-    console.log("WatchParty [BUFFERING]: Emitted Buffering Flag: Active");
-    publishRef.current("/buffering");
-  }, []);
-
-  const notifyBufferingComplete = useCallback(() => {
-    console.log("WatchParty [BUFFERING]: Emitted Buffering Flag: Resolved");
-    publishRef.current("/buffering-complete");
-  }, []);
-
-  const toggleStrictSync = useCallback(() => {
-    console.log("WatchParty [HOST]: Emitted Toggle Strict Mode");
-    publishRef.current("/toggle-strict-sync");
-  }, []);
-
-  const changeProvider = useCallback((newProviderId: string) => {
-    console.log(
-      `WatchParty [HOST]: Emitted Change Provider → ${newProviderId}`,
-    );
-    // Update our ref so the next auto-sync / manual push carries the new provider
-    currentProviderRef.current = newProviderId;
-    publishRef.current("/change-provider", { providerId: newProviderId });
-  }, []);
+  const leaveParty = useCallback(async () => {
+    const id = partyIdRef.current;
+    if (!id || isLeavingRef.current) return;
+    isLeavingRef.current = true;
+    try {
+      const headers = await getHeaders();
+      await fetch(`${BASE}/leave?partyId=${id}`, { method: "POST", headers });
+    } catch (err) {
+      console.warn("[WATCH PARTY] Leave request failed", err);
+    } finally {
+      cleanupLocalState();
+      isLeavingRef.current = false;
+    }
+  }, [cleanupLocalState]);
 
   return {
     partyId,
     partyState,
+    participants,
     messages,
-    participantIds,
-    providerId,
     isHost,
-    strictSync,
     isConnected,
     currentUserId,
-    remoteSyncCommand,
-    /** Assign this ref.current = player.currentTime in your player's time-update handler */
+    streamUrl,
     currentTimeRef,
-    /**
-     * Update this ref whenever the active server/provider name changes on the HOST side.
-     * Used by auto-sync and manual push-sync to include the correct provider.
-     */
     currentProviderRef,
-
     sendChat,
-    pushSync,
-    requestSync,
-    notifyBuffering,
-    notifyBufferingComplete,
-    toggleStrictSync,
-    changeProvider,
+    leaveParty,
+    syncPlayer,
+    pushProgress,
   };
 }

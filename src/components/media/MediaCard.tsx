@@ -68,7 +68,9 @@ export default function MediaCard({
   const hasRemove = typeof onRemove === "function";
 
   // Long-press detection for mobile
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(
+    null,
+  );
   const [isLongPressing, setIsLongPressing] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -102,8 +104,9 @@ export default function MediaCard({
       style={{
         border: "1px solid rgba(255,255,255,0.05)",
         background: "#0000004e",
-        boxShadow:
-          "inset 0 1px 0 0 rgba(255,255,255,0.1),0 20px 40px rgba(0,0,0,0.4)",
+        backdropFilter: "blur(40px)",
+        WebkitBackdropFilter: "blur(40px)",
+        boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.1)",
       }}
       onClick={onClick}
       onContextMenu={onContextMenu}

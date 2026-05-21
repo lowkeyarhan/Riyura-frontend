@@ -35,6 +35,14 @@ export function useAuth() {
     return displayName.trim().split(/\s+/)[0];
   }, [user?.user_metadata]);
 
+  const fullName = useMemo(() => {
+    return (
+      user?.user_metadata?.display_name ||
+      user?.user_metadata?.full_name ||
+      null
+    );
+  }, [user?.user_metadata]);
+
   const avatarUrl =
     user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
@@ -42,5 +50,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, loading, firstName, avatarUrl, signOut } as const;
+  return { user, loading, firstName, fullName, avatarUrl, signOut } as const;
 }

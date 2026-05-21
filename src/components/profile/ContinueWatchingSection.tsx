@@ -25,7 +25,7 @@ export function ContinueWatchingSection({
     <section>
       <div className="flex items-center justify-between mb-4 md:mb-5">
         <h3
-          className="text-lg md:text-xl font-bold text-white flex items-center gap-3"
+          className="text-xl md:text-2xl font-bold text-white flex items-center gap-3"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
           Continue Watching
@@ -57,51 +57,60 @@ export function ContinueWatchingSection({
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {(showAll ? items : items.slice(0, 2)).map((item, index) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{
-                  opacity: index < 2 ? 1 : 0,
-                  y: index < 2 ? 0 : -20,
-                  scale: index < 2 ? 1 : 0.95,
-                  zIndex: index < 2 ? 10 : 0,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                  zIndex: 10,
-                  marginBottom: 16,
-                  transition: {
-                    duration: 0.5,
-                    ease: [0.22, 1, 0.36, 1],
-                    delay: index > 1 ? (index - 2) * 0.08 : 0,
-                  },
-                }}
-                exit={{
-                  opacity: 0,
-                  y: -20,
-                  scale: 0.95,
-                  height: 0,
-                  marginBottom: 0,
-                  zIndex: 0,
-                  transition: {
-                    duration: 0.6,
-                    ease: [0.22, 1, 0.36, 1],
-                  },
-                }}
-                transition={{
-                  layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-                }}
-              >
-                <ContinueWatchingCard
-                  item={item}
-                  onClick={() => onPlay(item)}
-                  onDelete={(e) => onDelete(e, item.id)}
-                />
-              </motion.div>
-            ))}
+            {(() => {
+              const displayedItems = showAll ? items : items.slice(0, 2);
+              return displayedItems.map((item, index) => {
+                const isFirst = index === 0;
+                const isLast = index === displayedItems.length - 1;
+                return (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{
+                      opacity: index < 2 ? 1 : 0,
+                      y: index < 2 ? 0 : -20,
+                      scale: index < 2 ? 1 : 0.95,
+                      zIndex: index < 2 ? 10 : 0,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      scale: 1,
+                      zIndex: 10,
+                      marginBottom: 8,
+                      transition: {
+                        duration: 0.5,
+                        ease: [0.22, 1, 0.36, 1],
+                        delay: index > 1 ? (index - 2) * 0.08 : 0,
+                      },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -20,
+                      scale: 0.95,
+                      height: 0,
+                      marginBottom: 0,
+                      zIndex: 0,
+                      transition: {
+                        duration: 0.6,
+                        ease: [0.22, 1, 0.36, 1],
+                      },
+                    }}
+                    transition={{
+                      layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                    }}
+                  >
+                    <ContinueWatchingCard
+                      item={item}
+                      onClick={() => onPlay(item)}
+                      onDelete={(e) => onDelete(e, item.id)}
+                      isFirst={isFirst}
+                      isLast={isLast}
+                    />
+                  </motion.div>
+                );
+              });
+            })()}
           </AnimatePresence>
         )}
       </motion.div>

@@ -7,13 +7,39 @@ interface ContinueWatchingCardProps {
   item: any;
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 export function ContinueWatchingCard({
   item,
   onClick,
   onDelete,
+  isFirst,
+  isLast,
 }: ContinueWatchingCardProps) {
+  const roundedClass =
+    isFirst === undefined && isLast === undefined
+      ? "rounded-2xl"
+      : isFirst && isLast
+        ? "rounded-[2rem]"
+        : isFirst
+          ? "rounded-t-[2rem] rounded-b-[0.5rem]"
+          : isLast
+            ? "rounded-b-[2rem] rounded-t-[0.5rem]"
+            : "rounded-[0.5rem]";
+
+  const imgRoundedClass =
+    isFirst === undefined && isLast === undefined
+      ? "rounded-lg"
+      : isFirst && isLast
+        ? "rounded-[1.5rem]"
+        : isFirst
+          ? "rounded-tl-[1.5rem] rounded-tr-[0.25rem] rounded-bl-[0.15rem] rounded-br-[0.25rem]"
+          : isLast
+            ? "rounded-bl-[1.5rem] rounded-tl-[0.15rem] rounded-br-[0.25rem] rounded-tr-[0.25rem]"
+            : "rounded-[0.25rem]";
+
   return (
     <motion.div
       layout
@@ -31,9 +57,11 @@ export function ContinueWatchingCard({
         transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
       }}
       onClick={onClick}
-      className="group relative flex items-center gap-3 p-2 md:gap-5 md:p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
+      className={`group relative bg-white/5 flex items-center gap-3 p-2 md:gap-5 border border-white/5 ${roundedClass} hover:border-white/20 transition-all cursor-pointer overflow-hidden`}
     >
-      <div className="relative w-28 md:w-40 aspect-[3/2] md:aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0 shadow-inner">
+      <div
+        className={`relative w-28 md:w-40 aspect-[3/2] md:aspect-video ${imgRoundedClass} overflow-hidden flex-shrink-0 shadow-inner`}
+      >
         <Image
           src={item.image}
           alt={item.title}

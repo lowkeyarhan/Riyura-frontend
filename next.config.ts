@@ -28,7 +28,11 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
-  allowedDevOrigins: ["100.129.163.43", "192.168.2.1"],
+  allowedDevOrigins: [
+    "100.129.163.43",
+    "192.168.2.1",
+    "uttmt-202-131-133-35.run.pinggy-free.link",
+  ],
 };
 
 export default nextConfig;

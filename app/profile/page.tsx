@@ -24,6 +24,7 @@ import { ContinueWatchingSection } from "@/src/components/profile/ContinueWatchi
 import { WatchlistSection } from "@/src/components/profile/WatchlistSection";
 import { RecommendationsSection } from "@/src/components/profile/RecommendationsSection";
 import { StatBadge } from "@/src/components/profile/StatBadge";
+import { extractColors } from "@/src/lib/utils/color";
 
 export default function ProfilePage() {
   return (
@@ -38,6 +39,13 @@ function ProfilePageContent() {
   const router = useRouter();
   const { addNotification } = useNotification();
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
+  const [gradientColors, setGradientColors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (avatarUrl) {
+      extractColors(avatarUrl).then(setGradientColors);
+    }
+  }, [avatarUrl]);
 
   // Custom hooks for data management
   const {
@@ -75,8 +83,9 @@ function ProfilePageContent() {
   const handlePlayClick = useCallback(
     (item: ContinueWatchingItem) => {
       if (item.mediaType === MediaType.Movie) {
-        const url = `/watch/movie/${item.tmdbId}${item.streamId ? `?stream=${item.streamId}` : ""
-          }`;
+        const url = `/watch/movie/${item.tmdbId}${
+          item.streamId ? `?stream=${item.streamId}` : ""
+        }`;
         router.push(url);
       } else {
         const params = new URLSearchParams();
@@ -86,7 +95,8 @@ function ProfilePageContent() {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/watch/tvshow/${item.tmdbId}${params.toString() ? `?${params.toString()}` : ""
+          `/watch/tvshow/${item.tmdbId}${
+            params.toString() ? `?${params.toString()}` : ""
           }`,
         );
       }
@@ -135,20 +145,25 @@ function ProfilePageContent() {
   if (loading || !user) return <ProfileSkeleton />;
 
   return (
-    <div className="relative min-h-screen bg-black text-white font-sans overflow-x-hidden">
-      {/* --- BACKGROUND LAYERS --- */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-black" />
-        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+    <div className="relative min-h-screen text-white font-sans overflow-x-hidden antialiased">
+      {/* Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black">
+        {gradientColors.length > 0 ? (
+          <div
+            className="absolute inset-0 opacity-50"
+            style={{
+              background: `radial-gradient(circle at 0% 0%,${gradientColors[0]} 0%,transparent 50%),radial-gradient(circle at 100% 0%,${gradientColors[1]} 0%,transparent 50%),radial-gradient(circle at 0% 100%,${gradientColors[2]} 0%,transparent 50%),radial-gradient(circle at 100% 100%,${gradientColors[3]} 0%,transparent 50%)`,
+              filter: "blur(80px)",
+              transform: "scale(1.2)",
+            }}
+          />
+        ) : null}
       </div>
-
       {/* --- MAIN CONTENT --- */}
       <div className="relative z-10 w-full h-full pt-20 px-4 md:pt-32 pb-8 md:px-16 lg:px-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
+        <div className="flex flex-col lg:flex-row gap-8 items-start h-full">
           {/* --- LEFT COLUMN: Identity & Navigation --- */}
-          <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32">
+          <div className="w-full lg:w-[24rem] flex flex-col justify-between lg:sticky lg:top-32 flex-shrink-0">
             <ProfileHeader
               fullName={fullName || "User"}
               email={user.email || ""}
@@ -196,7 +211,7 @@ function ProfilePageContent() {
           </div>
 
           {/* --- RIGHT COLUMN: Content Feed --- */}
-          <div className="lg:col-span-8 space-y-8 md:space-y-12 lg:overflow-y-auto lg:max-h-[calc(100vh-8rem)] scrollbar-hide">
+          <div className="flex-1 min-w-0 space-y-8 md:space-y-12 lg:overflow-y-auto lg:max-h-[calc(100vh-8rem)] scrollbar-hide w-full">
             <div className="hidden md:flex flex-col items-start gap-1">
               <h1
                 className="text-2xl md:text-5xl font-bold text-white tracking-tight"

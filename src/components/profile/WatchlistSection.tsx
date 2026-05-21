@@ -20,7 +20,7 @@ export function WatchlistSection({
     <section>
       <div className="flex items-center justify-between mb-4 md:mb-5">
         <h3
-          className="text-lg md:text-xl font-bold text-white flex items-center gap-3"
+          className="text-xl md:text-2xl font-bold text-white flex items-center gap-3"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
           Watchlist

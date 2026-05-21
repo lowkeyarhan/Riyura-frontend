@@ -521,6 +521,8 @@ async function fetchSSE(partyId, signal) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let eventName = "message";
+  let dataLine = "";
 
   signal.addEventListener("abort", () => reader.cancel());
 
@@ -532,8 +534,6 @@ async function fetchSSE(partyId, signal) {
     const lines = buffer.split("\n");
     buffer = lines.pop(); // keep incomplete final line in buffer
 
-    let eventName = "message",
-      dataLine = "";
     for (const line of lines) {
       const clean = line.trim(); // trim() removes \r from Windows line endings
       if (clean.startsWith("event:")) eventName = clean.slice(6).trim();
@@ -817,6 +817,8 @@ async function fetchSSE(partyId, jwt, signal) {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let eventName = "message";
+    let dataLine = "";
 
     signal.addEventListener("abort", () => reader.cancel());
 
@@ -827,8 +829,6 @@ async function fetchSSE(partyId, jwt, signal) {
       const lines = buffer.split("\n");
       buffer = lines.pop();
 
-      let eventName = "message",
-        dataLine = "";
       for (const line of lines) {
         const clean = line.trim();
         if (clean.startsWith("event:")) eventName = clean.slice(6).trim();

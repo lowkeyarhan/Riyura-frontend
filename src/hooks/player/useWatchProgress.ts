@@ -160,13 +160,11 @@ export function useWatchProgress({
   }, [isNanovue]);
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 3. Every 10 seconds: log + call onProgress
+  // 3. Every 10 seconds: call onProgress to keep URL/state up to date
   // ──────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     const intervalId = setInterval(() => {
       const seconds = latestProgressRef.current;
-      const label = isNanovueRef.current ? "Nanovue timer" : "iframe event";
-      console.log(`⏱️ Watched duration (${label}): ${seconds.toFixed(2)}s`);
       onProgressRef.current(seconds);
     }, 10000);
 

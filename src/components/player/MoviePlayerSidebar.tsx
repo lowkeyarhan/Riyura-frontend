@@ -64,10 +64,16 @@ const ServerRow = ({
   </button>
 );
 
-const CreatePartyCard = ({ movie }: { movie: MoviePlayerProp | null }) => {
+const CreatePartyCard = ({
+  movie,
+  activeServerId,
+}: {
+  movie: MoviePlayerProp | null;
+  activeServerId?: string;
+}) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const partyHref = movie?.tmdbId
-    ? `/party/movie?movie=${movie.tmdbId}`
+    ? `/party/movie?movie=${movie.tmdbId}${activeServerId ? `&stream=${encodeURIComponent(activeServerId)}` : ""}`
     : "/party/movie";
 
   return (
@@ -171,7 +177,10 @@ export function MoviePlayerSidebar({
       </div>
 
       {/* 2. Create Party */}
-      <CreatePartyCard movie={movie} />
+      <CreatePartyCard
+        movie={movie}
+        activeServerId={servers[activeServerIndex]?.id}
+      />
 
       {/* 3. Server Selector (Flexible Height) */}
       {/* <div className="overflow-hidden flex flex-col min-h-[200px] lg:flex-1 lg:min-h-0"> */}

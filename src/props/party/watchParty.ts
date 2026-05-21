@@ -33,6 +33,7 @@ export interface ChatMessage {
   avatarUrl: string | null;
   content: string;
   sentAt: string;
+  isSystem?: boolean;
 }
 
 export interface SyncResponse {

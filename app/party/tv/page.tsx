@@ -13,6 +13,7 @@ import { EpisodeBrowser } from "@/src/components/player/EpisodeBrowser";
 import { MediaType } from "@/src/props/global/mediaType";
 import { extractColors } from "@/src/lib/utils/color";
 import { PartyChatPanel } from "@/src/components/party/PartyChatPanel";
+import { PartyHostControls } from "@/src/components/party/PartyHostControls";
 
 function PartyTVContent() {
   const searchParams = useSearchParams();
@@ -57,6 +58,7 @@ function PartyTVContent() {
 
   const {
     partyId,
+    partyState,
     participants,
     messages,
     isHost,
@@ -67,34 +69,70 @@ function PartyTVContent() {
     currentProviderRef,
     sendChat,
     leaveParty,
+    pushProgress,
+    syncPlayer,
   } = useWatchParty({
     partyId: partyIdParam,
     mediaType: MediaType.TV,
     tmdbId,
     seasonNo: initSeason,
     episodeNo: initEp,
-    providerId: activeServer?.name,
+    providerId: activeServer?.id,
   });
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);
+
+  const filteredServers = servers.filter(
+    (s) => !s.name?.toLowerCase().includes("nanovue"),
+  );
+  const activeServerFromHook = servers[activeServerIndex];
+  const filteredActiveIndex = Math.max(
+    filteredServers.findIndex((s) => s.id === activeServerFromHook?.id),
+    0,
+  );
 
   const bgSrc = tvShow?.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
     : "/watch_party_page_temp_bg.jpg";
 
   useEffect(() => {
-    if (activeServer?.name) currentProviderRef.current = activeServer.name;
-  }, [activeServer?.name, currentProviderRef]);
+    if (activeServer?.id) currentProviderRef.current = activeServer.id;
+  }, [activeServer?.id, currentProviderRef]);
+
+  // Keep TV active server in sync with the party state
+  useEffect(() => {
+    if (partyState?.providerId) {
+      const idx = servers.findIndex(
+        (s) => s.id.toLowerCase() === partyState.providerId.toLowerCase(),
+      );
+      if (idx !== -1 && idx !== activeServerIndex) {
+        setActiveServerIndex(idx);
+      }
+    }
+  }, [
+    partyState?.providerId,
+    servers,
+    activeServerIndex,
+    setActiveServerIndex,
+  ]);
 
   // Seed the progress tracker from the startAt param embedded in the participant's stream URL
   useEffect(() => {
+    console.log("[PartyTVContent] streamUrl in page is:", streamUrl);
     if (streamUrl && !isHost) {
       try {
         const u = new URL(streamUrl);
         const t = u.searchParams.get("start") ?? u.searchParams.get("t");
-        if (t) setProgress(Number(t));
-      } catch {
-        /* non-parseable URL */
+        if (t) {
+          console.log("[PartyTVContent] Extracted start progress:", t);
+          setProgress(Number(t));
+        }
+      } catch (err) {
+        console.warn(
+          "[PartyTVContent] Failed to parse start parameter from streamUrl:",
+          streamUrl,
+          err,
+        );
       }
     }
   }, [streamUrl, isHost, setProgress]);
@@ -162,7 +200,7 @@ function PartyTVContent() {
 
         {/* Player */}
         <div
-          className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative"
+          className="flex-1 flex flex-col rounded-[2rem] overflow-hidden relative group aspect-video lg:aspect-auto"
           style={{
             border: "1px solid rgba(255,255,255,0.05)",
             boxShadow:
@@ -191,56 +229,31 @@ function PartyTVContent() {
         </div>
 
         {/* Sidebar */}
-        <div className="w-full max-w-[25%] flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
-          {/* Now Watching card */}
-          <div className="apple-glass rounded-[32px] p-4 flex flex-col gap-3 flex-shrink-0">
-            <div className="flex gap-3 items-start w-full">
-              <div className="w-12 h-12 rounded-lg overflow-hidden relative flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-                <Image
-                  src={
-                    tvShow?.backdrop_path
-                      ? `https://image.tmdb.org/t/p/w200${tvShow.backdrop_path}`
-                      : "/landing-page/perf_card_3.png"
-                  }
-                  alt="now playing"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="min-w-0 flex-1 pt-0.5">
-                <h3 className="text-white font-bold text-[14px] leading-tight truncate tracking-wide">
-                  {tvLoading ? "Loading…" : (tvShow?.title ?? "TV Show")}
-                </h3>
-                <p className="text-white/40 text-[11px] mt-0.5">
-                  S{selectedSeason} · E{selectedEpisode}
-                </p>
-                <p className="text-white/60 text-[11px] truncate mt-0.5 tracking-wide font-medium uppercase">
-                  {isHost ? "You are HOST" : "Participant"}
-                </p>
-                <div className="flex items-center gap-1 mt-1">
-                  <div
-                    className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-yellow-400 animate-pulse"}`}
-                  />
-                  <span className="text-[10px] text-white/40">
-                    {isConnected ? "Live" : "Connecting…"}
-                  </span>
-                </div>
-              </div>
-            </div>
-            {servers.length > 1 && (
-              <div className="flex gap-1.5 flex-wrap">
-                {servers.map((s, i) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveServerIndex(i)}
-                    className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${i === activeServerIndex ? "bg-[#E8470A] text-white" : "bg-white/10 text-white/60 hover:bg-white/20"}`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="w-full lg:w-[24rem] flex-shrink-0 flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
+          <PartyHostControls
+            servers={filteredServers}
+            activeServerIndex={filteredActiveIndex}
+            onServerChange={(idx) => {
+              const targetServer = filteredServers[idx];
+              const originalIdx = servers.findIndex(
+                (s) => s.id === targetServer.id,
+              );
+              if (originalIdx !== -1) {
+                setActiveServerIndex(originalIdx);
+                if (isHost) pushProgress(targetServer.id, getLatestProgress());
+              }
+            }}
+            onSync={
+              !isHost
+                ? syncPlayer
+                : () => pushProgress(undefined, getLatestProgress())
+            }
+            onLeave={handleLeave}
+            title={tvLoading ? "Loading…" : (tvShow?.title ?? "TV Show")}
+            subtitle={`S${selectedSeason} · E${selectedEpisode}`}
+            backdropPath={tvShow?.backdrop_path ?? null}
+            isHost={isHost}
+          />
 
           <PartyChatPanel
             participants={participants}
@@ -249,7 +262,6 @@ function PartyTVContent() {
             partyId={partyId}
             isConnected={isConnected}
             onSendChat={sendChat}
-            onLeave={handleLeave}
           />
         </div>
       </div>

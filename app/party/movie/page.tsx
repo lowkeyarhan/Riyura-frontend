@@ -12,38 +12,32 @@ import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import { MediaType } from "@/src/props/global/mediaType";
 import { extractColors } from "@/src/lib/utils/color";
 import { PartyChatPanel } from "@/src/components/party/PartyChatPanel";
+import { PartyHostControls } from "@/src/components/party/PartyHostControls";
 import { useState } from "react";
+
+const HARDCODED_PROVIDERS = [
+  { id: "ironlink", name: "Ironlink", quality: "1080p Fast" },
+  { id: "syntherion", name: "Syntherion", quality: "1080p Subs" },
+  { id: "dormannu", name: "Dormannu", quality: "4k Ads" },
+];
 
 function PartyMovieContent() {
   const searchParams = useSearchParams();
   const tmdbId = parseInt(searchParams.get("movie") ?? "0");
   const partyIdParam = searchParams.get("party");
+  // Provider ID is baked into the URL by the player page sidebar ("Create" button)
+  const streamParam = searchParams.get("stream") ?? undefined;
   const { user } = useAuth();
 
-  const {
-    movie,
-    servers,
-    loading: movieLoading,
-    activeServerIndex,
-    setActiveServerIndex,
-    saveWatchHistoryOnUnmount,
-  } = useMoviePlayer({ movieId: String(tmdbId), userId: user?.id });
-
-  const activeServer = servers[activeServerIndex];
-  const isNanovue =
-    activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
-
-  const { getLatestProgress, setProgress } = useWatchProgress({
-    serverName: activeServer?.name,
-    isNanovue,
-    initialProgressSec: 0,
-    onProgress: (sec) => {
-      currentTimeRef.current = sec;
-    },
+  // Still fetch movie metadata for the "Now Watching" header card
+  const { movie, saveWatchHistoryOnUnmount } = useMoviePlayer({
+    movieId: String(tmdbId),
+    userId: user?.id,
   });
 
   const {
     partyId,
+    partyState,
     participants,
     messages,
     isHost,
@@ -54,11 +48,26 @@ function PartyMovieContent() {
     currentProviderRef,
     sendChat,
     leaveParty,
+    syncPlayer,
+    pushProgress,
   } = useWatchParty({
     partyId: partyIdParam,
     mediaType: MediaType.Movie,
     tmdbId,
-    providerId: activeServer?.name,
+    // Pass the provider from the URL so the backend gets the right stream source
+    providerId: streamParam,
+  });
+
+  // Nanovue detection based on the stream URL returned by the backend
+  const isNanovue = streamUrl?.toLowerCase().includes("nanovue") ?? false;
+
+  const { getLatestProgress, setProgress } = useWatchProgress({
+    serverName: streamParam,
+    isNanovue,
+    initialProgressSec: 0,
+    onProgress: (sec) => {
+      currentTimeRef.current = sec;
+    },
   });
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);
@@ -67,19 +76,23 @@ function PartyMovieContent() {
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
     : "/watch_party_page_temp_bg.jpg";
 
+  // Seed progress tracker from the startAt param in the participant stream URL
   useEffect(() => {
-    if (activeServer?.name) currentProviderRef.current = activeServer.name;
-  }, [activeServer?.name, currentProviderRef]);
-
-  // Seed the progress tracker from the startAt param embedded in the participant's stream URL
-  useEffect(() => {
+    console.log("[PartyMovieContent] streamUrl in page is:", streamUrl);
     if (streamUrl && !isHost) {
       try {
         const u = new URL(streamUrl);
         const t = u.searchParams.get("start") ?? u.searchParams.get("t");
-        if (t) setProgress(Number(t));
-      } catch {
-        /* non-parseable URL */
+        if (t) {
+          console.log("[PartyMovieContent] Extracted start progress:", t);
+          setProgress(Number(t));
+        }
+      } catch (err) {
+        console.warn(
+          "[PartyMovieContent] Failed to parse start parameter from streamUrl:",
+          streamUrl,
+          err,
+        );
       }
     }
   }, [streamUrl, isHost, setProgress]);
@@ -129,7 +142,7 @@ function PartyMovieContent() {
 
       {/* Player */}
       <div
-        className="flex-1 flex flex-col rounded-[2rem] max-w-[75%] overflow-hidden relative"
+        className="flex-1 flex flex-col rounded-[2rem] overflow-hidden relative group aspect-video lg:aspect-auto"
         style={{
           border: "1px solid rgba(255,255,255,0.05)",
           boxShadow:
@@ -137,11 +150,7 @@ function PartyMovieContent() {
           aspectRatio: "16/9",
         }}
       >
-        {movieLoading ? (
-          <div className="w-full h-full flex items-center justify-center bg-black/80">
-            <Loader2 className="animate-spin text-white" size={48} />
-          </div>
-        ) : streamUrl ? (
+        {streamUrl ? (
           <iframe
             key={streamUrl}
             src={streamUrl}
@@ -158,53 +167,31 @@ function PartyMovieContent() {
       </div>
 
       {/* Sidebar */}
-      <div className="w-full max-w-[25%] flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
-        {/* Now Watching card */}
-        <div className="apple-glass rounded-[32px] p-4 flex flex-col gap-3 flex-shrink-0">
-          <div className="flex gap-3 items-start w-full">
-            <div className="w-12 h-12 rounded-lg overflow-hidden relative flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-              <Image
-                src={
-                  movie?.backdrop_path
-                    ? `https://image.tmdb.org/t/p/w200${movie.backdrop_path}`
-                    : "/landing-page/perf_card_3.png"
-                }
-                alt="now playing"
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <h3 className="text-white font-bold text-[14px] leading-tight truncate tracking-wide">
-                {movieLoading ? "Loading…" : (movie?.title ?? "Movie")}
-              </h3>
-              <p className="text-white/60 text-[12px] truncate mt-1 tracking-wide font-medium uppercase">
-                {isHost ? "You are HOST" : "Participant"}
-              </p>
-              <div className="flex items-center gap-1 mt-1">
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-yellow-400 animate-pulse"}`}
-                />
-                <span className="text-[10px] text-white/40">
-                  {isConnected ? "Live" : "Connecting…"}
-                </span>
-              </div>
-            </div>
-          </div>
-          {servers.length > 1 && (
-            <div className="flex gap-1.5 flex-wrap">
-              {servers.map((s, i) => (
-                <button
-                  key={s.id}
-                  onClick={() => setActiveServerIndex(i)}
-                  className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${i === activeServerIndex ? "bg-[#E8470A] text-white" : "bg-white/10 text-white/60 hover:bg-white/20"}`}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
+      <div className="w-full lg:w-[24rem] col-span-7 flex-shrink-0 flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
+        <PartyHostControls
+          servers={HARDCODED_PROVIDERS}
+          activeServerIndex={Math.max(
+            HARDCODED_PROVIDERS.findIndex(
+              (s) =>
+                s.id === (partyState?.providerId || currentProviderRef.current),
+            ),
+            0,
           )}
-        </div>
+          onServerChange={(idx) => {
+            const server = HARDCODED_PROVIDERS[idx];
+            pushProgress(server.id, getLatestProgress());
+          }}
+          onSync={
+            !isHost
+              ? syncPlayer
+              : () => pushProgress(undefined, getLatestProgress())
+          }
+          onLeave={handleLeave}
+          title={movie?.title ?? "Movie"}
+          subtitle="Movie"
+          backdropPath={movie?.backdrop_path ?? null}
+          isHost={isHost}
+        />
 
         <PartyChatPanel
           participants={participants}
@@ -213,7 +200,6 @@ function PartyMovieContent() {
           partyId={partyId}
           isConnected={isConnected}
           onSendChat={sendChat}
-          onLeave={handleLeave}
         />
       </div>
     </div>

@@ -12,7 +12,7 @@ import {
 } from "@/src/props/party/watchParty";
 
 const BASE = "/api/watchalong/party";
-const PROGRESS_PUSH_INTERVAL_MS = 60_000;
+const PROGRESS_PUSH_INTERVAL_MS = 5 * 60 * 1000;
 const HEARTBEAT_INTERVAL_MS = 2.5 * 60 * 1000;
 const SSE_RECONNECT_DELAY_MS = 3_000;
 const SSE_MAX_RECONNECTS = 5;
@@ -40,6 +40,10 @@ export interface UseWatchPartyReturn {
   sendChat: (content: string) => Promise<void>;
   leaveParty: () => Promise<void>;
   syncPlayer: () => Promise<SyncResponse | null>;
+  pushProgress: (
+    newProviderId?: string,
+    currentProgress?: number,
+  ) => Promise<void>;
 }
 
 export function useWatchParty({
@@ -48,7 +52,7 @@ export function useWatchParty({
   tmdbId,
   seasonNo = 0,
   episodeNo = 0,
-  providerId: initialProviderId = "vidsrc",
+  providerId: initialProviderId = "ironlink",
 }: UseWatchPartyProps): UseWatchPartyReturn {
   const [partyId, setPartyId] = useState<string | null>(initialPartyId ?? null);
   const [partyState, setPartyState] = useState<PartyState | null>(null);
@@ -58,6 +62,10 @@ export function useWatchParty({
   const [isConnected, setIsConnected] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log("[useWatchParty] streamUrl state updated to:", streamUrl);
+  }, [streamUrl]);
 
   const isHostRef = useRef(false);
   const currentUserIdRef = useRef<string | undefined>(undefined);
@@ -144,27 +152,130 @@ export function useWatchParty({
     }, HEARTBEAT_INTERVAL_MS);
   }, []);
 
-  const startProgressTimer = useCallback((id: string) => {
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    progressTimerRef.current = setInterval(async () => {
+  const syncPlayer = useCallback(async (): Promise<SyncResponse | null> => {
+    const id = partyIdRef.current;
+    if (!id) {
+      console.warn(
+        "[WATCH PARTY] syncPlayer called but partyIdRef.current is empty",
+      );
+      return null;
+    }
+    console.log("[WATCH PARTY] syncPlayer initiated for party:", id);
+    try {
+      const headers = await getHeaders();
+      const res = await fetch(`${BASE}/${id}/sync`, { headers });
+      if (!res.ok) {
+        console.error("[WATCH PARTY] syncPlayer response not ok:", res.status);
+        return null;
+      }
+      const data: SyncResponse = await res.json();
+      console.log("[WATCH PARTY] syncPlayer received data:", data);
+      if (data.streamUrl && isMountedRef.current) {
+        // Parse the stream URL and append a unique partySync timestamp.
+        // This forces the iframe key/src to change, prompting a reload.
+        try {
+          const u = new URL(data.streamUrl);
+          u.searchParams.set("partySync", Date.now().toString());
+          const finalUrl = u.toString();
+          console.log(
+            "[WATCH PARTY] syncPlayer setting streamUrl state to:",
+            finalUrl,
+          );
+          setStreamUrl(finalUrl);
+        } catch {
+          // If URL parsing fails, fallback to appending query param manually
+          const separator = data.streamUrl.includes("?") ? "&" : "?";
+          const finalUrl = `${data.streamUrl}${separator}partySync=${Date.now()}`;
+          console.log(
+            "[WATCH PARTY] syncPlayer setting streamUrl state (fallback) to:",
+            finalUrl,
+          );
+          setStreamUrl(finalUrl);
+        }
+      } else {
+        console.warn(
+          "[WATCH PARTY] syncPlayer did not set streamUrl. data.streamUrl:",
+          data.streamUrl,
+          "isMounted:",
+          isMountedRef.current,
+        );
+      }
+      return data;
+    } catch (err) {
+      console.error("[WATCH PARTY] syncPlayer error:", err);
+      return null;
+    }
+  }, []);
+
+  const pushProgress = useCallback(
+    async (newProviderId?: string, currentProgress?: number) => {
+      const id = partyIdRef.current;
       if (!isHostRef.current || !id) return;
+
+      if (newProviderId) {
+        currentProviderRef.current = newProviderId;
+        setPartyState((prev) =>
+          prev ? { ...prev, providerId: newProviderId } : prev,
+        );
+      }
+
+      if (currentProgress !== undefined) {
+        currentTimeRef.current = currentProgress;
+      }
+
       const progress = currentTimeRef.current;
       const provider = currentProviderRef.current;
       console.log(
-        `[WATCH PARTY] Progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
+        `[WATCH PARTY] Manual progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
       );
       try {
         const headers = await getHeaders();
-        await fetch(`${BASE}/progress`, {
+        const res = await fetch(`${BASE}/progress`, {
           method: "POST",
           headers,
           body: JSON.stringify({ partyId: id, progress, providerId: provider }),
         });
+
+        if (res.ok) {
+          if (newProviderId) {
+            await syncPlayer();
+          }
+        }
       } catch (err) {
-        console.warn("[WATCH PARTY] Progress push failed:", err);
+        console.warn("[WATCH PARTY] Manual progress push failed:", err);
       }
-    }, PROGRESS_PUSH_INTERVAL_MS);
-  }, []);
+    },
+    [getHeaders, syncPlayer],
+  );
+
+  const startProgressTimer = useCallback(
+    (id: string) => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      progressTimerRef.current = setInterval(async () => {
+        if (!isHostRef.current || !id) return;
+        const progress = currentTimeRef.current;
+        const provider = currentProviderRef.current;
+        console.log(
+          `[WATCH PARTY] Auto progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
+        );
+        try {
+          const headers = await getHeaders();
+          await fetch(`${BASE}/progress`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              partyId: id,
+              progress,
+              providerId: provider,
+            }),
+          });
+        } catch (err) {
+          console.warn("[WATCH PARTY] Auto progress push failed:", err);
+        }
+      }, PROGRESS_PUSH_INTERVAL_MS);
+    },
+    [getHeaders],
+  );
 
   const refreshParticipants = useCallback(async () => {
     const id = partyIdRef.current;
@@ -215,18 +326,56 @@ export function useWatchParty({
       return;
     }
 
-    const { payload } = envelope;
+    const { payload, eventType } = envelope;
+    const typeToSwitch = eventType || eventName;
 
-    switch (eventName) {
+    console.log(`[WATCH PARTY] SSE Event received: ${typeToSwitch}`, payload);
+
+    switch (typeToSwitch) {
       case "CONNECTED":
         if (isMountedRef.current) setIsConnected(true);
         reconnectCountRef.current = 0;
         break;
 
-      case "USER_JOINED":
-      case "USER_LEFT":
+      case "USER_JOINED": {
+        const username = payload?.username as string | undefined;
+        if (username) {
+          const sysMsg: ChatMessage = {
+            id: `sys-${Date.now()}-${Math.random()}`,
+            senderId: "system",
+            senderName: "System",
+            avatarUrl: null,
+            content: `${username} joined`,
+            sentAt: new Date().toISOString(),
+            isSystem: true,
+          };
+          setMessages((prev) => [...prev, sysMsg]);
+        }
         refreshParticipants();
         break;
+      }
+
+      case "USER_LEFT": {
+        const leftUserId = payload?.userId as string | undefined;
+        if (leftUserId) {
+          const departedUser = participants.find(
+            (p) => p.userId === leftUserId,
+          );
+          const name = departedUser?.username ?? "Someone";
+          const sysMsg: ChatMessage = {
+            id: `sys-${Date.now()}-${Math.random()}`,
+            senderId: "system",
+            senderName: "System",
+            avatarUrl: null,
+            content: `${name} left`,
+            sentAt: new Date().toISOString(),
+            isSystem: true,
+          };
+          setMessages((prev) => [...prev, sysMsg]);
+        }
+        refreshParticipants();
+        break;
+      }
 
       case "USER_EVICTED": {
         const evictedId = payload?.userId as string | undefined;
@@ -243,6 +392,19 @@ export function useWatchParty({
 
       case "HOST_MIGRATED": {
         const newHostId = payload?.newHostId as string | undefined;
+        const newHostName = payload?.newHostName as string | undefined;
+        if (newHostName) {
+          const sysMsg: ChatMessage = {
+            id: `sys-${Date.now()}-${Math.random()}`,
+            senderId: "system",
+            senderName: "System",
+            avatarUrl: null,
+            content: `${newHostName} is the new host`,
+            sentAt: new Date().toISOString(),
+            isSystem: true,
+          };
+          setMessages((prev) => [...prev, sysMsg]);
+        }
         if (!newHostId || !isMountedRef.current) break;
         const meIsHost = newHostId === currentUserIdRef.current;
         setIsHost(meIsHost);
@@ -261,7 +423,13 @@ export function useWatchParty({
       case "PARTY_STATE_UPDATED": {
         const progress = payload?.progress as number | undefined;
         const updatedProvider = payload?.providerId as string | undefined;
+        const newStreamUrl = payload?.streamUrl as string | undefined;
         if (isMountedRef.current && progress !== undefined) {
+          const providerChanged =
+            updatedProvider &&
+            partyState?.providerId &&
+            partyState.providerId !== updatedProvider;
+
           setPartyState((prev) =>
             prev
               ? {
@@ -271,6 +439,14 @@ export function useWatchParty({
                 }
               : prev,
           );
+          if (newStreamUrl) {
+            setStreamUrl(newStreamUrl);
+          } else if (providerChanged && !isHostRef.current) {
+            console.log(
+              `[WATCH PARTY] Provider changed to ${updatedProvider}. Syncing player...`,
+            );
+            syncPlayer();
+          }
         }
         break;
       }
@@ -299,7 +475,7 @@ export function useWatchParty({
 
       default:
         console.log(
-          `[WATCH PARTY] Unrecognised SSE event: ${eventName}`,
+          `[WATCH PARTY] Unrecognised SSE event: ${typeToSwitch}`,
           payload,
         );
     }
@@ -329,6 +505,8 @@ export function useWatchParty({
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let eventName = "message";
+        let dataLine = "";
 
         signal.addEventListener("abort", () => reader.cancel(), { once: true });
 
@@ -339,9 +517,6 @@ export function useWatchParty({
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
-
-          let eventName = "message";
-          let dataLine = "";
 
           for (const line of lines) {
             const clean = line.trim();
@@ -502,22 +677,6 @@ export function useWatchParty({
     }
   }, [cleanupLocalState]);
 
-  const syncPlayer = useCallback(async (): Promise<SyncResponse | null> => {
-    const id = partyIdRef.current;
-    if (!id) return null;
-    try {
-      const headers = await getHeaders();
-      const res = await fetch(`${BASE}/${id}/sync`, { headers });
-      if (!res.ok) return null;
-      const data: SyncResponse = await res.json();
-      if (data.streamUrl && isMountedRef.current) setStreamUrl(data.streamUrl);
-      return data;
-    } catch (err) {
-      console.error("[WATCH PARTY] syncPlayer error:", err);
-      return null;
-    }
-  }, []);
-
   return {
     partyId,
     partyState,
@@ -532,5 +691,6 @@ export function useWatchParty({
     sendChat,
     leaveParty,
     syncPlayer,
+    pushProgress,
   };
 }

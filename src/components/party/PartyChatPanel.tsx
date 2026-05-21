@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Link as LinkIcon, Smile } from "lucide-react";
+import { Link as LinkIcon, Smile, RefreshCcw } from "lucide-react";
 import { ChatMessage, PartyParticipant } from "@/src/props/party/watchParty";
 import { colorForId, fmtTime, initials } from "@/src/lib/utils/party";
 
@@ -13,7 +13,8 @@ interface PartyChatPanelProps {
   partyId: string | null;
   isConnected: boolean;
   onSendChat: (content: string) => Promise<void>;
-  onLeave: () => void;
+  onLeave?: () => void;
+  onSync?: () => Promise<unknown>;
 }
 
 export function PartyChatPanel({
@@ -24,9 +25,11 @@ export function PartyChatPanel({
   isConnected,
   onSendChat,
   onLeave,
+  onSync,
 }: PartyChatPanelProps) {
   const [chatInput, setChatInput] = useState("");
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,6 +58,16 @@ export function PartyChatPanel({
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
   }, []);
+
+  const handleSync = useCallback(async () => {
+    if (!onSync || syncing) return;
+    setSyncing(true);
+    try {
+      await onSync();
+    } finally {
+      setTimeout(() => setSyncing(false), 1500);
+    }
+  }, [onSync, syncing]);
 
   return (
     <>
@@ -123,7 +136,7 @@ export function PartyChatPanel({
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
             <div
               className={`w-1.5 h-1.5 rounded-full ${
                 isConnected ? "bg-green-500" : "bg-yellow-400 animate-pulse"
@@ -132,12 +145,39 @@ export function PartyChatPanel({
             <span className="text-[12px] font-semibold text-gray-500">
               {participants.length} watching
             </span>
+            {onSync && (
+              <button
+                onClick={handleSync}
+                disabled={!isConnected || syncing}
+                title="Sync to host"
+                className={`ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                  syncing
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-white/8 text-white/60 hover:bg-white/15 hover:text-white"
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                <RefreshCcw
+                  size={11}
+                  className={syncing ? "animate-spin" : ""}
+                />
+                {syncing ? "Synced!" : "Sync"}
+              </button>
+            )}
           </div>
         </div>
 
         {/* Message list */}
         <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-4">
           {messages.map((msg) => {
+            if (msg.isSystem) {
+              return (
+                <div key={msg.id} className="flex justify-center my-1.5 w-full">
+                  <span className="text-[11px] text-white/40 italic text-center px-3 py-1 rounded-full bg-white/5 border border-white/5 tracking-wide">
+                    {msg.content}
+                  </span>
+                </div>
+              );
+            }
             const isMe = msg.senderId === currentUserId;
             return (
               <div
@@ -219,12 +259,14 @@ export function PartyChatPanel({
       </div>
 
       {/* Leave party button */}
-      <button
-        onClick={onLeave}
-        className="apple-glass rounded-full py-3 text-red-400 text-[13px] font-semibold hover:bg-red-500/10 transition-all flex-shrink-0"
-      >
-        Leave Party
-      </button>
+      {onLeave && (
+        <button
+          onClick={onLeave}
+          className="apple-glass rounded-full py-3 text-red-400 text-[13px] font-semibold hover:bg-red-500/10 transition-all flex-shrink-0"
+        >
+          Leave Party
+        </button>
+      )}
     </>
   );
 }

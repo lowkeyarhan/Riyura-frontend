@@ -171,7 +171,7 @@ function ProfilePageContent() {
             />
 
             {/* Control Center Grid: Stats & Sign Out */}
-            <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="grid grid-cols-2 gap-3 mt-4 md:mt-6">
               {stats.map((stat) => (
                 <StatBadge key={stat.label} stat={stat} />
               ))}
@@ -179,7 +179,7 @@ function ProfilePageContent() {
               <button
                 onClick={handleSignOut}
                 disabled={isSignOutLoading}
-                className="hidden lg:flex apple-glass rounded-full items-center justify-start p-2 gap-3 transition-all hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
+                className="flex apple-glass rounded-full items-center justify-start p-2 gap-3 transition-all hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
               >
                 <div className="w-[50px] h-[50px] rounded-full flex flex-shrink-0 items-center justify-center bg-red-500/20">
                   {isSignOutLoading ? (
@@ -191,9 +191,6 @@ function ProfilePageContent() {
                 <div className="flex flex-col text-left justify-center flex-1 min-w-0 pr-2">
                   <span className="text-[15px] md:text-[17px] text-red-500 font-bold leading-tight tracking-wide truncate">
                     Sign Out
-                  </span>
-                  <span className="text-[10px] md:text-[11px] text-red-500/50 font-medium uppercase tracking-wider mt-0.5 truncate">
-                    Disconnect
                   </span>
                 </div>
               </button>
@@ -251,28 +248,13 @@ function ProfilePageContent() {
             />
 
             {/* --- MOBILE ONLY SECTIONS (Preferences & Sign Out) --- */}
-            <div className="lg:hidden space-y-8 pt-8 border-t border-white/5">
+            <div className="lg:hidden space-y-8">
               <SettingsSection
                 apiKey={{
                   ...apiKey,
                   saveApiKey: handleApiKeySave,
                 }}
               />
-
-              <div className="flex justify-center">
-                <button
-                  onClick={handleSignOut}
-                  disabled={isSignOutLoading}
-                  className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-red-600 font-bold text-sm hover:bg-orange-600 hover:text-white hover:border-red-600 transition-all duration-300"
-                >
-                  {isSignOutLoading ? (
-                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <LogOut size={16} />
-                  )}
-                  Sign Out
-                </button>
-              </div>
             </div>
           </div>
         </div>

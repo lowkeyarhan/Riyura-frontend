@@ -13,8 +13,6 @@ import { EpisodeBrowser } from "@/src/components/player/EpisodeBrowser";
 import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
 import { extractColors } from "@/src/lib/utils/color";
 
-
-
 export default function TVShowPlayer() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -166,7 +164,7 @@ export default function TVShowPlayer() {
       </div>
 
       {/* --- SECTION 1: THEATER (Full Viewport) --- */}
-      <div className="min-h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto z-10 relative">
+      <div className="lg:min-h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto z-10 relative">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-full">
           {/* Left: Player (9 cols) */}
           <div className="lg:col-span-9 flex flex-col h-auto lg:h-full border border-white/5 rounded-3xl aspect-video lg:aspect-auto">

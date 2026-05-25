@@ -14,7 +14,7 @@ const SETTINGS_LINKS: SettingsLinkItem[] = [
 
 export function SettingsSection({ apiKey }: { apiKey: ApiKeyProp }) {
   return (
-    <div className="mt-4">
+    <div className="md:mt-4">
       <div className="grid grid-cols-2 gap-3">
         {SETTINGS_LINKS.map((link) =>
           link.hasInput ? (

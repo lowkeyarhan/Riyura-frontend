@@ -81,7 +81,7 @@ export function TVShowPlayerSidebar({
       </div>
 
       {/* Server Selector (Scrollable) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto bg-transparent">
+      <div className="grid grid-cols-2 gap-3 overflow-y-auto bg-transparent">
         {servers.map((server, index) => (
           <ServerRow
             key={server.id}
@@ -96,7 +96,6 @@ export function TVShowPlayerSidebar({
       {/* Synopsis */}
       <div className="apple-glass rounded-3xl p-4 shadow-xl flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="flex items-center gap-2 mb-2 text-gray-400 text-xs font-bold uppercase tracking-widest flex-shrink-0">
-          <Info size={14} />
           <span>Synopsis</span>
         </div>
         <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2">

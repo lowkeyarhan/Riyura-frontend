@@ -113,8 +113,18 @@ function PartyMovieContent() {
   const handleLeave = useCallback(async () => {
     saveWatchHistoryOnUnmount(getLatestProgress());
     await leaveParty();
-    window.location.href = "/";
-  }, [leaveParty, saveWatchHistoryOnUnmount, getLatestProgress]);
+    let url = `/watch/movie/${tmdbId}`;
+    if (streamParam) {
+      url += `?stream=${streamParam}`;
+    }
+    window.location.href = url;
+  }, [
+    leaveParty,
+    saveWatchHistoryOnUnmount,
+    getLatestProgress,
+    tmdbId,
+    streamParam,
+  ]);
 
   return (
     <div className="min-h-screen relative z-10 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 overflow-hidden">

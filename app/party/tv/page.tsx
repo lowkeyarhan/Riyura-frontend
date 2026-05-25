@@ -153,8 +153,20 @@ function PartyTVContent() {
   const handleLeave = useCallback(async () => {
     saveWatchHistoryOnUnmount(getLatestProgress());
     await leaveParty();
-    window.location.href = "/";
-  }, [leaveParty, saveWatchHistoryOnUnmount, getLatestProgress]);
+    let url = `/watch/tvshow/${tmdbId}?season=${selectedSeason}&episode=${selectedEpisode}`;
+    if (activeServerFromHook?.id) {
+      url += `&stream=${activeServerFromHook.id}`;
+    }
+    window.location.href = url;
+  }, [
+    leaveParty,
+    saveWatchHistoryOnUnmount,
+    getLatestProgress,
+    tmdbId,
+    selectedSeason,
+    selectedEpisode,
+    activeServerFromHook,
+  ]);
 
   // Reset progress tracking when the episode changes
   const handleSeasonChange = useCallback(

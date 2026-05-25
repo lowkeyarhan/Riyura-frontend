@@ -48,18 +48,18 @@ export function EpisodeBrowser({
   return (
     <div className="flex flex-1 gap-6 md:flex-row flex-col w-full mx-auto px-4 md:px-8 lg:px-12 mb-8 font-sans">
       {/* Sidebar */}
-      <aside className="apple-glass w-full md:w-64 flex flex-col gap-6 p-4 rounded-[24px] flex-shrink-0">
-        <nav className="flex flex-col gap-4 overflow-y-auto max-h-[60vh] scrollbar-thin scrollbar-thumb-white/10">
+      <aside className="apple-glass w-full md:w-64 flex flex-col gap-4 md:gap-6 p-4 rounded-[24px] flex-shrink-0">
+        <nav className="flex flex-row md:flex-col gap-2 md:gap-4 overflow-x-auto md:overflow-y-auto max-h-[60vh] scrollbar-hide md:scrollbar-thin md:scrollbar-thumb-white/10">
           {validSeasons.map((season) => {
             const isActive = selectedSeason === season.season_number;
             return (
               <button
                 key={season.season_number}
                 onClick={() => onSeasonChange(season.season_number)}
-                className={`flex items-center bg-white/[0.06] justify-between px-4 py-3 rounded-full text-sm font-medium border ${isActive ? "border-[#ffffff80]" : "border-none hover:bg-white/[0.08]"}`}
+                className={`flex items-center shrink-0 bg-white/[0.06] justify-center md:justify-between px-4 py-2 md:py-3 rounded-full text-sm font-medium border gap-2 md:gap-0 ${isActive ? "border-[#ffffff80]" : "border-none hover:bg-white/[0.08]"}`}
               >
                 <span>{season.name}</span>
-                <span className="text-white/40 text-xs">
+                <span className="text-white/40 text-[10px] md:text-xs">
                   {season.episode_count} Episodes
                 </span>
               </button>
@@ -69,13 +69,13 @@ export function EpisodeBrowser({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 rounded-[2rem] pt-4 pb-6 px-6 flex flex-col gap-8 apple-glass">
+      <main className="flex-1 rounded-[2rem] pt-4 pb-6 px-4 md:px-6 flex flex-col gap-8 apple-glass">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-white tracking-tight">
+            <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
               {currentSeasonBlock?.name || `Season ${selectedSeason}`}
             </h1>
-            <p className="text-white/40 mt-1 text-sm">
+            <p className="text-white/40 mt-1 text-sm line-clamp-4">
               {currentSeasonBlock?.overview
                 ? currentSeasonBlock.overview
                 : "Select an episode to start watching."}
@@ -132,7 +132,7 @@ export function EpisodeBrowser({
         <div
           className={
             viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+              ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4"
               : "flex flex-col gap-4"
           }
         >

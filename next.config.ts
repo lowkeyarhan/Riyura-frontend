@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactStrictMode: false,
   images: {
     remotePatterns: [
@@ -32,6 +33,7 @@ const nextConfig: NextConfig = {
     "100.129.163.43",
     "192.168.2.1",
     "uttmt-202-131-133-35.run.pinggy-free.link",
+    "riyura.localhost",
   ],
 };
 

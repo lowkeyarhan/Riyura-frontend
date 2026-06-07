@@ -11,6 +11,7 @@ services:
       - HOSTNAME=0.0.0.0
       - WATCHPACK_POLLING=true # Ensures instant HMR reload in virtualized Docker setups
       - NODE_ENV=development
+      - BACKEND_URL=http://riyura-api:8080/api
     volumes:
       - .:/app
       - /app/node_modules

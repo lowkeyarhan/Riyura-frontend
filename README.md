@@ -274,7 +274,23 @@ You can run the entire frontend stack (app + HTTPS reverse proxy) using Docker C
 
 Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
-### 2. Startup
+### 2. Local DNS Configuration (macOS/Safari)
+
+By default, the macOS system resolver (used by Safari and system tools) does not automatically resolve subdomains of `.localhost` to `127.0.0.1`. You must add an entry in your local hosts file:
+
+```bash
+echo "127.0.0.1 riyura.localhost" | sudo tee -a /etc/hosts
+```
+
+To verify it is configured correctly, run:
+
+```bash
+ping riyura.localhost
+```
+
+It should successfully point to `127.0.0.1`.
+
+### 3. Startup
 
 To build and spin up the containers:
 
@@ -287,26 +303,29 @@ The services will start:
 - **`riyura-web`**: Next.js development server (runs inside the container, hot reload active, max 1.5 CPUs & 1GB RAM limits).
 - **`riyura-caddy`**: Caddy reverse proxy serving HTTPS at `https://riyura.localhost` (max 0.5 CPUs & 128MB RAM limits).
 
-### 3. Setup Local HTTPS Trust
+### 4. Setup Local HTTPS Trust (macOS)
 
 Caddy will automatically issue a self-signed SSL/TLS certificate for `riyura.localhost`. To trust it locally on macOS:
 
-1. Copy the Root CA certificate from the running Caddy container:
-   ```bash
-   docker compose cp riyura-caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
-   ```
-2. Open **Keychain Access** on macOS.
-3. Drag `caddy-root.crt` into the **System** keychain.
-4. Double-click the certificate in Keychain Access, expand the **Trust** section, and change "When using this certificate" to **Always Trust**.
-5. Restart your browser. Now, `https://riyura.localhost` will show a valid secure HTTPS lock icon.
+1. Run these commands to copy the certificate and trust it in the system keychain:
 
-### 4. CORS Backend Changes
+   ```bash
+   # Copy Caddy's root certificate to host
+   docker compose cp riyura-caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+
+   # Add and trust it in macOS System Keychain
+   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ./caddy-root.crt
+   ```
+
+2. Fully **restart your browser** (quit and reopen). Now, `https://riyura.localhost` will show a valid secure HTTPS lock icon.
+
+### 5. CORS Backend Changes
 
 Since you are serving the frontend from `https://riyura.localhost`, make sure to update your **backend server's CORS configuration**:
 
 - Add `https://riyura.localhost` to the allowed origins list in your backend.
 
-### 5. Managing Dependencies
+### 6. Managing Dependencies
 
 If you change `package.json` (such as installing new npm packages), rebuild the image to ensure the cached container layers are updated:
 

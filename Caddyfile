@@ -1,0 +1,8 @@
+riyura.localhost {
+    reverse_proxy riyura-web:3000
+
+    log {
+        output stdout
+        format json
+    }
+}

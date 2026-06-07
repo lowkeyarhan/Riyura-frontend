@@ -266,6 +266,54 @@ npm run build
 npm run start
 ```
 
+## Running with Docker (Local Development & HTTPS)
+
+You can run the entire frontend stack (app + HTTPS reverse proxy) using Docker Compose. This setup binds the application to `https://riyura.localhost` using Caddy for local SSL certificate management and includes resource usage caps to keep CPU/RAM usage optimized.
+
+### 1. Prerequisites
+
+Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+### 2. Startup
+
+To build and spin up the containers:
+
+```bash
+docker compose up --build
+```
+
+The services will start:
+
+- **`riyura-web`**: Next.js development server (runs inside the container, hot reload active, max 1.5 CPUs & 1GB RAM limits).
+- **`riyura-caddy`**: Caddy reverse proxy serving HTTPS at `https://riyura.localhost` (max 0.5 CPUs & 128MB RAM limits).
+
+### 3. Setup Local HTTPS Trust
+
+Caddy will automatically issue a self-signed SSL/TLS certificate for `riyura.localhost`. To trust it locally on macOS:
+
+1. Copy the Root CA certificate from the running Caddy container:
+   ```bash
+   docker compose cp riyura-caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+   ```
+2. Open **Keychain Access** on macOS.
+3. Drag `caddy-root.crt` into the **System** keychain.
+4. Double-click the certificate in Keychain Access, expand the **Trust** section, and change "When using this certificate" to **Always Trust**.
+5. Restart your browser. Now, `https://riyura.localhost` will show a valid secure HTTPS lock icon.
+
+### 4. CORS Backend Changes
+
+Since you are serving the frontend from `https://riyura.localhost`, make sure to update your **backend server's CORS configuration**:
+
+- Add `https://riyura.localhost` to the allowed origins list in your backend.
+
+### 5. Managing Dependencies
+
+If you change `package.json` (such as installing new npm packages), rebuild the image to ensure the cached container layers are updated:
+
+```bash
+docker compose build --no-cache riyura-web
+```
+
 ## Key internal routes
 
 Not exhaustive, but the most important ones:

@@ -1,0 +1,50 @@
+services:
+  riyura-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: riyura-web
+    restart: always
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - WATCHPACK_POLLING=true # Ensures instant HMR reload in virtualized Docker setups
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1024M
+        reservations:
+          memory: 256M
+
+  riyura-caddy:
+    image: caddy:2-alpine
+    container_name: riyura-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 Support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - riyura-web
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          memory: 32M
+
+volumes:
+  caddy_data:
+  caddy_config:

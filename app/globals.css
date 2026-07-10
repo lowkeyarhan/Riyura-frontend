@@ -394,4 +394,29 @@ body {
     flex-direction: column-reverse;
     align-items: flex-start;
   }
+
+  .ai-footer {
+    padding: 60px 24px 40px;
+  }
+
+  .footer-cta h2 {
+    font-size: clamp(1.75rem, 7vw, 2.5rem);
+  }
+
+  .btn-primary {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Bento cards – reduce fixed heights on mobile */
+  .bento-card {
+    min-height: 280px !important;
+    border-radius: 20px;
+  }
+
+  /* Feature section cards first row */
+  [class*="h-[460px]"] {
+    height: 320px;
+  }
 }

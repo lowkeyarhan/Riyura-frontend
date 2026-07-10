@@ -224,7 +224,7 @@ export default function LandingPage() {
 
               {/* Subtitle */}
               <p
-                className="text-white/40 max-w-[400px] leading-[1.7] mb-12"
+                className="text-white/40 max-w-[400px] leading-[1.7] mb-8"
                 style={{
                   fontSize: "16px",
                   fontWeight: 400,
@@ -234,8 +234,36 @@ export default function LandingPage() {
                 Watch together. Instantly. No setup. No delays.
               </p>
 
+              {/* Made by Human badge */}
+              <div className="mb-8 flex items-center justify-center">
+                <div
+                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-md"
+                  style={{
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <span className="text-[11px] text-white/55 leading-none">
+                    ✦
+                  </span>
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35"
+                    style={{ fontFamily: SF }}
+                  >
+                    made by human
+                  </span>
+                  <span className="hidden sm:block w-px h-3 bg-white/15" />
+                  <span
+                    className="hidden sm:block text-[11px] font-medium text-white/55"
+                    style={{ fontFamily: SF, letterSpacing: "-0.01em" }}
+                  >
+                    Not generated. Not templated. Built with care.
+                  </span>
+                </div>
+              </div>
+
               {/* CTA */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
                 <Link
                   href="/auth"
                   className="group inline-flex items-center gap-2.5 pl-5 pr-1 py-1 rounded-full bg-white text-black hover:bg-white/90 transition-all duration-300 text-[14px] font-semibold tracking-tight"
@@ -261,7 +289,7 @@ export default function LandingPage() {
 
         {/* LOGOS STRIP */}
         <section className="py-10 px-4 md:px-5">
-          <div className="flex items-center justify-between max-w-5xl mx-auto px-4 select-none opacity-[0.32]">
+          <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide justify-start md:justify-between max-w-5xl mx-auto px-4 select-none opacity-[0.32]">
             {[
               { sym: "▲", name: "Vercel" },
               { sym: "✳", name: "loom" },
@@ -273,7 +301,7 @@ export default function LandingPage() {
             ].map((logo, i) => (
               <div
                 key={i}
-                className="flex items-center gap-1.5 text-white/60 text-[13px] font-medium"
+                className="flex items-center gap-1.5 text-white/60 text-[13px] font-medium shrink-0"
               >
                 <span className="text-white/45 text-[10px]">{logo.sym}</span>
                 <span>{logo.name}</span>
@@ -287,7 +315,7 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <div className="mb-12">
               <motion.h2
-                className="font-heading font-bold text-white leading-[0.98] text-6xl"
+                className="font-heading font-bold text-white leading-[0.98] text-4xl md:text-6xl"
                 style={{
                   letterSpacing: "-0.04em",
                   fontWeight: 700,
@@ -479,7 +507,7 @@ export default function LandingPage() {
             {/* Header */}
             <div className="mb-10">
               <motion.h2
-                className="font-heading font-bold text-white leading-[0.98] text-6xl"
+                className="font-heading font-bold text-white leading-[0.98] text-4xl md:text-6xl"
                 style={{
                   letterSpacing: "-0.04em",
                   fontWeight: 700,
@@ -678,7 +706,7 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <header className="mb-12">
               <motion.h2
-                className="font-heading font-bold text-white leading-[0.98] text-6xl mb-4"
+                className="font-heading font-bold text-white leading-[0.98] text-4xl md:text-6xl mb-4"
                 style={{ letterSpacing: "-0.04em", fontWeight: 700 }}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}

@@ -224,7 +224,7 @@ export default function LandingPage() {
 
               {/* Subtitle */}
               <p
-                className="text-white/40 max-w-[400px] leading-[1.7] mb-8"
+                className="text-white/40 max-w-[400px] leading-[1.7] mb-12"
                 style={{
                   fontSize: "16px",
                   fontWeight: 400,
@@ -233,34 +233,6 @@ export default function LandingPage() {
               >
                 Watch together. Instantly. No setup. No delays.
               </p>
-
-              {/* Made by Human badge */}
-              <div className="mb-8 flex items-center justify-center">
-                <div
-                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-md"
-                  style={{
-                    boxShadow:
-                      "inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  <span className="text-[11px] text-white/55 leading-none">
-                    ✦
-                  </span>
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35"
-                    style={{ fontFamily: SF }}
-                  >
-                    made by human
-                  </span>
-                  <span className="hidden sm:block w-px h-3 bg-white/15" />
-                  <span
-                    className="hidden sm:block text-[11px] font-medium text-white/55"
-                    style={{ fontFamily: SF, letterSpacing: "-0.01em" }}
-                  >
-                    Not generated. Not templated. Built with care.
-                  </span>
-                </div>
-              </div>
 
               {/* CTA */}
               <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -282,6 +254,52 @@ export default function LandingPage() {
                 >
                   Explore Riyura
                 </Link>
+              </div>
+            </div>
+
+            {/* ── Calligraphic #madebyhuman signature at hero bottom ── */}
+            <div className="absolute bottom-0 inset-x-0 z-20 flex items-center justify-center pb-8 pointer-events-none select-none">
+              {/* Soft white glow bloom */}
+              <div
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[100px] rounded-full pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, transparent 70%)",
+                  filter: "blur(24px)",
+                }}
+              />
+
+              {/* Row: line — text — line */}
+              <div className="relative flex items-center gap-5 w-full max-w-[260px] sm:max-w-xs">
+                <div
+                  className="flex-1 h-px"
+                  style={{
+                    background:
+                      "linear-gradient(to right, transparent, rgba(255,255,255,0.12))",
+                  }}
+                />
+
+                {/* The calligraphic text */}
+                <span
+                  className="shrink-0 leading-none"
+                  style={{
+                    fontFamily: "'Pinyon Script', cursive",
+                    fontSize: "clamp(26px, 4vw, 40px)",
+                    color: "rgba(255,255,255,0.78)",
+                    filter: "drop-shadow(0 0 12px rgba(255,255,255,0.35))",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  #madebyhuman
+                </span>
+
+                <div
+                  className="flex-1 h-px"
+                  style={{
+                    background:
+                      "linear-gradient(to left, transparent, rgba(255,255,255,0.12))",
+                  }}
+                />
               </div>
             </div>
           </div>

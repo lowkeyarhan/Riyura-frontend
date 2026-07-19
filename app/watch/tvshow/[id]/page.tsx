@@ -187,6 +187,8 @@ export default function TVShowPlayer() {
             servers={servers}
             activeServerIndex={activeServerIndex}
             onServerChange={setActiveServerIndex}
+            selectedSeason={selectedSeason}
+            selectedEpisode={selectedEpisode}
           />
         </div>
       </div>

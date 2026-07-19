@@ -1,6 +1,9 @@
-import { Wifi, Info, Server } from "lucide-react";
+"use client";
+
+import { Wifi, Info } from "lucide-react";
 import { TvPlayerProp } from "@/src/props/tv/tvPlayer";
 import { ProviderProp } from "@/src/props/global/provider";
+import { CreatePartyCard } from "@/src/components/party/CreatePartyCard";
 
 const ServerRow = ({
   name,
@@ -15,20 +18,25 @@ const ServerRow = ({
 }) => (
   <button
     onClick={onClick}
-    className={`transition-all rounded-full flex items-center justify-start p-2 gap-2.5 w-full border border-white/5`}
+    className={`transition-all rounded-full flex items-center justify-start p-2 gap-2.5 w-full border ${isActive
+      ? "bg-[#ff571e]/10 border-[#ff571e]/30 shadow-[0_0_15px_rgba(255,87,30,0.15)]"
+      : "border-white/5 shadow-inner"
+      }`}
     style={{
       border: "1px solid rgba(255, 255, 255, 0.05)",
       boxShadow: "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
       backdropFilter: "blur(40px)",
       WebkitBackdropFilter: "blur(40px)",
+      backgroundColor: isActive
+        ? "rgba(255, 87, 30, 0.1)"
+        : "rgba(255, 255, 255, 0.03)",
     }}
   >
     <div
-      className={`w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center transition-colors shadow-inner ${
-        isActive
-          ? "bg-[#ff571e] text-white shadow-[0_0_10px_rgba(255,87,30,0.5)]"
-          : "bg-white/10 group-hover:bg-white/20 text-white"
-      }`}
+      className={`w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center transition-colors shadow-inner ${isActive
+        ? "bg-[#ff571e] text-white shadow-[0_0_10px_rgba(255,87,30,0.5)]"
+        : "bg-white/10 group-hover:bg-white/20 text-white"
+        }`}
     >
       <Wifi size={22} strokeWidth={2.5} />
     </div>
@@ -37,7 +45,8 @@ const ServerRow = ({
         {name}
       </span>
       <span
-        className={`text-[11px] font-medium leading-tight mt-0.5 text-white/50 tracking-wide block uppercase`}
+        className={`text-[11px] font-medium leading-tight mt-0.5 tracking-wide block uppercase ${isActive ? "text-[#ff571e]" : "text-white/50"
+          }`}
       >
         {quality}
       </span>
@@ -50,6 +59,8 @@ interface TVShowPlayerSidebarProps {
   servers: ProviderProp[];
   activeServerIndex: number;
   onServerChange: (index: number) => void;
+  selectedSeason: number;
+  selectedEpisode: number;
 }
 
 export function TVShowPlayerSidebar({
@@ -57,7 +68,16 @@ export function TVShowPlayerSidebar({
   servers,
   activeServerIndex,
   onServerChange,
+  selectedSeason,
+  selectedEpisode,
 }: TVShowPlayerSidebarProps) {
+  const activeServerId = servers[activeServerIndex]?.id;
+
+  const partyHref = tvShow?.tmdbId
+    ? `/party/tv?tv=${tvShow.tmdbId}&s=${selectedSeason}&e=${selectedEpisode}${activeServerId ? `&stream=${encodeURIComponent(activeServerId)}` : ""
+    }`
+    : "/party/tv";
+
   return (
     <div className="lg:col-span-3 flex flex-col gap-4 h-auto lg:h-full lg:min-h-0 flex-shrink-0">
       {/* Info Card */}
@@ -79,6 +99,13 @@ export function TVShowPlayerSidebar({
           ))}
         </div>
       </div>
+
+      {/* Create Party */}
+      <CreatePartyCard
+        title={tvShow?.title || "this show"}
+        contextLabel={`S${selectedSeason} · E${selectedEpisode}`}
+        partyHref={partyHref}
+      />
 
       {/* Server Selector (Scrollable) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto bg-transparent">

@@ -120,6 +120,9 @@ export function useTVShowDetails(id: string) {
           }),
         });
         if (!res.ok) throw new Error("Failed to remove from watchlist");
+
+        setIsWatchlisted(false);
+        addNotification(`${tvShow.name} removed from watchlist`, "success");
       } else {
         const res = await fetch("/api/profile/watchlist", {
           method: "POST",

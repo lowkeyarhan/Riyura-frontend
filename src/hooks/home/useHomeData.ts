@@ -32,7 +32,6 @@ interface HomeInitialData {
     tv: HomeSectionData;
     anime: HomeSectionData;
   };
-  bannerData: { items: unknown[] };
 }
 
 const EMPTY_MEDIA_RESULTS: HomeSectionData = { results: [] };
@@ -58,7 +57,6 @@ const EMPTY_HOME_DATA: HomeInitialData = {
     tv: EMPTY_MEDIA_RESULTS,
     anime: EMPTY_MEDIA_RESULTS,
   },
-  bannerData: { items: [] },
 };
 
 async function fetchMedia(
@@ -100,6 +98,8 @@ export function useHomeData() {
           fetchMedia("/api/home/upcoming/movies?limit=12", controller.signal),
         ]);
 
+      if (controller.signal.aborted) return;
+
       setHomeData({
         nowPlaying: {
           movie: nowPlayingMovies,
@@ -121,7 +121,6 @@ export function useHomeData() {
           tv: EMPTY_MEDIA_RESULTS,
           anime: EMPTY_MEDIA_RESULTS,
         },
-        bannerData: { items: [] },
       });
       setIsLoading(false);
     };
@@ -137,6 +136,7 @@ export function useHomeData() {
       loadedSections.has(activeFilter) ||
       isLoading
     ) {
+      setIsTabSwitching(false);
       return;
     }
 
@@ -154,6 +154,8 @@ export function useHomeData() {
             fetchMedia("/api/home/upcoming/tv?limit=12", controller.signal),
           ]);
 
+        if (controller.signal.aborted) return;
+
         setHomeData((prev) => ({
           ...prev,
           nowPlaying: { ...prev.nowPlaying, tv: nowPlayingTV },
@@ -166,6 +168,8 @@ export function useHomeData() {
           "/api/home/trending/anime?limit=12",
           controller.signal,
         );
+
+        if (controller.signal.aborted) return;
 
         setHomeData((prev) => ({
           ...prev,

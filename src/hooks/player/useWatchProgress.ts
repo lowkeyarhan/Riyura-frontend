@@ -4,6 +4,7 @@ interface UseWatchProgressOptions {
   serverName?: string;
   isNanovue: boolean;
   initialProgressSec?: number;
+  playerIframeRef?: React.RefObject<HTMLIFrameElement | null>;
   onProgress: (durationSec: number) => void;
 }
 
@@ -20,6 +21,7 @@ export function useWatchProgress({
   serverName,
   isNanovue,
   initialProgressSec = 0,
+  playerIframeRef,
   onProgress,
 }: UseWatchProgressOptions) {
   // The latest known progress in seconds (from either messages or timer)
@@ -68,12 +70,18 @@ export function useWatchProgress({
     if (isNanovue) return;
 
     const handleMessage = (event: MessageEvent) => {
+      const iframe = playerIframeRef?.current;
+      if (!iframe || event.source !== iframe.contentWindow) return;
+      let iframeOrigin: string;
+      try {
+        iframeOrigin = new URL(iframe.src).origin;
+      } catch {
+        return;
+      }
+      if (event.origin !== iframeOrigin) return;
+
       // Ironlink (vidlink.pro) — MEDIA_DATA event
-      if (
-        event.origin === "https://vidlink.pro" ||
-        event.origin.includes("vidlink")
-      ) {
-        if (event.data?.type === "MEDIA_DATA") {
+      if (event.data?.type === "MEDIA_DATA") {
           const data = event.data.data;
           // The data object is a map of id → entry; grab the first entry's progress
           const firstKey = Object.keys(data)[0];
@@ -88,7 +96,6 @@ export function useWatchProgress({
             latestProgressRef.current = watched;
           }
           return;
-        }
       }
 
       // Syntherion — string-encoded JSON with PLAYER_EVENT envelope
@@ -144,7 +151,7 @@ export function useWatchProgress({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isNanovue]);
+  }, [isNanovue, playerIframeRef]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // 2b. Nanovue: local timer (starts from latestProgressRef which may be seeded)

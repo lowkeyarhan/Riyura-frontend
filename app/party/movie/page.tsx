@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
-import { Suspense, useEffect, useCallback } from "react";
+import { Suspense, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchParty } from "@/src/hooks/party/useWatchParty";
@@ -60,11 +60,13 @@ function PartyMovieContent() {
 
   // Nanovue detection based on the stream URL returned by the backend
   const isNanovue = streamUrl?.toLowerCase().includes("nanovue") ?? false;
+  const playerIframeRef = useRef<HTMLIFrameElement>(null);
 
   const { getLatestProgress, setProgress } = useWatchProgress({
     serverName: streamParam,
     isNanovue,
     initialProgressSec: 0,
+    playerIframeRef,
     onProgress: (sec) => {
       currentTimeRef.current = sec;
     },
@@ -150,6 +152,7 @@ function PartyMovieContent() {
       >
         {streamUrl ? (
           <iframe
+            ref={playerIframeRef}
             key={streamUrl}
             src={streamUrl}
             className="w-full h-full border-0 object-cover"

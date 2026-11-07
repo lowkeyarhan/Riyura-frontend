@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
@@ -41,6 +41,7 @@ export default function MoviePlayer() {
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);
+  const playerIframeRef = useRef<HTMLIFrameElement>(null);
 
   const bgImageSrc = movie?.backdrop_path
     ? normalizeTmdbImageUrl(movie.backdrop_path, "w500")
@@ -66,6 +67,7 @@ export default function MoviePlayer() {
     serverName: activeServer?.name,
     isNanovue,
     initialProgressSec,
+    playerIframeRef,
     onProgress: (durationSec) => {
       console.log(`💾 Syncing URL with progress: ${Math.floor(durationSec)}s`);
       syncUrl(durationSec);
@@ -150,6 +152,7 @@ export default function MoviePlayer() {
         {/* --- LEFT: CINEMA PLAYER --- */}
         <div className="flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto">
           <iframe
+            ref={playerIframeRef}
             src={servers[activeServerIndex].url}
             className="w-full h-full object-cover"
             frameBorder="0"

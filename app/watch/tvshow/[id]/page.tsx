@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
@@ -57,6 +57,7 @@ export default function TVShowPlayer() {
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);
+  const playerIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const bgImageSrc = tvShow?.backdrop_path
@@ -84,6 +85,7 @@ export default function TVShowPlayer() {
     serverName: activeServer?.name,
     isNanovue,
     initialProgressSec,
+    playerIframeRef,
     onProgress: (durationSec) => {
       console.log(`💾 Syncing URL with progress: ${Math.floor(durationSec)}s`);
       syncUrl(durationSec);
@@ -172,6 +174,7 @@ export default function TVShowPlayer() {
           <div className="lg:col-span-9 flex flex-col h-auto lg:h-full border border-white/5 rounded-3xl aspect-video lg:aspect-auto">
             <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl group">
               <iframe
+                ref={playerIframeRef}
                 src={servers[activeServerIndex].url}
                 className="w-full h-full object-contain border border-white/5"
                 frameBorder="0"

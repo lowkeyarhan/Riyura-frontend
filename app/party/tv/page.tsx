@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchParty } from "@/src/hooks/party/useWatchParty";
@@ -46,11 +46,13 @@ function PartyTVContent() {
   const activeServer = servers[activeServerIndex];
   const isNanovue =
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
+  const playerIframeRef = useRef<HTMLIFrameElement>(null);
 
   const { getLatestProgress, setProgress } = useWatchProgress({
     serverName: activeServer?.name,
     isNanovue,
     initialProgressSec: 0,
+    playerIframeRef,
     onProgress: (sec) => {
       currentTimeRef.current = sec;
     },
@@ -212,6 +214,7 @@ function PartyTVContent() {
             </div>
           ) : streamUrl ? (
             <iframe
+              ref={playerIframeRef}
               key={streamUrl}
               src={streamUrl}
               className="w-full h-full border-0"

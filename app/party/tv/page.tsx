@@ -48,16 +48,6 @@ function PartyTVContent() {
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
   const playerIframeRef = useRef<HTMLIFrameElement>(null);
 
-  const { getLatestProgress, setProgress } = useWatchProgress({
-    serverName: activeServer?.name,
-    isNanovue,
-    initialProgressSec: 0,
-    playerIframeRef,
-    onProgress: (sec) => {
-      currentTimeRef.current = sec;
-    },
-  });
-
   const {
     partyId,
     partyState,
@@ -80,6 +70,16 @@ function PartyTVContent() {
     seasonNo: initSeason,
     episodeNo: initEp,
     providerId: activeServer?.id,
+  });
+
+  const { getLatestProgress, setProgress } = useWatchProgress({
+    serverName: activeServer?.name,
+    isNanovue,
+    initialProgressSec: 0,
+    playerIframeRef,
+    onProgress: (sec) => {
+      currentTimeRef.current = sec;
+    },
   });
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);

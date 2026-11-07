@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { MediaType } from "@/src/props/global/mediaType";
 import {
   PartyState,
@@ -12,10 +13,12 @@ import {
 } from "@/src/props/party/watchParty";
 
 const BASE = "/api/watchalong/party";
-const PROGRESS_PUSH_INTERVAL_MS = 5 * 60 * 1000;
+const PROGRESS_PUSH_INTERVAL_MS = 5_000;
 const HEARTBEAT_INTERVAL_MS = 2.5 * 60 * 1000;
 const SSE_RECONNECT_DELAY_MS = 3_000;
 const SSE_MAX_RECONNECTS = 5;
+const PARTY_DRIFT_THRESHOLD_SEC = 10;
+const PARTY_SYNC_COOLDOWN_MS = 20_000;
 
 interface UseWatchPartyProps {
   partyId?: string | null;
@@ -54,6 +57,7 @@ export function useWatchParty({
   episodeNo = 0,
   providerId: initialProviderId = "ironlink",
 }: UseWatchPartyProps): UseWatchPartyReturn {
+  const { addNotification } = useNotification();
   const [partyId, setPartyId] = useState<string | null>(initialPartyId ?? null);
   const [partyState, setPartyState] = useState<PartyState | null>(null);
   const [participants, setParticipants] = useState<PartyParticipant[]>([]);
@@ -76,6 +80,7 @@ export function useWatchParty({
   const reconnectCountRef = useRef(0);
   const isMountedRef = useRef(true);
   const isLeavingRef = useRef(false);
+  const lastDriftSyncRef = useRef(0);
 
   const currentTimeRef = useRef<number>(0);
   const currentProviderRef = useRef<string>(initialProviderId);
@@ -446,6 +451,15 @@ export function useWatchParty({
               `[WATCH PARTY] Provider changed to ${updatedProvider}. Syncing player...`,
             );
             syncPlayer();
+          } else if (
+            !isHostRef.current &&
+            Math.abs(progress - currentTimeRef.current) >
+              PARTY_DRIFT_THRESHOLD_SEC &&
+            Date.now() - lastDriftSyncRef.current > PARTY_SYNC_COOLDOWN_MS
+          ) {
+            lastDriftSyncRef.current = Date.now();
+            currentTimeRef.current = progress;
+            syncPlayer();
           }
         }
         break;
@@ -570,6 +584,19 @@ export function useWatchParty({
         Authorization: `Bearer ${token}`,
       };
 
+      const handleInitFailure = async (res: Response, fallback: string) => {
+        let message = fallback;
+        try {
+          const body = await res.json();
+          message = body?.error ?? body?.message ?? fallback;
+        } catch {
+          message = fallback;
+        }
+        addNotification(message, "error");
+        cleanupLocalState();
+        window.location.href = "/home";
+      };
+
       try {
         if (!initialPartyId) {
           const res = await fetch(`${BASE}/create`, {
@@ -584,7 +611,10 @@ export function useWatchParty({
             }),
           });
 
-          if (!res.ok) return;
+          if (!res.ok) {
+            await handleInitFailure(res, "Failed to create watch party");
+            return;
+          }
 
           const data: PartyState = await res.json();
           if (!isMountedRef.current) return;
@@ -612,7 +642,10 @@ export function useWatchParty({
             body: JSON.stringify({ partyId: initialPartyId.toUpperCase() }),
           });
 
-          if (!res.ok) return;
+          if (!res.ok) {
+            await handleInitFailure(res, "Failed to join watch party");
+            return;
+          }
 
           const data: PartyState = await res.json();
           if (!isMountedRef.current) return;

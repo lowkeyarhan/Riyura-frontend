@@ -15,12 +15,6 @@ import { PartyChatPanel } from "@/src/components/party/PartyChatPanel";
 import { PartyHostControls } from "@/src/components/party/PartyHostControls";
 import { useState } from "react";
 
-const HARDCODED_PROVIDERS = [
-  { id: "ironlink", name: "Ironlink", quality: "1080p Fast" },
-  { id: "syntherion", name: "Syntherion", quality: "1080p Subs" },
-  { id: "dormannu", name: "Dormannu", quality: "4k Ads" },
-];
-
 function PartyMovieContent() {
   const searchParams = useSearchParams();
   const tmdbId = parseInt(searchParams.get("movie") ?? "0");
@@ -30,7 +24,7 @@ function PartyMovieContent() {
   const { user } = useAuth();
 
   // Still fetch movie metadata for the "Now Watching" header card
-  const { movie, saveWatchHistoryOnUnmount } = useMoviePlayer({
+  const { movie, servers, saveWatchHistoryOnUnmount } = useMoviePlayer({
     movieId: String(tmdbId),
     userId: user?.id,
   });
@@ -61,6 +55,15 @@ function PartyMovieContent() {
   // Nanovue detection based on the stream URL returned by the backend
   const isNanovue = streamUrl?.toLowerCase().includes("nanovue") ?? false;
   const playerIframeRef = useRef<HTMLIFrameElement>(null);
+  const filteredServers = servers.filter(
+    (s) => !s.name?.toLowerCase().includes("nanovue"),
+  );
+  const activeProviderId =
+    partyState?.providerId || currentProviderRef.current || streamParam;
+  const filteredActiveIndex = Math.max(
+    filteredServers.findIndex((s) => s.id === activeProviderId),
+    0,
+  );
 
   const { getLatestProgress, setProgress } = useWatchProgress({
     serverName: streamParam,
@@ -170,17 +173,11 @@ function PartyMovieContent() {
       {/* Sidebar */}
       <div className="w-full lg:w-[24rem] col-span-7 flex-shrink-0 flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
         <PartyHostControls
-          servers={HARDCODED_PROVIDERS}
-          activeServerIndex={Math.max(
-            HARDCODED_PROVIDERS.findIndex(
-              (s) =>
-                s.id === (partyState?.providerId || currentProviderRef.current),
-            ),
-            0,
-          )}
+          servers={filteredServers}
+          activeServerIndex={filteredActiveIndex}
           onServerChange={(idx) => {
-            const server = HARDCODED_PROVIDERS[idx];
-            pushProgress(server.id, getLatestProgress());
+            const server = filteredServers[idx];
+            if (server) pushProgress(server.id, getLatestProgress());
           }}
           onSync={
             !isHost

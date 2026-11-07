@@ -72,9 +72,7 @@ function PartyMovieContent() {
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);
 
-  const bgSrc = movie?.backdrop_path
-    ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
-    : "/watch_party_page_temp_bg.jpg";
+  const bgSrc = movie?.backdrop_path ?? "/watch_party_page_temp_bg.jpg";
 
   // Seed progress tracker from the startAt param in the participant stream URL
   useEffect(() => {

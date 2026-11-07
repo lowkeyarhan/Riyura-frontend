@@ -50,9 +50,7 @@ export function PartyHostControls({
   const topServers = servers.slice(0, Math.max(servers.length - 1, 1));
   const bottomServer = servers.length > 1 ? servers[servers.length - 1] : null;
 
-  const bgSrc = backdropPath
-    ? `https://image.tmdb.org/t/p/w200${backdropPath}`
-    : "/landing-page/perf_card_3.png";
+  const bgSrc = backdropPath ?? "/landing-page/perf_card_3.png";
 
   return (
     <div className="flex flex-col gap-2.5 w-full flex-shrink-0">

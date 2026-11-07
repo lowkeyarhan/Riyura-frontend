@@ -91,9 +91,7 @@ function PartyTVContent() {
     0,
   );
 
-  const bgSrc = tvShow?.backdrop_path
-    ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
-    : "/watch_party_page_temp_bg.jpg";
+  const bgSrc = tvShow?.backdrop_path ?? "/watch_party_page_temp_bg.jpg";
 
   useEffect(() => {
     if (activeServer?.id) currentProviderRef.current = activeServer.id;

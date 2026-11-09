@@ -381,7 +381,7 @@ export default function LandingPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {/* Infinite Stream */}
                   <div className="bento-card card card--border-glow h-[460px] apple-glass relative overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <ParallaxImg
                       alt="Cinema Display Interface"
                       className="absolute rounded-xl inset-0 w-full h-full object-cover top-[15%]
@@ -406,7 +406,7 @@ export default function LandingPage() {
 
                   {/* Neural Curation */}
                   <div className="bento-card card card--border-glow h-[460px] apple-glass relative overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <ParallaxImg
                       alt="Neural Visualization"
                       className="absolute rounded-xl inset-0 w-full h-full object-cover -translate-x-[-5%]
@@ -432,7 +432,7 @@ export default function LandingPage() {
                 <div className="grid grid-cols-3 gap-2">
                   {/* Up Next Stacks - 2/3 width */}
                   <div className="bento-card card card--border-glow col-span-2 apple-glass min-h-[460px] relative overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <ParallaxImg
                       className="absolute rounded-xl inset-0 w-full h-full object-cover
                   mask-type:linear-[linear]
@@ -461,7 +461,7 @@ export default function LandingPage() {
 
                   {/* Ad-Free Metric */}
                   <div className="bento-card card card--border-glow apple-glass relative overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <ParallaxImg
                       src="landing-page/feature_card_4.jpeg"
                       alt="Zero ads visual"
@@ -487,7 +487,7 @@ export default function LandingPage() {
                 <div className="card card--border-glow apple-glass rounded-3xl p-8 md:p-10 relative overflow-hidden min-h-[380px]">
                   <div className="absolute top-0 left-0 right-0 h-px pointer-events-none bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)]" />
                   <div className="absolute inset-0 w-full h-full">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    { }
                     <ParallaxImg
                       className="w-full h-full object-cover opacity-20 mix-blend-screen"
                       src="https://lh3.googleusercontent.com/aida-public/AB6AXuBa4EyO6fO5QlXxxYIMtbmqVyfI2JT66vY62DDlKEo4MOKL8m7jtZHs8aR__3ZYXwr2oF9hpRJXgi4J3DUkJ1nLjl0TddPDBmzMsOyKhHJF6CA1RBMuewa2Mv97mIcyeOdofqfCS0rHOgNt2DVa86hZLkQrIiCHai3XeXkm03TUqc3ftB9mquaF2bss9emNlJSK_pztQdV7zFESqj8MyUrjFZFbuH_snUdZAMDY3DhWwAYvNyW70R6XW31Muj_LDNmgKm6M_utHvaeD"
@@ -609,7 +609,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="col-span-4 bento-card card card--border-glow apple-glass min-h-[400px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/watchparty_card_2.jpeg"
                     alt="Playback sync preview"
@@ -632,7 +632,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="col-span-4 bento-card card card--border-glow apple-glass min-h-[300px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/watchparty_card_3.png"
                     alt="Friends joining preview"
@@ -653,7 +653,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="col-span-4 bento-card card card--border-glow apple-glass min-h-[300px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/watchparty_card_4.png"
                     alt="Back in sync preview"
@@ -696,7 +696,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="col-span-6 bento-card card card--border-glow apple-glass min-h-[150px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/watchparty_card_6.png"
                     alt="Buffering handled preview"
@@ -719,7 +719,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="col-span-6 bento-card card card--border-glow apple-glass min-h-[150px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/watchparty_card_7.png"
                     alt="Built for real rooms preview"
@@ -780,7 +780,7 @@ export default function LandingPage() {
                   glowColor="255, 255, 255"
                 />
                 <div className="bento-card card card--border-glow apple-glass col-span-2 row-span-2 min-h-[320px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_1.png"
                     alt="Performance card visual"
@@ -808,7 +808,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-2 row-span-1 min-h-[160px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_2.png"
                     alt="Fast by default visual"
@@ -830,7 +830,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-1 row-span-2 min-h-[320px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_4.png"
                     alt="Optimized data access visual"
@@ -851,7 +851,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-1 row-span-2 min-h-[320px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_5.png"
                     alt="Session integrity visual"
@@ -872,7 +872,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-2 row-span-1 min-h-[160px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_3.png"
                     alt="Abuse protection visual"
@@ -893,7 +893,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-2 row-span-1 min-h-[160px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_6.png"
                     alt="Graceful recovery visual"
@@ -914,7 +914,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-1 row-span-1 min-h-[160px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_7.png"
                     alt="Handles real load visual"
@@ -935,7 +935,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bento-card card card--border-glow apple-glass col-span-1 row-span-1 min-h-[160px] relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <ParallaxImg
                     src="landing-page/perf_card_8.png"
                     alt="Stability visual"

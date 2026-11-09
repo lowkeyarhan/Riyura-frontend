@@ -34,6 +34,7 @@ export function useExploreData() {
   const [hasMore, setHasMore] = useState(true);
   const [showTopBtn, setShowTopBtn] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<ExploreProp[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -65,13 +66,15 @@ export function useExploreData() {
         const data = await res.json();
         const rawResults = (data.results ?? []) as ExploreProp[];
 
-        setItems((prev) => {
-          if (page === 1) return rawResults;
-          const existingIds = new Set(prev.map((i) => i.tmdbId));
-          const newItems = rawResults.filter((i) => !existingIds.has(i.tmdbId));
-          return [...prev, ...newItems];
-        });
-        setHasMore(rawResults.length > 0);
+        const existingIds = new Set(itemsRef.current.map((i) => i.tmdbId));
+        const newItems =
+          page === 1
+            ? rawResults
+            : rawResults.filter((i) => !existingIds.has(i.tmdbId));
+        const nextItems = page === 1 ? rawResults : [...itemsRef.current, ...newItems];
+        itemsRef.current = nextItems;
+        setItems(nextItems);
+        setHasMore(newItems.length > 0);
       } catch (error: unknown) {
         if (error instanceof Error && error.name !== "AbortError")
           console.error(error);

@@ -54,7 +54,6 @@ export function PartyChatPanel({
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-    console.log("[WATCH PARTY] Invite link copied →", url);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
   }, []);

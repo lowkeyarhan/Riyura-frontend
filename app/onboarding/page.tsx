@@ -12,7 +12,7 @@ export default function DarkMoodWelcome() {
     { head: `Hi there${firstName ? ", " + firstName : ""}`, sub: "" },
     { head: "Welcome to Riyura", sub: "" },
     { head: "Getting things ready", sub: "Just a moment" },
-    { head: "Your data is highly secured", sub: "AES-256-GCM encrypted" },
+    { head: "Your data is highly secured", sub: "Private by default" },
     {
       head: "Install an ad blocker to prevent ads",
       sub: "We recommend Ghostery or AdGuard",

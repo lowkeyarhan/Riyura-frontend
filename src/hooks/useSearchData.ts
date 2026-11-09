@@ -80,6 +80,7 @@ export function useSearchData(): SearchData {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const lastRestoredKey = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const updateUrl = useCallback(
     (updates: {
@@ -103,12 +104,17 @@ export function useSearchData(): SearchData {
   );
 
   const fetchPage = useCallback(
-    async (query: string, pageNum: number, sort: SearchSortBy) => {
+    async (
+      query: string,
+      pageNum: number,
+      sort: SearchSortBy,
+      signal?: AbortSignal,
+    ) => {
       const url = new URL("/api/search", window.location.origin);
       url.searchParams.set("q", query);
       url.searchParams.set("page", String(pageNum));
       url.searchParams.set("sort_by", sort);
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), { signal });
       const data = await res.json();
       return (data?.results || []) as SearchProp[];
     },
@@ -124,9 +130,15 @@ export function useSearchData(): SearchData {
     ) => {
       if (!query.trim()) return;
 
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsLoading(true);
       try {
-        const items = await fetchPage(query, pageNum, sort);
+        const items = await fetchPage(query, pageNum, sort, controller.signal);
+
+        if (controller.signal.aborted) return;
 
         if (append) {
           setResults((prev) => [...prev, ...items]);
@@ -136,10 +148,11 @@ export function useSearchData(): SearchData {
         setHasMore(items.length >= RESULTS_PER_PAGE);
         if (!append) setLastQuery(query);
       } catch (error) {
+        if ((error as Error).name === "AbortError") return;
         console.error("Search error:", error);
         if (!append) setResults([]);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     },
     [fetchPage],
@@ -170,19 +183,29 @@ export function useSearchData(): SearchData {
     }
 
     // Restore multiple pages
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     Promise.all(
-      Array.from({ length: urlPage + 1 }, (_, i) => fetchPage(q, i, sort)),
+      Array.from({ length: urlPage + 1 }, (_, i) =>
+        fetchPage(q, i, sort, controller.signal),
+      ),
     )
       .then((allPages) => {
+        if (controller.signal.aborted) return;
         setResults(allPages.flat());
         setHasMore((allPages[urlPage]?.length ?? 0) >= RESULTS_PER_PAGE);
       })
       .catch((error) => {
+        if ((error as Error).name === "AbortError") return;
         console.error("Search restore error:", error);
         setResults([]);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
   }, [searchParams, fetchSearch, fetchPage]);
 
   const setActiveTab = useCallback(

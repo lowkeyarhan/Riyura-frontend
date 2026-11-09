@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchParty } from "@/src/hooks/party/useWatchParty";
@@ -46,15 +46,7 @@ function PartyTVContent() {
   const activeServer = servers[activeServerIndex];
   const isNanovue =
     activeServer?.name?.toLowerCase().includes("nanovue") ?? false;
-
-  const { getLatestProgress, setProgress } = useWatchProgress({
-    serverName: activeServer?.name,
-    isNanovue,
-    initialProgressSec: 0,
-    onProgress: (sec) => {
-      currentTimeRef.current = sec;
-    },
-  });
+  const playerIframeRef = useRef<HTMLIFrameElement>(null);
 
   const {
     partyId,
@@ -80,6 +72,16 @@ function PartyTVContent() {
     providerId: activeServer?.id,
   });
 
+  const { getLatestProgress, setProgress } = useWatchProgress({
+    serverName: activeServer?.name,
+    isNanovue,
+    initialProgressSec: 0,
+    playerIframeRef,
+    onProgress: (sec) => {
+      currentTimeRef.current = sec;
+    },
+  });
+
   const [gradientColors, setGradientColors] = useState<string[]>([]);
 
   const filteredServers = servers.filter(
@@ -91,9 +93,7 @@ function PartyTVContent() {
     0,
   );
 
-  const bgSrc = tvShow?.backdrop_path
-    ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}`
-    : "/watch_party_page_temp_bg.jpg";
+  const bgSrc = tvShow?.backdrop_path ?? "/watch_party_page_temp_bg.jpg";
 
   useEffect(() => {
     if (activeServer?.id) currentProviderRef.current = activeServer.id;
@@ -118,13 +118,11 @@ function PartyTVContent() {
 
   // Seed the progress tracker from the startAt param embedded in the participant's stream URL
   useEffect(() => {
-    console.log("[PartyTVContent] streamUrl in page is:", streamUrl);
     if (streamUrl && !isHost) {
       try {
         const u = new URL(streamUrl);
         const t = u.searchParams.get("start") ?? u.searchParams.get("t");
         if (t) {
-          console.log("[PartyTVContent] Extracted start progress:", t);
           setProgress(Number(t));
         }
       } catch (err) {
@@ -214,6 +212,7 @@ function PartyTVContent() {
             </div>
           ) : streamUrl ? (
             <iframe
+              ref={playerIframeRef}
               key={streamUrl}
               src={streamUrl}
               className="w-full h-full border-0"

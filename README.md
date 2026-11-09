@@ -18,6 +18,7 @@ Next.js (App Router) frontend for **Riyura** — a streaming discovery + playbac
 - [Performance optimizations](#performance-optimizations)
 - [Environment variables](#environment-variables)
 - [Running locally](#running-locally)
+- [Deployment (Vercel)](#deployment-vercel)
 - [Key internal routes](#key-internal-routes)
 - [Troubleshooting](#troubleshooting)
 
@@ -35,12 +36,12 @@ Global app concerns (auth gating, notifications, backend health detection, chunk
 
 ## Tech stack
 
-- **Framework**: Next.js `^16.1.1` (App Router), React `^19.2.0`, TypeScript
-- **Styling**: Tailwind CSS v4 (`tailwindcss`, `tailwindcss-animate`), utility helpers (`clsx`, `tailwind-merge`, `class-variance-authority`)
+- **Framework**: Next.js `^16.2.7` (App Router), React `^19.2.0`, TypeScript
+- **Styling**: Tailwind CSS v4 (`tailwindcss`), utility helper `clsx`
 - **Data fetching**: `fetch` (client ↔ internal APIs) + `axios` (internal APIs ↔ backend)
 - **Auth & data**: Supabase (`@supabase/supabase-js`)
-- **UI/animation**: `framer-motion`, `lucide-react`, Font Awesome
-- **3D/visuals (where used)**: `three`, `@react-three/fiber`, `@react-three/drei`, `maath`
+- **UI/animation**: `framer-motion`, `lucide-react`, `lenis`, `gsap`
+- **3D/visuals (where used)**: `three`
 - **Analytics**: `@vercel/analytics`
 
 ## Repository structure
@@ -118,7 +119,6 @@ Key hooks:
 - **`useWatchHistory`**: deletes history items via `/api/profile/history?id=...`.
 - **Player hooks**
   - **`useMoviePlayer`** and **`useTVShowPlayer`** fetch details and track watch duration; persist watch history on unmount via `/api/profile/history` using `keepalive: true`.
-- **`useStreamUrls`**: loads stream servers via `/api/stream-urls` and generates playback links.
 - **`useGeminiApiKey`**: reads/saves/deletes the user’s encrypted Gemini key via `/api/profile/gemini`.
 - **`useRecommendations`**: loads Gemini recommendations with a strict “single-flight” lock and supports `refresh()`.
 - **`useSearchData`**: URL-driven search state (query/page/sort/tab) with back/forward restore; fetches `/api/search`.
@@ -264,6 +264,24 @@ Build for production:
 ```bash
 npm run build
 npm run start
+```
+
+## Deployment (Vercel)
+
+Vercel is the CI/CD pipeline; no GitHub Actions workflow is required.
+
+- **Pull requests** get a Preview deployment and Vercel build checks.
+- **`main`** deploys to Production.
+- `vercel.json` runs `npm run lint && npm run build`, so lint errors, type errors, and build failures block the deployment.
+- `npm ci` is used for deterministic installs from `package-lock.json`.
+
+Set every variable from [Environment variables](#environment-variables) in **Vercel → Project → Settings → Environment Variables** for both Preview and Production. `NEXT_PUBLIC_*` values are inlined at build time, so they must exist before the build runs.
+
+Manual deploys:
+
+```bash
+npx vercel        # preview
+npx vercel --prod # production
 ```
 
 ## Running with Docker (Local Development & HTTPS)

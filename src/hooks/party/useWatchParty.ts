@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { MediaType } from "@/src/props/global/mediaType";
 import {
   PartyState,
@@ -12,10 +13,12 @@ import {
 } from "@/src/props/party/watchParty";
 
 const BASE = "/api/watchalong/party";
-const PROGRESS_PUSH_INTERVAL_MS = 5 * 60 * 1000;
+const PROGRESS_PUSH_INTERVAL_MS = 5_000;
 const HEARTBEAT_INTERVAL_MS = 2.5 * 60 * 1000;
 const SSE_RECONNECT_DELAY_MS = 3_000;
 const SSE_MAX_RECONNECTS = 5;
+const PARTY_DRIFT_THRESHOLD_SEC = 10;
+const PARTY_SYNC_COOLDOWN_MS = 20_000;
 
 interface UseWatchPartyProps {
   partyId?: string | null;
@@ -54,6 +57,7 @@ export function useWatchParty({
   episodeNo = 0,
   providerId: initialProviderId = "ironlink",
 }: UseWatchPartyProps): UseWatchPartyReturn {
+  const { addNotification } = useNotification();
   const [partyId, setPartyId] = useState<string | null>(initialPartyId ?? null);
   const [partyState, setPartyState] = useState<PartyState | null>(null);
   const [participants, setParticipants] = useState<PartyParticipant[]>([]);
@@ -62,10 +66,6 @@ export function useWatchParty({
   const [isConnected, setIsConnected] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    console.log("[useWatchParty] streamUrl state updated to:", streamUrl);
-  }, [streamUrl]);
 
   const isHostRef = useRef(false);
   const currentUserIdRef = useRef<string | undefined>(undefined);
@@ -76,6 +76,7 @@ export function useWatchParty({
   const reconnectCountRef = useRef(0);
   const isMountedRef = useRef(true);
   const isLeavingRef = useRef(false);
+  const lastDriftSyncRef = useRef(0);
 
   const currentTimeRef = useRef<number>(0);
   const currentProviderRef = useRef<string>(initialProviderId);
@@ -160,7 +161,6 @@ export function useWatchParty({
       );
       return null;
     }
-    console.log("[WATCH PARTY] syncPlayer initiated for party:", id);
     try {
       const headers = await getHeaders();
       const res = await fetch(`${BASE}/${id}/sync`, { headers });
@@ -169,7 +169,6 @@ export function useWatchParty({
         return null;
       }
       const data: SyncResponse = await res.json();
-      console.log("[WATCH PARTY] syncPlayer received data:", data);
       if (data.streamUrl && isMountedRef.current) {
         // Parse the stream URL and append a unique partySync timestamp.
         // This forces the iframe key/src to change, prompting a reload.
@@ -177,19 +176,11 @@ export function useWatchParty({
           const u = new URL(data.streamUrl);
           u.searchParams.set("partySync", Date.now().toString());
           const finalUrl = u.toString();
-          console.log(
-            "[WATCH PARTY] syncPlayer setting streamUrl state to:",
-            finalUrl,
-          );
           setStreamUrl(finalUrl);
         } catch {
           // If URL parsing fails, fallback to appending query param manually
           const separator = data.streamUrl.includes("?") ? "&" : "?";
           const finalUrl = `${data.streamUrl}${separator}partySync=${Date.now()}`;
-          console.log(
-            "[WATCH PARTY] syncPlayer setting streamUrl state (fallback) to:",
-            finalUrl,
-          );
           setStreamUrl(finalUrl);
         }
       } else {
@@ -225,9 +216,6 @@ export function useWatchParty({
 
       const progress = currentTimeRef.current;
       const provider = currentProviderRef.current;
-      console.log(
-        `[WATCH PARTY] Manual progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
-      );
       try {
         const headers = await getHeaders();
         const res = await fetch(`${BASE}/progress`, {
@@ -255,9 +243,6 @@ export function useWatchParty({
         if (!isHostRef.current || !id) return;
         const progress = currentTimeRef.current;
         const provider = currentProviderRef.current;
-        console.log(
-          `[WATCH PARTY] Auto progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
-        );
         try {
           const headers = await getHeaders();
           await fetch(`${BASE}/progress`, {
@@ -328,8 +313,6 @@ export function useWatchParty({
 
     const { payload, eventType } = envelope;
     const typeToSwitch = eventType || eventName;
-
-    console.log(`[WATCH PARTY] SSE Event received: ${typeToSwitch}`, payload);
 
     switch (typeToSwitch) {
       case "CONNECTED":
@@ -442,9 +425,15 @@ export function useWatchParty({
           if (newStreamUrl) {
             setStreamUrl(newStreamUrl);
           } else if (providerChanged && !isHostRef.current) {
-            console.log(
-              `[WATCH PARTY] Provider changed to ${updatedProvider}. Syncing player...`,
-            );
+            syncPlayer();
+          } else if (
+            !isHostRef.current &&
+            Math.abs(progress - currentTimeRef.current) >
+              PARTY_DRIFT_THRESHOLD_SEC &&
+            Date.now() - lastDriftSyncRef.current > PARTY_SYNC_COOLDOWN_MS
+          ) {
+            lastDriftSyncRef.current = Date.now();
+            currentTimeRef.current = progress;
             syncPlayer();
           }
         }
@@ -472,12 +461,6 @@ export function useWatchParty({
           if (typeof window !== "undefined") window.location.href = "/";
         }, 2000);
         break;
-
-      default:
-        console.log(
-          `[WATCH PARTY] Unrecognised SSE event: ${typeToSwitch}`,
-          payload,
-        );
     }
   };
 
@@ -570,6 +553,19 @@ export function useWatchParty({
         Authorization: `Bearer ${token}`,
       };
 
+      const handleInitFailure = async (res: Response, fallback: string) => {
+        let message = fallback;
+        try {
+          const body = await res.json();
+          message = body?.error ?? body?.message ?? fallback;
+        } catch {
+          message = fallback;
+        }
+        addNotification(message, "error");
+        cleanupLocalState();
+        window.location.href = "/home";
+      };
+
       try {
         if (!initialPartyId) {
           const res = await fetch(`${BASE}/create`, {
@@ -584,7 +580,10 @@ export function useWatchParty({
             }),
           });
 
-          if (!res.ok) return;
+          if (!res.ok) {
+            await handleInitFailure(res, "Failed to create watch party");
+            return;
+          }
 
           const data: PartyState = await res.json();
           if (!isMountedRef.current) return;
@@ -612,7 +611,10 @@ export function useWatchParty({
             body: JSON.stringify({ partyId: initialPartyId.toUpperCase() }),
           });
 
-          if (!res.ok) return;
+          if (!res.ok) {
+            await handleInitFailure(res, "Failed to join watch party");
+            return;
+          }
 
           const data: PartyState = await res.json();
           if (!isMountedRef.current) return;

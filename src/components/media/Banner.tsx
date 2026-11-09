@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, Transition, Variants } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Play, Plus } from "lucide-react";
+import { Check, Play, Plus } from "lucide-react";
 import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
 import { MediaType } from "@/src/props/global/mediaType";
@@ -168,6 +168,7 @@ export default function Banner({ initialItems }: BannerProps) {
   const [loading, setLoading] = useState(safeInitialItems.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [continueWatching, setContinueWatching] = useState<
     ContinueWatchingOverlayItem[]
   >([]);
@@ -349,6 +350,39 @@ export default function Banner({ initialItems }: BannerProps) {
     router.push(`/watch/tvshow/${currentItem.tmdbId}?season=1&episode=1`);
   };
 
+  useEffect(() => {
+    let isActive = true;
+
+    const checkWatchlistStatus = async () => {
+      if (!user || !currentItem) {
+        setIsWatchlisted(false);
+        return;
+      }
+
+      try {
+        const session = await getSupabaseSession();
+        if (!session) return;
+
+        const mediaType = toMediaType(currentItem.contentType);
+        const res = await fetch(
+          `/api/profile/watchlist?tmdbId=${currentItem.tmdbId}&mediaType=${mediaType}`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isActive) setIsWatchlisted(Boolean(data.isInWatchlist));
+      } catch {
+        if (isActive) setIsWatchlisted(false);
+      }
+    };
+
+    checkWatchlistStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user, currentItem]);
+
   // Toggle the watchlist via API
   const toggleWatchlist = async () => {
     if (!currentItem) return;
@@ -368,9 +402,8 @@ export default function Banner({ initialItems }: BannerProps) {
         return;
       }
 
-      // We just post it, backend handles logic and returns status
       const res = await fetch("/api/profile/watchlist", {
-        method: "POST",
+        method: isWatchlisted ? "DELETE" : "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
@@ -382,14 +415,18 @@ export default function Banner({ initialItems }: BannerProps) {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        if (data?.message === "Already exists in watchlist") {
+        if (isWatchlisted) {
+          setIsWatchlisted(false);
+          addNotification(`${mediaTitle} removed from watchlist`, "success");
+        } else {
+          const data = await res.json();
+          setIsWatchlisted(true);
           addNotification(
-            `${mediaTitle} is already in your watchlist`,
+            data?.message === "Already exists in watchlist"
+              ? `${mediaTitle} is already in your watchlist`
+              : `${mediaTitle} added to watchlist`,
             "success",
           );
-        } else {
-          addNotification(`${mediaTitle} added to watchlist`, "success");
         }
       } else {
         addNotification("Failed to update watchlist", "error");
@@ -427,16 +464,7 @@ export default function Banner({ initialItems }: BannerProps) {
   };
 
   const handlePlayClick = useCallback(
-    (cardItem: {
-      image: string;
-      title: string;
-      progress: number;
-      meta: string;
-      remaining: string;
-    }) => {
-      // Find the full item to get tmdbId, mediaType, and stream params
-      const item = continueWatching.find((i) => i.title === cardItem.title);
-      if (!item) return;
+    (item: ContinueWatchingOverlayItem) => {
       if (item.mediaType === MediaType.Movie) {
         const url = `/watch/movie/${item.tmdbId}${
           item.streamId ? `?stream=${item.streamId}` : ""
@@ -450,7 +478,7 @@ export default function Banner({ initialItems }: BannerProps) {
         if (item.episodeNumber)
           params.set("episode", item.episodeNumber.toString());
         router.push(
-          `/player/tvshow/${item.tmdbId}${
+          `/watch/tvshow/${item.tmdbId}${
             params.toString() ? `?${params.toString()}` : ""
           }`,
         );
@@ -583,10 +611,16 @@ export default function Banner({ initialItems }: BannerProps) {
                     <button
                       onClick={toggleWatchlist}
                       disabled={watchlistLoading}
-                      aria-label="Add to watchlist"
+                      aria-label={
+                        isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
+                      }
                       className={`flex h-14 w-14 items-center apple-glass justify-center rounded-full border border-white/15 transition ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
                     >
-                      <Plus className="h-8 w-8" strokeWidth={1.5} />
+                      {isWatchlisted ? (
+                        <Check className="h-8 w-8" strokeWidth={1.5} />
+                      ) : (
+                        <Plus className="h-8 w-8" strokeWidth={1.5} />
+                      )}
                     </button>
                   </div>
                 </motion.div>

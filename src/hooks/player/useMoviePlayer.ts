@@ -108,11 +108,6 @@ export function useMoviePlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        console.log("📝 Saving movie watch history", {
-          tmdbId: watchData.tmdbId,
-          providerId: watchData.providerId,
-          durationSec: watchData.durationSec,
-        });
         fetch("/api/profile/history", {
           method: "POST",
           headers: {
@@ -131,7 +126,6 @@ export function useMoviePlayer({
               });
               return;
             }
-            console.log("✅ Movie watch history saved", payload);
           })
           .catch((err) =>
             console.error("❌ Failed to save movie watch history:", err),

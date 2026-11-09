@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const backendRes = await fetch(backendUrl, {
+      signal: request.signal,
       headers: {
         Authorization: authHeader,
         Accept: "text/event-stream",

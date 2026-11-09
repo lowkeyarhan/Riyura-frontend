@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { PlayerLayout } from "@/src/components/player/PlayerLayout";
-import { Suspense, useEffect, useCallback } from "react";
+import { Suspense, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchParty } from "@/src/hooks/party/useWatchParty";
@@ -15,12 +15,6 @@ import { PartyChatPanel } from "@/src/components/party/PartyChatPanel";
 import { PartyHostControls } from "@/src/components/party/PartyHostControls";
 import { useState } from "react";
 
-const HARDCODED_PROVIDERS = [
-  { id: "ironlink", name: "Ironlink", quality: "1080p Fast" },
-  { id: "syntherion", name: "Syntherion", quality: "1080p Subs" },
-  { id: "dormannu", name: "Dormannu", quality: "4k Ads" },
-];
-
 function PartyMovieContent() {
   const searchParams = useSearchParams();
   const tmdbId = parseInt(searchParams.get("movie") ?? "0");
@@ -30,7 +24,7 @@ function PartyMovieContent() {
   const { user } = useAuth();
 
   // Still fetch movie metadata for the "Now Watching" header card
-  const { movie, saveWatchHistoryOnUnmount } = useMoviePlayer({
+  const { movie, servers, saveWatchHistoryOnUnmount } = useMoviePlayer({
     movieId: String(tmdbId),
     userId: user?.id,
   });
@@ -60,11 +54,22 @@ function PartyMovieContent() {
 
   // Nanovue detection based on the stream URL returned by the backend
   const isNanovue = streamUrl?.toLowerCase().includes("nanovue") ?? false;
+  const playerIframeRef = useRef<HTMLIFrameElement>(null);
+  const filteredServers = servers.filter(
+    (s) => !s.name?.toLowerCase().includes("nanovue"),
+  );
+  const activeProviderId =
+    partyState?.providerId || currentProviderRef.current || streamParam;
+  const filteredActiveIndex = Math.max(
+    filteredServers.findIndex((s) => s.id === activeProviderId),
+    0,
+  );
 
   const { getLatestProgress, setProgress } = useWatchProgress({
     serverName: streamParam,
     isNanovue,
     initialProgressSec: 0,
+    playerIframeRef,
     onProgress: (sec) => {
       currentTimeRef.current = sec;
     },
@@ -72,19 +77,15 @@ function PartyMovieContent() {
 
   const [gradientColors, setGradientColors] = useState<string[]>([]);
 
-  const bgSrc = movie?.backdrop_path
-    ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
-    : "/watch_party_page_temp_bg.jpg";
+  const bgSrc = movie?.backdrop_path ?? "/watch_party_page_temp_bg.jpg";
 
   // Seed progress tracker from the startAt param in the participant stream URL
   useEffect(() => {
-    console.log("[PartyMovieContent] streamUrl in page is:", streamUrl);
     if (streamUrl && !isHost) {
       try {
         const u = new URL(streamUrl);
         const t = u.searchParams.get("start") ?? u.searchParams.get("t");
         if (t) {
-          console.log("[PartyMovieContent] Extracted start progress:", t);
           setProgress(Number(t));
         }
       } catch (err) {
@@ -152,6 +153,7 @@ function PartyMovieContent() {
       >
         {streamUrl ? (
           <iframe
+            ref={playerIframeRef}
             key={streamUrl}
             src={streamUrl}
             className="w-full h-full border-0 object-cover"
@@ -169,17 +171,11 @@ function PartyMovieContent() {
       {/* Sidebar */}
       <div className="w-full lg:w-[24rem] col-span-7 flex-shrink-0 flex flex-col gap-3 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] relative z-10">
         <PartyHostControls
-          servers={HARDCODED_PROVIDERS}
-          activeServerIndex={Math.max(
-            HARDCODED_PROVIDERS.findIndex(
-              (s) =>
-                s.id === (partyState?.providerId || currentProviderRef.current),
-            ),
-            0,
-          )}
+          servers={filteredServers}
+          activeServerIndex={filteredActiveIndex}
           onServerChange={(idx) => {
-            const server = HARDCODED_PROVIDERS[idx];
-            pushProgress(server.id, getLatestProgress());
+            const server = filteredServers[idx];
+            if (server) pushProgress(server.id, getLatestProgress());
           }}
           onSync={
             !isHost

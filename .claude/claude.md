@@ -27,6 +27,7 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 
 | Path                 | Responsibility                                                                |
 | -------------------- | ----------------------------------------------------------------------------- |
+| `AGENTS.md`          | Agent entrypoint: rules, commands, architecture summary, and RTK usage.       |
 | `.claude/claude.md`  | Shared AI-agent memory, conventions, and full codebase graph.                 |
 | `README.md`          | Human-facing project overview, architecture notes, env vars, and local setup. |
 | `WATCH_PARTY.md`     | Watch party feature documentation and operational notes.                      |
@@ -36,7 +37,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | `eslint.config.mjs`  | ESLint flat config using Next core-web-vitals and TypeScript rules.           |
 | `next.config.ts`     | Next.js runtime, image, and package optimization configuration.               |
 | `postcss.config.mjs` | PostCSS setup for Tailwind CSS processing.                                    |
-| `tailwind.config.js` | Tailwind theme and utility configuration.                                     |
 | `next-env.d.ts`      | Next.js generated TypeScript environment declarations.                        |
 
 ### Static Assets
@@ -208,7 +208,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | `src/components/skeletons/SearchSkeleton.tsx`           | Search page loading skeleton.        |
 | `src/components/skeletons/SearchCardSkeleton.tsx`       | Search result card loading skeleton. |
 | `src/components/skeletons/ExploreSkeleton.tsx`          | Explore page loading skeleton.       |
-| `src/components/skeletons/AnimeExploreSkeleton.tsx`     | Anime explore loading skeleton.      |
 | `src/components/skeletons/DetailsSkeleton.tsx`          | Details page loading skeleton.       |
 | `src/components/skeletons/PlayerSkeleton.tsx`           | Playback page loading skeleton.      |
 | `src/components/skeletons/ProfileSkeleton.tsx`          | Profile page loading skeleton.       |
@@ -220,11 +219,9 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | Path                                     | Responsibility                                     |
 | ---------------------------------------- | -------------------------------------------------- |
 | `src/components/ui/FloatingNavbar.tsx`   | Floating navigation UI variant.                    |
-| `src/components/ui/InfoRow.tsx`          | Reusable label/value information row.              |
 | `src/components/ui/LiquidEther.tsx`      | Animated visual background/effect component.       |
 | `src/components/ui/MagicBento.tsx`       | Bento-style interactive visual layout component.   |
 | `src/components/ui/Notification.tsx`     | Toast/notification display component.              |
-| `src/components/ui/Pagination.tsx`       | Reusable pagination control.                       |
 | `src/components/ui/ServersDownModal.tsx` | Modal shown when backend services are unavailable. |
 | `src/components/ui/SmoothScroll.tsx`     | Smooth scrolling behavior wrapper.                 |
 | `src/components/ui/SplitText.tsx`        | Text splitting/animation helper component.         |
@@ -244,7 +241,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | `src/hooks/details/useTVShowDetails.ts`   | TV show detail data fetching and state.                                   |
 | `src/hooks/player/useMoviePlayer.ts`      | Movie player data, lifecycle, progress, and history persistence.          |
 | `src/hooks/player/useTVShowPlayer.ts`     | TV player data, episode state, progress, and history persistence.         |
-| `src/hooks/player/useStreamUrls.ts`       | Stream server URL loading and playback link generation.                   |
 | `src/hooks/player/useWatchProgress.ts`    | Watch progress calculations and persistence helpers.                      |
 | `src/hooks/profile/useProfileData.ts`     | Aggregated profile data fetching with refetch support.                    |
 | `src/hooks/profile/useWatchlist.ts`       | Watchlist fetching and optimistic item removal.                           |
@@ -298,6 +294,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 
 ## Durable Memory Notes
 
-- Keep this file as the only agent instruction file unless the user explicitly asks for split files again.
+- `AGENTS.md` is the agent entrypoint (rules, commands, RTK usage). Keep this file as the full file-by-file codebase graph and update it when files are added, moved, or deleted.
 - When adding files, update the relevant codebase graph section with a one-line responsibility.
 - When changing conventions, add a short durable note here instead of preserving chat transcripts.

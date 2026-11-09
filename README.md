@@ -118,7 +118,6 @@ Key hooks:
 - **`useWatchHistory`**: deletes history items via `/api/profile/history?id=...`.
 - **Player hooks**
   - **`useMoviePlayer`** and **`useTVShowPlayer`** fetch details and track watch duration; persist watch history on unmount via `/api/profile/history` using `keepalive: true`.
-- **`useStreamUrls`**: loads stream servers via `/api/stream-urls` and generates playback links.
 - **`useGeminiApiKey`**: reads/saves/deletes the user’s encrypted Gemini key via `/api/profile/gemini`.
 - **`useRecommendations`**: loads Gemini recommendations with a strict “single-flight” lock and supports `refresh()`.
 - **`useSearchData`**: URL-driven search state (query/page/sort/tab) with back/forward restore; fetches `/api/search`.

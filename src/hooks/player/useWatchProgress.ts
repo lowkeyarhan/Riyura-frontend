@@ -44,16 +44,10 @@ export function useWatchProgress({
   // ──────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (serverName !== undefined && serverName !== previousServerRef.current) {
-      const prev = previousServerRef.current;
       previousServerRef.current = serverName;
-
-      console.log(`🔄 Server changed: ${prev ?? "—"} → ${serverName}`);
 
       // If switching TO Nanovue, seed its timer from the last known progress
       if (isNanovue) {
-        console.log(
-          `🎬 Seeding Nanovue timer from ${latestProgressRef.current.toFixed(2)}s`,
-        );
         // latestProgressRef already holds the previous server's progress;
         // the Nanovue timer effect below will pick it up.
       } else {

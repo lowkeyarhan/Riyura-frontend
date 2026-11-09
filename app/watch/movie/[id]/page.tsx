@@ -69,7 +69,6 @@ export default function MoviePlayer() {
     initialProgressSec,
     playerIframeRef,
     onProgress: (durationSec) => {
-      console.log(`💾 Syncing URL with progress: ${Math.floor(durationSec)}s`);
       syncUrl(durationSec);
     },
   });
@@ -88,9 +87,6 @@ export default function MoviePlayer() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       const progress = getLatestProgress();
-      console.log(
-        `📤 Posting movie history on close — ${Math.floor(progress)}s`,
-      );
       saveWatchHistoryOnUnmount(progress);
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -98,9 +94,6 @@ export default function MoviePlayer() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       const progress = getLatestProgress();
-      console.log(
-        `📤 Posting movie history on unmount — ${Math.floor(progress)}s`,
-      );
       saveWatchHistoryOnUnmount(progress);
     };
   }, [getLatestProgress, saveWatchHistoryOnUnmount]);

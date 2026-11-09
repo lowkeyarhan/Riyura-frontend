@@ -67,10 +67,6 @@ export function useWatchParty({
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log("[useWatchParty] streamUrl state updated to:", streamUrl);
-  }, [streamUrl]);
-
   const isHostRef = useRef(false);
   const currentUserIdRef = useRef<string | undefined>(undefined);
   const partyIdRef = useRef<string | null>(initialPartyId ?? null);
@@ -165,7 +161,6 @@ export function useWatchParty({
       );
       return null;
     }
-    console.log("[WATCH PARTY] syncPlayer initiated for party:", id);
     try {
       const headers = await getHeaders();
       const res = await fetch(`${BASE}/${id}/sync`, { headers });
@@ -174,7 +169,6 @@ export function useWatchParty({
         return null;
       }
       const data: SyncResponse = await res.json();
-      console.log("[WATCH PARTY] syncPlayer received data:", data);
       if (data.streamUrl && isMountedRef.current) {
         // Parse the stream URL and append a unique partySync timestamp.
         // This forces the iframe key/src to change, prompting a reload.
@@ -182,19 +176,11 @@ export function useWatchParty({
           const u = new URL(data.streamUrl);
           u.searchParams.set("partySync", Date.now().toString());
           const finalUrl = u.toString();
-          console.log(
-            "[WATCH PARTY] syncPlayer setting streamUrl state to:",
-            finalUrl,
-          );
           setStreamUrl(finalUrl);
         } catch {
           // If URL parsing fails, fallback to appending query param manually
           const separator = data.streamUrl.includes("?") ? "&" : "?";
           const finalUrl = `${data.streamUrl}${separator}partySync=${Date.now()}`;
-          console.log(
-            "[WATCH PARTY] syncPlayer setting streamUrl state (fallback) to:",
-            finalUrl,
-          );
           setStreamUrl(finalUrl);
         }
       } else {
@@ -230,9 +216,6 @@ export function useWatchParty({
 
       const progress = currentTimeRef.current;
       const provider = currentProviderRef.current;
-      console.log(
-        `[WATCH PARTY] Manual progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
-      );
       try {
         const headers = await getHeaders();
         const res = await fetch(`${BASE}/progress`, {
@@ -260,9 +243,6 @@ export function useWatchParty({
         if (!isHostRef.current || !id) return;
         const progress = currentTimeRef.current;
         const provider = currentProviderRef.current;
-        console.log(
-          `[WATCH PARTY] Auto progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
-        );
         try {
           const headers = await getHeaders();
           await fetch(`${BASE}/progress`, {
@@ -333,8 +313,6 @@ export function useWatchParty({
 
     const { payload, eventType } = envelope;
     const typeToSwitch = eventType || eventName;
-
-    console.log(`[WATCH PARTY] SSE Event received: ${typeToSwitch}`, payload);
 
     switch (typeToSwitch) {
       case "CONNECTED":
@@ -447,9 +425,6 @@ export function useWatchParty({
           if (newStreamUrl) {
             setStreamUrl(newStreamUrl);
           } else if (providerChanged && !isHostRef.current) {
-            console.log(
-              `[WATCH PARTY] Provider changed to ${updatedProvider}. Syncing player...`,
-            );
             syncPlayer();
           } else if (
             !isHostRef.current &&
@@ -486,12 +461,6 @@ export function useWatchParty({
           if (typeof window !== "undefined") window.location.href = "/";
         }, 2000);
         break;
-
-      default:
-        console.log(
-          `[WATCH PARTY] Unrecognised SSE event: ${typeToSwitch}`,
-          payload,
-        );
     }
   };
 

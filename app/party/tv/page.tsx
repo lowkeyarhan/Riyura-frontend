@@ -118,13 +118,11 @@ function PartyTVContent() {
 
   // Seed the progress tracker from the startAt param embedded in the participant's stream URL
   useEffect(() => {
-    console.log("[PartyTVContent] streamUrl in page is:", streamUrl);
     if (streamUrl && !isHost) {
       try {
         const u = new URL(streamUrl);
         const t = u.searchParams.get("start") ?? u.searchParams.get("t");
         if (t) {
-          console.log("[PartyTVContent] Extracted start progress:", t);
           setProgress(Number(t));
         }
       } catch (err) {

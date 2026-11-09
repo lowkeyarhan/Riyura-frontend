@@ -142,13 +142,6 @@ export function useTVShowPlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        console.log("📝 Saving TV watch history", {
-          tmdbId: watchData.tmdbId,
-          providerId: watchData.providerId,
-          seasonNumber: watchData.seasonNumber,
-          episodeNumber: watchData.episodeNumber,
-          durationSec: watchData.durationSec,
-        });
         fetch("/api/profile/history", {
           method: "POST",
           headers: {
@@ -167,7 +160,6 @@ export function useTVShowPlayer({
               });
               return;
             }
-            console.log("✅ TV show watch history saved", payload);
           })
           .catch((err) =>
             console.error("❌ Failed to save TV show watch history:", err),

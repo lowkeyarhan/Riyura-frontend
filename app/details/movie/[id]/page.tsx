@@ -143,7 +143,7 @@ export default function MovieDetails() {
           {movie.tagline && (
             <span className="text-center text-white/80 text-sm italic">
               {" "}
-              "{movie.tagline}"
+              &ldquo;{movie.tagline}&rdquo;
             </span>
           )}
 

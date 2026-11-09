@@ -49,8 +49,8 @@ export function SearchResultsSection({
           <p className="text-gray-300 text-lg" style={FONT_STYLE}>
             Found{" "}
             <span className="text-white font-semibold">{results.length}</span>{" "}
-            {results.length === 1 ? "result" : "results"} for "
-            {lastQuery || searchQuery}"
+            {results.length === 1 ? "result" : "results"} for &ldquo;
+            {lastQuery || searchQuery}&rdquo;
           </p>
         )}
       </div>

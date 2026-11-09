@@ -176,7 +176,7 @@ export function useWatchProgress({
     }, 10000);
 
     return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Expose a getter so the page component can read the latest value on unmount

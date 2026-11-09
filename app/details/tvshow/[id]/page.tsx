@@ -143,7 +143,7 @@ export default function TVShowDetails() {
           {/*Tagline*/}
           {
             tvShow.tagline && (
-              <span className="text-center text-white/80 text-sm italic"> "{tvShow.tagline}"</span>
+              <span className="text-center text-white/80 text-sm italic"> &ldquo;{tvShow.tagline}&rdquo;</span>
             )
           }
 

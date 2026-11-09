@@ -20,9 +20,9 @@ function getBackdropUrl(backdropPath: string | null): string {
 }
 
 function computeStats(items: HistoryProp[]): Stat[] {
-  const moviesCount = items.filter(
-    (i) => i.mediaType === MediaType.Movie,
-  ).length;
+  const moviesCount = new Set(
+    items.filter((i) => i.mediaType === MediaType.Movie).map((i) => i.tmdbId),
+  ).size;
   const seriesCount = new Set(
     items.filter((i) => i.mediaType !== MediaType.Movie).map((i) => i.tmdbId),
   ).size;

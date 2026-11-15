@@ -6,7 +6,7 @@ interface ErrorScreenProps {
   hero?: ReactNode;
   title: string;
   description: string;
-  actions: ReactNode;
+  actions?: ReactNode;
   digest?: string;
 }
 
@@ -19,10 +19,11 @@ export default function ErrorScreen({
 }: ErrorScreenProps) {
   return (
     <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#0a0e1a] text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-16 h-[55vh] w-[55vw] rounded-full bg-cyan-500/10 blur-[140px]" />
-        <div className="absolute -right-24 bottom-0 h-[60vh] w-[50vw] rounded-full bg-orange-500/10 blur-[160px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-32 top-16 h-[55vh] w-[55vw] rounded-full bg-cyan-500/20 blur-[140px]" />
+        <div className="absolute -right-24 bottom-0 h-[60vh] w-[50vw] rounded-full bg-orange-500/20 blur-[160px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_35%,rgba(0,0,0,0.6)_100%)]" />
       </div>
 
       <header className="relative z-10 px-6 py-6 md:px-10">
@@ -54,9 +55,11 @@ export default function ErrorScreen({
         >
           {description}
         </p>
-        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-          {actions}
-        </div>
+        {actions && (
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+            {actions}
+          </div>
+        )}
         {digest && (
           <p className="mt-12 text-[10px] uppercase tracking-[0.2em] text-white/20">
             Reference {digest}

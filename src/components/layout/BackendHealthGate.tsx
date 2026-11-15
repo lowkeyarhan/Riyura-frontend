@@ -1,6 +1,7 @@
 "use client";
 
 import { useBackendHealth } from "@/src/lib/contexts/BackendHealthContext";
+import ErrorScreen from "@/src/components/ui/ErrorScreen";
 
 export function BackendHealthGate({
   children,
@@ -13,9 +14,13 @@ export function BackendHealthGate({
     if (status === "down") return null;
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-      </main>
+      <ErrorScreen
+        hero={
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+        }
+        title="Connecting"
+        description="Checking service availability."
+      />
     );
   }
 

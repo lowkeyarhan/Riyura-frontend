@@ -20,17 +20,8 @@ const ServerRow = ({
     onClick={onClick}
     className={`transition-all rounded-full flex items-center justify-start p-2 gap-2.5 w-full border ${isActive
       ? "bg-[#ff571e]/10 border-[#ff571e]/30 shadow-[0_0_15px_rgba(255,87,30,0.15)]"
-      : "border-white/5 shadow-inner"
+      : "bg-white/[0.03] border-white/5 shadow-inner"
       }`}
-    style={{
-      border: "1px solid rgba(255, 255, 255, 0.05)",
-      boxShadow: "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
-      backdropFilter: "blur(40px)",
-      WebkitBackdropFilter: "blur(40px)",
-      backgroundColor: isActive
-        ? "rgba(255, 87, 30, 0.1)"
-        : "rgba(255, 255, 255, 0.03)",
-    }}
   >
     <div
       className={`w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center transition-colors shadow-inner ${isActive

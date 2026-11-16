@@ -73,8 +73,6 @@ export function PartyHostControls({
                 style={{
                   border: "1px solid rgba(255, 255, 255, 0.05)",
                   boxShadow: "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
-                  backdropFilter: "blur(40px)",
-                  WebkitBackdropFilter: "blur(40px)",
                   backgroundColor: "rgba(255, 255, 255, 0.03)",
                 }}
               >
@@ -107,10 +105,6 @@ export function PartyHostControls({
         {/* Right Col: Now Playing Card (tall, matching left column height) */}
         <div
           className="rounded-[20px] border border-white/5 bg-white/4 p-4 flex flex-col justify-between relative overflow-hidden"
-          style={{
-            backdropFilter: "blur(40px)",
-            WebkitBackdropFilter: "blur(40px)",
-          }}
         >
           <div className="flex flex-col gap-3 h-full justify-between">
             <div className="w-11 h-11 rounded-lg overflow-hidden relative flex-shrink-0 shadow-lg">
@@ -159,8 +153,6 @@ export function PartyHostControls({
                   boxShadow: isActive
                     ? "inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 0 15px rgba(255,87,30,0.15)"
                     : "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
-                  backdropFilter: "blur(40px)",
-                  WebkitBackdropFilter: "blur(40px)",
                   backgroundColor: isActive
                     ? "rgba(255, 87, 30, 0.1)"
                     : "rgba(255, 255, 255, 0.03)",
@@ -191,13 +183,7 @@ export function PartyHostControls({
             );
           })()
         ) : (
-          <div
-            className="rounded-full flex items-center justify-center text-[11px] text-white/20 border border-white/5 bg-white/3 min-h-[66px]"
-            style={{
-              backdropFilter: "blur(40px)",
-              WebkitBackdropFilter: "blur(40px)",
-            }}
-          >
+          <div className="rounded-full flex items-center justify-center text-[11px] text-white/20 border border-white/5 bg-white/3 min-h-[66px]">
             No server
           </div>
         )}
@@ -220,8 +206,6 @@ export function PartyHostControls({
               boxShadow: syncing
                 ? "inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 0 15px rgba(34,197,94,0.15)"
                 : "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
-              backdropFilter: "blur(40px)",
-              WebkitBackdropFilter: "blur(40px)",
               backgroundColor: syncing
                 ? "rgba(34, 197, 94, 0.1)"
                 : "rgba(255, 255, 255, 0.03)",
@@ -261,8 +245,6 @@ export function PartyHostControls({
             style={{
               border: "1px solid rgba(255, 255, 255, 0.05)",
               boxShadow: "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
-              backdropFilter: "blur(40px)",
-              WebkitBackdropFilter: "blur(40px)",
               backgroundColor: "rgba(255, 255, 255, 0.03)",
             }}
           >

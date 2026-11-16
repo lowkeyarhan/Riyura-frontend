@@ -9,6 +9,7 @@ import { useWatchlistFilters } from "@/src/hooks/useWatchlistFilters";
 import { WatchlistHeader } from "@/src/components/watchlist/WatchlistHeader";
 import { WatchlistGrid } from "@/src/components/watchlist/WatchlistGrid";
 import WatchlistSkeleton from "@/src/components/skeletons/WatchlistSkeleton";
+import PageBackdrop from "@/src/components/layout/PageBackdrop";
 
 export default function WatchlistPage() {
   const router = useRouter();
@@ -51,12 +52,7 @@ export default function WatchlistPage() {
   if (error && (!items || items.length === 0)) {
     return (
       <div className="relative min-h-screen bg-black font-sans">
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-black" />
-          <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
-        </div>
+        <PageBackdrop />
         <div className="relative z-10 px-4 md:px-16 lg:px-16 pt-24 md:pt-32 pb-12">
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/30">
@@ -93,12 +89,7 @@ export default function WatchlistPage() {
   return (
     <div className="relative min-h-screen bg-black font-sans">
       {/* --- BACKGROUND LAYERS --- */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-black" />
-        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
-      </div>
+      <PageBackdrop />
 
       {/* --- MAIN CONTENT --- */}
       <div className="relative z-10 px-4 md:px-16 lg:px-16 pt-24 md:pt-32 pb-12">

@@ -8,6 +8,7 @@ import { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 import { useSearchData } from "@/src/hooks/useSearchData";
+import PageBackdrop from "@/src/components/layout/PageBackdrop";
 import { useTrendingData } from "@/src/hooks/home/useTrendingData";
 import { usePlaceholderAnimation } from "@/src/hooks/usePlaceholderAnimation";
 
@@ -58,12 +59,7 @@ function SearchPageContent() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white relative overflow-hidden">
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-black" />
-        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
-      </div>
+      <PageBackdrop />
 
       <div className="relative z-10 px-4 md:px-16 lg:px-16 pt-24 md:pt-32 pb-12">
         <SearchHero show={!lastQuery} />

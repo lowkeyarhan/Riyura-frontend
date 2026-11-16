@@ -9,6 +9,7 @@ import { BackendHealthProvider } from "@/src/lib/contexts/BackendHealthContext";
 import { BackendHealthGate } from "@/src/components/layout/BackendHealthGate";
 import Notification from "@/src/components/ui/Notification";
 import { ServersDownModal } from "@/src/components/ui/ServersDownModal";
+import DevModeBadge from "@/src/components/ui/DevModeBadge";
 import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
@@ -48,6 +49,7 @@ export default function RootLayout({
             <Notification />
           </NotificationProvider>
         </ChunkErrorBoundary>
+        <DevModeBadge />
         <Analytics />
       </body>
     </html>

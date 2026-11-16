@@ -245,6 +245,13 @@ Create `.env.local` in the project root.
 - **Images (optional)**
   - `NEXT_PUBLIC_IMAGE_BASE_URL` (defaults to `https://image.tmdb.org/t/p`)
 
+- **App environment (optional, public)**
+  - `NEXT_PUBLIC_APP_ENV` (`development` | `production`)
+    - Single toggle for app behavior. In `development`, `app/not-found.tsx` and `app/error.tsx` stay visible for inspection and a `DEV` badge is shown.
+    - In `production`, those pages redirect to `/home`.
+    - Default (unset): inferred from `NODE_ENV`.
+    - Where it is used: `src/lib/app-env.ts`, `src/lib/error-page-behavior.ts`, `src/components/ui/DevModeBadge.tsx`.
+
 ## Running locally
 
 Install deps:

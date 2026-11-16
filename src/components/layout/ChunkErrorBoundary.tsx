@@ -1,7 +1,6 @@
 "use client";
 
 import { Component, ReactNode } from "react";
-import ErrorScreen from "@/src/components/ui/ErrorScreen";
 
 interface Props {
   children: ReactNode;
@@ -53,13 +52,12 @@ export class ChunkErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <ErrorScreen
-          hero={
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-          }
-          title="Reloading"
-          description="Fetching the latest version of Riyura."
-        />
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="text-center">
+            <div className="mb-4 text-white text-lg">Loading page...</div>
+            <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+          </div>
+        </div>
       );
     }
 

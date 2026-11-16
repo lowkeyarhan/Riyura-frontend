@@ -2,12 +2,27 @@
 
 import Link from "next/link";
 
-export default function Footer() {
+export default function Footer({
+  gradientColors,
+}: {
+  gradientColors?: string[];
+}) {
+  const colors = gradientColors ?? [];
+  const footerGradient =
+    colors.length > 0
+      ? `radial-gradient(circle at 0% 0%, ${colors[0]} 0%, transparent 50%),radial-gradient(circle at 100% 0%, ${colors[1]} 0%, transparent 50%),radial-gradient(circle at 0% 100%, ${colors[2]} 0%, transparent 50%),radial-gradient(circle at 100% 100%, ${colors[3]} 0%, transparent 50%)`
+      : undefined;
+
   return (
-    <footer className="relative w-full bg-[#050505] pt-10 pb-6 overflow-hidden font-sans border-t border-white/5">
+    <footer
+      className="relative w-full pt-10 pb-6 overflow-hidden font-sans border-t border-white/5"
+      style={{
+        backgroundColor: "#050505",
+        backgroundImage: footerGradient,
+      }}
+    >
       {/* --- ATMOSPHERE (Subtler) --- */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 right-0 w-[40vw] h-[300px] bg-gradient-to-t from-red-900/10 via-orange-900/5 to-transparent blur-[80px]" />
         <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
       </div>
 

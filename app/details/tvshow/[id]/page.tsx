@@ -423,7 +423,7 @@ export default function TVShowDetails() {
         </div>
       )}
 
-      <Footer />
+      <Footer gradientColors={gradientColors} />
     </div>
   );
 }

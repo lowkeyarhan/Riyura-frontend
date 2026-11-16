@@ -677,22 +677,52 @@ export function useWatchParty({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sendChat = useCallback(async (content: string) => {
-    const id = partyIdRef.current;
-    if (!id || !content.trim()) return;
-    const capped = content.trim().slice(0, 500);
-    try {
-      const headers = await getHeaders();
-      const res = await fetch(`${BASE}/chat`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ partyId: id, content: capped }),
-      });
-      if (!res.ok) console.warn("[WATCH PARTY] Chat send failed");
-    } catch (err) {
-      console.error("[WATCH PARTY] sendChat error:", err);
-    }
-  }, []);
+  const sendChat = useCallback(
+    async (content: string) => {
+      const id = partyIdRef.current;
+      if (!id || !content.trim()) return;
+      const capped = content.trim().slice(0, 500);
+      // One idempotency key per message, reused on every retry so the server
+      // stores the message at most once.
+      const clientMessageId = crypto.randomUUID();
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < SEND_CHAT_MAX_ATTEMPTS; attempt++) {
+        try {
+          const headers = await getHeaders();
+          const res = await fetch(`${BASE}/chat`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              partyId: id,
+              content: capped,
+              clientMessageId,
+            }),
+          });
+          if (res.ok) {
+            const msg = (await res.json()) as ChatMessage;
+            if (isMountedRef.current) addMessage(msg);
+            return;
+          }
+          // Don't retry client errors (4xx); the idempotency key makes a retry
+          // a server-side no-op anyway, but 400/403/404 won't change on retry.
+          if (res.status >= 400 && res.status < 500) {
+            console.warn(`[WATCH PARTY] Chat send failed (${res.status})`);
+            return;
+          }
+          lastErr = new Error(`HTTP ${res.status}`);
+        } catch (err) {
+          lastErr = err;
+        }
+        if (attempt < SEND_CHAT_MAX_ATTEMPTS - 1) {
+          await new Promise((r) =>
+            setTimeout(r, SEND_CHAT_RETRY_BASE_MS * (attempt + 1)),
+          );
+        }
+      }
+      console.error("[WATCH PARTY] sendChat failed after retries", lastErr);
+    },
+    [addMessage],
+  );
 
   const leaveParty = useCallback(async () => {
     const id = partyIdRef.current;

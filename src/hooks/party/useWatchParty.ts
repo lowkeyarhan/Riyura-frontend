@@ -459,14 +459,8 @@ export function useWatchParty({
       }
 
       case "NEW_CHAT": {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const msg = payload as any;
-        if (isMountedRef.current && msg?.id) {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg as ChatMessage];
-          });
-        }
+        const msg = payload as ChatMessage;
+        if (isMountedRef.current && msg?.id) addMessage(msg);
         break;
       }
 

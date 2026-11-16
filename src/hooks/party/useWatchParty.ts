@@ -330,6 +330,12 @@ export function useWatchParty({
       case "CONNECTED":
         if (isMountedRef.current) setIsConnected(true);
         reconnectBackoffRef.current = 0;
+        if (isMountedRef.current) {
+          const recent = payload?.recentMessages;
+          if (Array.isArray(recent)) {
+            recent.forEach((msg) => addMessage(msg as ChatMessage));
+          }
+        }
         break;
 
       case "USER_JOINED": {
@@ -621,6 +627,9 @@ export function useWatchParty({
           setPartyState(data);
           setParticipants(data.participants ?? []);
           setMessages(data.recentMessages ?? []);
+          renderedIdsRef.current = new Set(
+            (data.recentMessages ?? []).map((m) => m.id).filter(Boolean),
+          );
           setIsHost(true);
           isHostRef.current = true;
           setStreamUrl(data.streamUrl);
@@ -649,6 +658,9 @@ export function useWatchParty({
           setPartyState(data);
           setParticipants(data.participants ?? []);
           setMessages(data.recentMessages ?? []);
+          renderedIdsRef.current = new Set(
+            (data.recentMessages ?? []).map((m) => m.id).filter(Boolean),
+          );
           setIsHost(meIsHost);
           isHostRef.current = meIsHost;
           setStreamUrl(data.streamUrl);

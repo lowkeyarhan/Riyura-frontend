@@ -377,7 +377,7 @@ export default function MovieDetails() {
         </div>
       )}
 
-      <Footer gradientColors={gradientColors} />
+      <Footer />
     </div>
   );
 }

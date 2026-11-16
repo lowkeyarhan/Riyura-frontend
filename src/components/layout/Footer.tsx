@@ -10,95 +10,88 @@ const socials = [
   { Icon: Linkedin, href: "https://linkedin.com/", label: "LinkedIn" },
 ];
 
-const navLinks = [
-  { label: "Home", href: "/home" },
-  { label: "Explore", href: "/explore" },
-  { label: "Search", href: "/search" },
-  { label: "Watchlist", href: "/watchlist" },
-  { label: "Profile", href: "/profile" },
+const linkGroups = [
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "#" },
+      { label: "Terms of Service", href: "#" },
+      { label: "Cookie Policy", href: "#" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "Help Center", href: "#" },
+      { label: "Contact Us", href: "mailto:hello@riyura.co" },
+      { label: "Report a Problem", href: "#" },
+    ],
+  },
 ];
 
-const FALLBACK_BRAND = ["#ff8a4c", "#c25a2a", "#7a2f16", "#2a0f06"];
-
-// Extracted colors carry alpha 0.15; strip it so the glow stays visible.
-const toSolid = (color: string) =>
-  color.replace(
-    /rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/,
-    "rgb($1, $2, $3)",
-  );
-
-export default function Footer({
-  gradientColors,
-}: {
-  gradientColors?: string[];
-}) {
-  const colors = gradientColors ?? [];
-  const brand =
-    colors.length >= 4 ? colors.map(toSolid) : FALLBACK_BRAND;
-
+export default function Footer() {
   return (
     <footer className="w-full px-4 pb-4 pt-6 sm:px-8">
-      <div className="relative overflow-hidden rounded-[1.75rem] bg-[#161616] px-6 pt-10 sm:px-10 sm:pt-12">
-        {/* Top content */}
-        <div className="relative z-20 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-          {/* Navigation */}
-          <nav className="flex flex-col gap-5">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-2xl font-medium text-white/95 transition-colors hover:text-white sm:text-3xl"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Socials + contact */}
-          <div className="flex flex-col gap-5 md:items-end">
-            <div className="flex items-center gap-4">
+      <div className="apple-glass rounded-[1.5rem] px-6 py-8 sm:px-10">
+        <div className="flex flex-col gap-10 md:flex-row md:justify-between">
+          {/* Brand */}
+          <div className="max-w-xs space-y-3">
+            <span
+              className="text-sm font-bold tracking-wider text-white"
+              style={{ fontFamily: "'Bruno Ace', sans-serif" }}
+            >
+              RIYURA
+            </span>
+            <p className="text-xs leading-relaxed text-white/50">
+              Stream anything, anywhere, anytime. Movies, TV shows and watch
+              parties in one place.
+            </p>
+            <div className="flex items-center gap-3 pt-1">
               {socials.map((s) => (
                 <a
                   key={s.label}
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white transition-colors hover:text-white/60"
+                  className="text-white/60 transition-colors hover:text-white"
                   title={s.label}
                 >
-                  <s.Icon size={24} strokeWidth={1.75} />
+                  <s.Icon size={16} strokeWidth={1.75} />
                 </a>
               ))}
             </div>
-            <div className="space-y-1 text-sm text-white/70 sm:text-base md:text-right">
-              <p>E-mail: hello@riyura.co</p>
-              <p>© 2025. Built by Arhan Das.</p>
-            </div>
+          </div>
+
+          {/* Link groups */}
+          <div className="grid grid-cols-2 gap-10 sm:gap-16">
+            {linkGroups.map((group) => (
+              <nav key={group.title} className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                  {group.title}
+                </h4>
+                <ul className="space-y-2">
+                  {group.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-xs text-white/60 transition-colors hover:text-white"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
           </div>
         </div>
 
-        {/* Brand watermark */}
-        <div className="relative z-10 mt-8 h-[20vw] min-h-[96px] overflow-hidden">
-          {/* Bottom glow wash */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[85%] opacity-60 blur-[70px]"
-            style={{
-              background: `radial-gradient(ellipse at 50% 100%, ${brand[0]}, transparent 72%)`,
-            }}
-          />
-          {/* Gradient brand text */}
-          <div className="absolute inset-x-0 bottom-0 flex justify-center">
-            <span
-              aria-hidden
-              className="select-none whitespace-nowrap bg-clip-text text-[30vw] font-semibold leading-[0.64] tracking-[-0.06em] text-transparent blur-[3px]"
-              style={{
-                backgroundImage: `linear-gradient(to top, ${brand[0]} 0%, ${brand[1]} 40%, ${brand[2]} 70%, transparent 100%)`,
-              }}
-            >
-              Riyura
-            </span>
-          </div>
+        {/* Bottom bar */}
+        <div className="mt-8 flex flex-col gap-2 border-t border-white/5 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[11px] text-white/40">
+            © 2025 Riyura. Built by Arhan Das.
+          </p>
+          <p className="text-[11px] text-white/40">Made for movie lovers.</p>
         </div>
       </div>
     </footer>

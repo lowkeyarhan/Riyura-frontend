@@ -280,7 +280,7 @@ function ProfilePageContent() {
 
       {/* --- FOOTER --- */}
       <div className="lg:hidden relative z-10">
-        <Footer gradientColors={gradientColors} />
+        <Footer />
       </div>
     </div>
   );

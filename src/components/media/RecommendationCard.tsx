@@ -111,11 +111,9 @@ export default function RecommendationCard({
         ${isLongPressing ? "scale-[0.98]" : ""}
       `}
       style={{
-        border: "1px solid rgba(255,255,255,0.05)",
-        background: "#0000004e",
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
-        boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.1)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.045)",
+        boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
       }}
       onClick={onClick}
       onContextMenu={onContextMenu}

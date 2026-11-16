@@ -206,7 +206,7 @@ export function PartyChatPanel({
                   </div>
                 )}
                 <div
-                  className={`flex flex-col max-w-[70%] min-w-0 ${isMe ? "items-end" : ""}`}
+                  className={`flex flex-col max-w-[65%] min-w-0 ${isMe ? "items-end" : ""}`}
                 >
                   <div
                     className={`flex items-baseline gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}

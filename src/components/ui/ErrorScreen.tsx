@@ -1,5 +1,3 @@
-import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 interface ErrorScreenProps {
@@ -18,61 +16,45 @@ export default function ErrorScreen({
   digest,
 }: ErrorScreenProps) {
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#0a0e1a] text-white">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-16 h-[55vh] w-[55vw] rounded-full bg-cyan-500/20 blur-[140px]" />
-        <div className="absolute -right-24 bottom-0 h-[60vh] w-[50vw] rounded-full bg-orange-500/20 blur-[160px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_35%,rgba(0,0,0,0.6)_100%)]" />
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-black text-white">
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-black" />
+        <div className="absolute -top-[10%] -left-[10%] h-[60vw] w-[60vw] rounded-full bg-[#155f75b5] opacity-40 blur-[130px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] h-[60vw] w-[60vw] rounded-full bg-[#9a341299] opacity-30 mix-blend-screen blur-[130px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
       </div>
 
-      <header className="relative z-10 px-6 py-6 md:px-10">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2.5 opacity-80 transition-opacity hover:opacity-100"
-        >
-          <Image src="/logo.png" alt="Riyura" width={28} height={28} />
-          <span
-            className="text-sm font-bold tracking-[0.2em]"
-            style={{ fontFamily: "'Bruno Ace', sans-serif" }}
-          >
-            RIYURA
-          </span>
-        </Link>
-      </header>
-
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-20 text-center">
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
         {hero && <div className="mb-6">{hero}</div>}
         <h1
-          className="text-2xl font-semibold tracking-tight md:text-3xl"
+          className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
           {title}
         </h1>
         <p
-          className="mt-3 max-w-md text-sm leading-relaxed text-white/45 md:text-base"
+          className="mt-3 max-w-md text-sm leading-relaxed text-gray-400 md:text-base"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           {description}
         </p>
         {actions && (
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+          <div
+            className="mt-8 flex flex-col items-center gap-3 sm:flex-row"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
             {actions}
           </div>
         )}
         {digest && (
-          <p className="mt-12 text-[10px] uppercase tracking-[0.2em] text-white/20">
+          <p
+            className="mt-12 text-[10px] uppercase tracking-[0.2em] text-white/20"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
             Reference {digest}
           </p>
         )}
       </div>
-
-      <p
-        className="relative z-10 pb-6 text-center text-[10px] uppercase tracking-[0.25em] text-white/20"
-        style={{ fontFamily: "Montserrat, sans-serif" }}
-      >
-        Stream anything, anywhere, anytime.
-      </p>
     </main>
   );
 }

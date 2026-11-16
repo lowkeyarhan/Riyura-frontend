@@ -141,6 +141,14 @@ export function useWatchParty({
     }
   }, []);
 
+  // Render a chat bubble once, deduped by message id across the POST response,
+  // NEW_CHAT echo, and CONNECTED replay. One Set covers every source.
+  const addMessage = useCallback((msg: ChatMessage) => {
+    if (!msg?.id || renderedIdsRef.current.has(msg.id)) return;
+    renderedIdsRef.current.add(msg.id);
+    setMessages((prev) => [...prev, msg]);
+  }, []);
+
   const startHeartbeatTimer = useCallback((id: string) => {
     if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
     heartbeatTimerRef.current = setInterval(async () => {
@@ -300,6 +308,7 @@ export function useWatchParty({
     isHostRef.current = false;
     partyIdRef.current = null;
     reconnectBackoffRef.current = 0;
+    renderedIdsRef.current = new Set();
   }, [clearTimers]);
 
   const handleSSEEventRef = useRef<(name: string, data: string) => void>(

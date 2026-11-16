@@ -15,8 +15,10 @@ import {
 const BASE = "/api/watchalong/party";
 const PROGRESS_PUSH_INTERVAL_MS = 5_000;
 const HEARTBEAT_INTERVAL_MS = 2.5 * 60 * 1000;
-const SSE_RECONNECT_DELAY_MS = 3_000;
-const SSE_MAX_RECONNECTS = 5;
+const SSE_RECONNECT_BASE_DELAY_MS = 1_000;
+const SSE_RECONNECT_MAX_DELAY_MS = 30_000;
+const SEND_CHAT_MAX_ATTEMPTS = 3;
+const SEND_CHAT_RETRY_BASE_MS = 1_000;
 const PARTY_DRIFT_THRESHOLD_SEC = 10;
 const PARTY_SYNC_COOLDOWN_MS = 20_000;
 
@@ -73,7 +75,8 @@ export function useWatchParty({
   const sseAbortControllerRef = useRef<AbortController | null>(null);
   const heartbeatTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectCountRef = useRef(0);
+  const reconnectBackoffRef = useRef(0);
+  const renderedIdsRef = useRef<Set<string>>(new Set());
   const isMountedRef = useRef(true);
   const isLeavingRef = useRef(false);
   const lastDriftSyncRef = useRef(0);
@@ -296,7 +299,7 @@ export function useWatchParty({
     }
     isHostRef.current = false;
     partyIdRef.current = null;
-    reconnectCountRef.current = 0;
+    reconnectBackoffRef.current = 0;
   }, [clearTimers]);
 
   const handleSSEEventRef = useRef<(name: string, data: string) => void>(
@@ -317,7 +320,7 @@ export function useWatchParty({
     switch (typeToSwitch) {
       case "CONNECTED":
         if (isMountedRef.current) setIsConnected(true);
-        reconnectCountRef.current = 0;
+        reconnectBackoffRef.current = 0;
         break;
 
       case "USER_JOINED": {
@@ -515,22 +518,34 @@ export function useWatchParty({
           }
         }
 
-        if (!signal.aborted && isMountedRef.current) {
-          if (reconnectCountRef.current < SSE_MAX_RECONNECTS) {
-            reconnectCountRef.current++;
-            setTimeout(() => connectSSE(id), SSE_RECONNECT_DELAY_MS);
-          } else {
-            if (isMountedRef.current) setIsConnected(false);
-          }
+        if (
+          !signal.aborted &&
+          isMountedRef.current &&
+          !isLeavingRef.current
+        ) {
+          const delay = Math.min(
+            SSE_RECONNECT_BASE_DELAY_MS * 2 ** reconnectBackoffRef.current,
+            SSE_RECONNECT_MAX_DELAY_MS,
+          );
+          reconnectBackoffRef.current++;
+          setTimeout(() => connectSSE(id), delay);
+        } else {
+          if (isMountedRef.current) setIsConnected(false);
         }
       } catch (err: unknown) {
         if ((err as Error)?.name === "AbortError") return;
         if (isMountedRef.current) setIsConnected(false);
-        if (!signal.aborted && isMountedRef.current) {
-          if (reconnectCountRef.current < SSE_MAX_RECONNECTS) {
-            reconnectCountRef.current++;
-            setTimeout(() => connectSSE(id), SSE_RECONNECT_DELAY_MS);
-          }
+        if (
+          !signal.aborted &&
+          isMountedRef.current &&
+          !isLeavingRef.current
+        ) {
+          const delay = Math.min(
+            SSE_RECONNECT_BASE_DELAY_MS * 2 ** reconnectBackoffRef.current,
+            SSE_RECONNECT_MAX_DELAY_MS,
+          );
+          reconnectBackoffRef.current++;
+          setTimeout(() => connectSSE(id), delay);
         }
       }
     },

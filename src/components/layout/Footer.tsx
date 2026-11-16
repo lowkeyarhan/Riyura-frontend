@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Instagram, Linkedin, Phone, Dribbble } from "lucide-react";
+import { MessageCircle, Instagram, Dribbble, Linkedin } from "lucide-react";
 
 const socials = [
-  { Icon: Phone, href: "#", label: "Phone" },
+  { Icon: MessageCircle, href: "#", label: "Contact" },
   { Icon: Instagram, href: "https://instagram.com/", label: "Instagram" },
   { Icon: Dribbble, href: "https://dribbble.com/", label: "Dribbble" },
   { Icon: Linkedin, href: "https://linkedin.com/", label: "LinkedIn" },
@@ -14,9 +14,18 @@ const navLinks = [
   { label: "Home", href: "/home" },
   { label: "Explore", href: "/explore" },
   { label: "Search", href: "/search" },
-  { label: "Profile", href: "/profile" },
   { label: "Watchlist", href: "/watchlist" },
+  { label: "Profile", href: "/profile" },
 ];
+
+const FALLBACK_BRAND = ["#ff8a4c", "#c25a2a", "#7a2f16", "#2a0f06"];
+
+// Extracted colors carry alpha 0.15; strip it so the glow stays visible.
+const toSolid = (color: string) =>
+  color.replace(
+    /rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/,
+    "rgb($1, $2, $3)",
+  );
 
 export default function Footer({
   gradientColors,
@@ -24,64 +33,71 @@ export default function Footer({
   gradientColors?: string[];
 }) {
   const colors = gradientColors ?? [];
-  const brandGradient =
-    colors.length > 0 ? `linear-gradient(135deg, ${colors.join(", ")})` : undefined;
+  const brand =
+    colors.length >= 4 ? colors.map(toSolid) : FALLBACK_BRAND;
 
   return (
-    <footer
-      className="relative w-full overflow-hidden font-sans border-t border-white/10 pt-16 pb-12 rounded-[2rem]"
-      style={{
-        // Translucent so the page's dynamic gradient background bleeds through.
-        backgroundColor: "rgba(5, 5, 5, 0.45)",
-        backdropFilter: "blur(28px)",
-        WebkitBackdropFilter: "blur(28px)",
-      }}
-    >
-      {/* Large blurred brand watermark tinted with the page's colors. */}
-      {brandGradient && (
-        <div
-          className="absolute inset-x-0 bottom-0 h-[260px] pointer-events-none opacity-10 blur-[100px]"
-          style={{ background: brandGradient }}
-        />
-      )}
-
-      <div className="relative z-10 max-w-[1920px] mx-auto px-6 md:px-12 lg:px-20">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-10">
-          {/* Left: navigation links */}
-          <nav className="space-y-2">
-            <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">
-              Discover
-            </h4>
+    <footer className="w-full px-4 pb-4 pt-6 sm:px-8">
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-[#161616] px-6 pt-10 sm:px-10 sm:pt-12">
+        {/* Top content */}
+        <div className="relative z-20 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+          {/* Navigation */}
+          <nav className="flex flex-col gap-5">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-xs text-gray-400 hover:text-white transition-colors"
+                className="text-2xl font-medium text-white/95 transition-colors hover:text-white sm:text-3xl"
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Right: social icons + credit */}
-          <div className="flex flex-col gap-3 lg:items-end w-full lg:w-auto">
-            <div className="flex items-center gap-4 text-[10px] text-gray-400">
+          {/* Socials + contact */}
+          <div className="flex flex-col gap-5 md:items-end">
+            <div className="flex items-center gap-4">
               {socials.map((s) => (
                 <a
                   key={s.label}
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-white transition-colors hover:text-white/60"
                   title={s.label}
                 >
-                  <s.Icon size={16} />
+                  <s.Icon size={24} strokeWidth={1.75} />
                 </a>
               ))}
             </div>
-            <p className="text-[10px] text-gray-500">
-              © 2025. Built by Arhan Das.
-            </p>
+            <div className="space-y-1 text-sm text-white/70 sm:text-base md:text-right">
+              <p>E-mail: hello@riyura.co</p>
+              <p>© 2025. Built by Arhan Das.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Brand watermark */}
+        <div className="relative z-10 mt-8 h-[20vw] min-h-[96px] overflow-hidden">
+          {/* Bottom glow wash */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[85%] opacity-60 blur-[70px]"
+            style={{
+              background: `radial-gradient(ellipse at 50% 100%, ${brand[0]}, transparent 72%)`,
+            }}
+          />
+          {/* Gradient brand text */}
+          <div className="absolute inset-x-0 bottom-0 flex justify-center">
+            <span
+              aria-hidden
+              className="select-none whitespace-nowrap bg-clip-text text-[30vw] font-semibold leading-[0.64] tracking-[-0.06em] text-transparent blur-[3px]"
+              style={{
+                backgroundImage: `linear-gradient(to top, ${brand[0]} 0%, ${brand[1]} 40%, ${brand[2]} 70%, transparent 100%)`,
+              }}
+            >
+              Riyura
+            </span>
           </div>
         </div>
       </div>

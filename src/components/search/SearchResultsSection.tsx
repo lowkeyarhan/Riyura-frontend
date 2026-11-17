@@ -1,6 +1,6 @@
 import type { SearchProp } from "@/src/props/search/search";
-import { SearchResultCard } from "./SearchResultCard";
-import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
+import MediaCard from "@/src/components/media/MediaCard";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 interface SearchResultsSectionProps {
@@ -58,7 +58,7 @@ export function SearchResultsSection({
       <LayoutGroup>
         <motion.div
           layout
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6"
         >
           <AnimatePresence mode="sync">
             {results.map((item) => (
@@ -72,7 +72,7 @@ export function SearchResultsSection({
                 exit="exit"
                 transition={layoutTransition}
               >
-                <SearchResultCard
+                <MediaCard
                   item={item}
                   onClick={() => onCardClick(item)}
                 />
@@ -81,7 +81,7 @@ export function SearchResultsSection({
           </AnimatePresence>
           {isLoadingMore &&
             Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-              <SearchCardSkeleton key={`skeleton-${i}`} />
+              <MediaCardSkeleton key={`skeleton-${i}`} />
             ))}
         </motion.div>
       </LayoutGroup>

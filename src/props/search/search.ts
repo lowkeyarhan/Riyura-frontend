@@ -1,4 +1,5 @@
 import { MediaType } from "../global/mediaType";
+import type { MediaCardProp } from "../global/mediaCard";
 
 export enum SearchSortBy {
   POPULARITY_DESC = "POPULARITY_DESC",
@@ -14,12 +15,8 @@ export const SEARCH_SORT_LABELS: Record<SearchSortBy, string> = {
   [SearchSortBy.RELEASE_DATE_ASC]: "Oldest First",
 };
 
-export interface SearchProp {
-  description: string;
-  media_type: MediaType;
-  original_language: string;
-  poster_path: string;
-  release_year: string;
-  title: string;
-  tmdbId: number;
+export interface SearchProp extends MediaCardProp {
+  description?: string;
+  original_language?: string;
+  release_year?: string;
 }

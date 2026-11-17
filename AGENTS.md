@@ -79,7 +79,7 @@ Create `.env.local`. Never commit it or print its values.
 
 ## RTK instructions (required)
 
-All shell output must go through RTK so context stays small. The global RTK setup is already installed; do not run `rtk init`.
+All shell output must go through RTK so context stays small. RTK is installed on this machine (e.g. `/opt/homebrew/bin/rtk` on Apple Silicon macOS). If running in a shell environment where `/opt/homebrew/bin` is not yet in `PATH`, prefix commands with `export PATH="/opt/homebrew/bin:$PATH"` or ensure `PATH` contains `/opt/homebrew/bin`.
 
 - Read files: `rtk read <file> -n`. For large files use `--head-lines N`, `--tail-lines N`, or `--max-lines N` instead of reading everything.
 - Search: `rtk grep <pattern> <path>` or `rtk rg ...` (ripgrep flags work). Use `--include` to narrow.
@@ -116,3 +116,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+@RTK.md

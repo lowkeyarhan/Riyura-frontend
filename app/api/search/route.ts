@@ -24,8 +24,16 @@ export async function GET(request: NextRequest) {
 
     const results = raw.map((item: Record<string, unknown>) => {
       const poster = item.poster_path;
+      const rawYear = String(
+        item.year ?? item.release_year ?? item.release_date ?? item.first_air_date ?? "",
+      );
+      const year = rawYear.length >= 4 ? rawYear.slice(0, 4) : rawYear;
       return {
         ...item,
+        tmdbId: Number(item.tmdbId ?? item.id ?? 0),
+        title: String(item.title ?? item.name ?? ""),
+        year,
+        release_year: rawYear,
         poster_path: poster
           ? normalizeTmdbImageUrl(String(poster), "w500")
           : "",

@@ -3,9 +3,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
 import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
 import { MediaType } from "@/src/props/global/mediaType";
-import type { ExploreProp } from "@/src/props/explore/explore";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 
 export const dynamic = "force-dynamic";
+
+function normalizeExploreItem(item: Record<string, unknown>): MediaCardProp {
+  const poster = (item.poster_path ?? item.posterPath) as string | null | undefined;
+  const rawYear = String(
+    item.year ?? item.releaseYear ?? item.release_date ?? item.first_air_date ?? "",
+  );
+  const year = rawYear.length >= 4 ? rawYear.slice(0, 4) : rawYear;
+  const rawMediaType = (item.media_type ?? item.mediaType ?? "") as string;
+  const media_type =
+    rawMediaType.toLowerCase() === "tv" || rawMediaType === MediaType.TV
+      ? MediaType.TV
+      : MediaType.Movie;
+
+  return {
+    tmdbId: Number(item.tmdbId ?? item.id ?? 0),
+    title: String(item.title ?? item.name ?? ""),
+    poster_path: normalizeTmdbImageUrl(poster, "w500"),
+    year,
+    media_type,
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,25 +48,7 @@ export async function GET(request: NextRequest) {
     const raw = Array.isArray(data?.results) ? data.results : [];
     const currentPage = typeof data?.page === "number" ? data.page : page;
 
-    const results: ExploreProp[] = raw.map((item: Record<string, unknown>) => {
-      const poster = item.posterPath ?? item.poster_path;
-      return {
-        tmdbId: Number(item.tmdbId ?? item.id ?? 0),
-        title: String(item.title ?? ""),
-        mediaType: (item.mediaType ??
-          item.media_type ??
-          MediaType.Movie) as ExploreProp["mediaType"],
-        releaseYear: String(
-          item.releaseYear ?? item.release_date ?? item.first_air_date ?? "",
-        ),
-        originalLanguage: String(
-          item.originalLanguage ?? item.original_language ?? "",
-        ),
-        rating: Number(item.rating ?? item.vote_average ?? 0),
-        description: String(item.description ?? item.overview ?? ""),
-        posterPath: poster ? normalizeTmdbImageUrl(String(poster), "w500") : "",
-      };
-    });
+    const results: MediaCardProp[] = raw.map(normalizeExploreItem);
 
     return NextResponse.json({ page: currentPage, results }, { status: 200 });
   } catch (error) {

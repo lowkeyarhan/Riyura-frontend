@@ -65,7 +65,6 @@ export default function MediaCard({
   const { title, poster_path, year, media_type } = item;
   const posterUrl = poster_path || "/placeholder-image.jpg";
   const typeConfig = TYPE_CONFIG[media_type] ?? TYPE_CONFIG[MediaType.Movie];
-  const hasRemove = typeof onRemove === "function";
 
   // Long-press detection for mobile
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(

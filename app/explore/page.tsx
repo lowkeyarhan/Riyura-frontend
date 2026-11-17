@@ -2,8 +2,8 @@
 
 import { ArrowUp, Globe } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
-import { SearchResultCard } from "@/src/components/search/SearchResultCard";
+import MediaCard from "@/src/components/media/MediaCard";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 import {
   EXPLORE_GENRES,
   EXPLORE_LANGUAGES,
@@ -11,7 +11,6 @@ import {
 } from "@/src/lib/constants/explore";
 import { useExploreData } from "@/src/hooks/useExploreData";
 import PageBackdrop from "@/src/components/layout/PageBackdrop";
-import "react-loading-skeleton/dist/skeleton.css";
 
 const cardVariants = {
   initial: {
@@ -144,7 +143,7 @@ export default function ExplorePage() {
         <LayoutGroup>
           <motion.div
             layout
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6"
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6"
           >
             <AnimatePresence mode="sync">
               {/* Show items if it's NOT the initial load (so we keep them during infinite scroll) */}
@@ -152,15 +151,15 @@ export default function ExplorePage() {
                 filteredItems.map((item) => (
                   <motion.div
                     layout
-                    layoutId={`explore-card-${item.tmdbId}`}
-                    key={item.tmdbId}
+                    layoutId={`explore-card-${item.tmdbId}-${item.media_type}`}
+                    key={`${item.tmdbId}-${item.media_type}`}
                     variants={cardVariants}
                     initial="initial"
                     animate="animate"
                     exit="exit"
                     transition={{ duration: 0.3 }}
                   >
-                    <SearchResultCard
+                    <MediaCard
                       item={item}
                       onClick={() => handleCardClick(item)}
                     />
@@ -173,7 +172,7 @@ export default function ExplorePage() {
             {loading && page === 1 && (
               <>
                 {Array.from({ length: 18 }).map((_, i) => (
-                  <SearchCardSkeleton key={`skeleton-init-${i}`} />
+                  <MediaCardSkeleton key={`skeleton-init-${i}`} />
                 ))}
               </>
             )}
@@ -182,7 +181,7 @@ export default function ExplorePage() {
             {loading && page > 1 && (
               <>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <SearchCardSkeleton key={`skeleton-more-${i}`} />
+                  <MediaCardSkeleton key={`skeleton-more-${i}`} />
                 ))}
               </>
             )}

@@ -1,12 +1,3 @@
-import { MediaType } from "../global/mediaType";
+import type { MediaCardProp } from "../global/mediaCard";
 
-export interface ExploreProp {
-  tmdbId: number;
-  title: string;
-  mediaType: MediaType;
-  releaseYear: string;
-  originalLanguage: string;
-  rating: number;
-  description: string;
-  posterPath: string;
-}
+export type ExploreProp = MediaCardProp;

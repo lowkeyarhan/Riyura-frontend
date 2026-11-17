@@ -9,7 +9,8 @@ interface UseWatchProgressOptions {
 }
 
 /**
- * Tracks watch progress from iframe message events (Ironlink, Dormannu, Syntherion)
+ * Tracks watch progress from iframe message events (Ironlink, Dormannu,
+ * Syntherion, CinemaOS, Vidcore) or via a local timer for the Nanovue server.
  * or via a local timer for the Nanovue server.
  *
  * - Non-Nanovue: extracts `watched` / `timestamp` from postMessage events
@@ -139,6 +140,22 @@ export function useWatchProgress({
         else if ("progress" in d && ("timestamp" in d || "duration" in d)) {
           const ts = Number(d.timestamp ?? 0);
           latestProgressRef.current = ts;
+        }
+        // Vidcore (Kryptonex) — vidspark player: { source: "vidspark-player",
+        // event: "play" | "pause" | "seeked" | "ended" | "timeupdate",
+        // currentTime, duration }. Documented vidcore:* events share the shape.
+        else {
+          const tag = (d.source ?? d.type ?? d.event) as unknown;
+          if (
+            tag === "vidspark-player" ||
+            (typeof tag === "string" && tag.startsWith("vidcore:"))
+          ) {
+            const data = d.data as Record<string, unknown> | undefined;
+            const current = data?.currentTime ?? d.currentTime;
+            if (current !== undefined && !Number.isNaN(Number(current))) {
+              latestProgressRef.current = Number(current);
+            }
+          }
         }
       }
     };

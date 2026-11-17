@@ -4,8 +4,6 @@ import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { MediaType } from "@/src/props/global/mediaType";
 import type { SearchProp } from "@/src/props/search/search";
-import { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 
 import { useSearchData } from "@/src/hooks/useSearchData";
 import PageBackdrop from "@/src/components/layout/PageBackdrop";
@@ -18,7 +16,7 @@ import { FilterTabs } from "@/src/components/search/FilterTabs";
 import { TrendingSection } from "@/src/components/search/TrendingSection";
 import { SearchResultsSection } from "@/src/components/search/SearchResultsSection";
 import { EmptyState } from "@/src/components/search/EmptyState";
-import { SearchCardSkeleton } from "@/src/components/skeletons/SearchCardSkeleton";
+import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
 
 function SearchPageContent() {
   const router = useRouter();
@@ -91,13 +89,11 @@ function SearchPageContent() {
         />
 
         {isLoading && filteredResults.length === 0 && (
-          <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-7">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <SearchCardSkeleton key={i} />
-              ))}
-            </div>
-          </SkeletonTheme>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <MediaCardSkeleton key={i} />
+            ))}
+          </div>
         )}
 
         {!isLoading &&

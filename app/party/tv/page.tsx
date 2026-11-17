@@ -121,7 +121,11 @@ function PartyTVContent() {
     if (streamUrl && !isHost) {
       try {
         const u = new URL(streamUrl);
-        const t = u.searchParams.get("start") ?? u.searchParams.get("t");
+        const t =
+          u.searchParams.get("startAt") ??
+          u.searchParams.get("startTime") ??
+          u.searchParams.get("start") ??
+          u.searchParams.get("t");
         if (t) {
           setProgress(Number(t));
         }

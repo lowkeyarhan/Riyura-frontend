@@ -2,24 +2,10 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import type { ExploreProp } from "@/src/props/explore/explore";
-import type { SearchProp } from "@/src/props/search/search";
+import type { MediaCardProp } from "@/src/props/global/mediaCard";
 import { MediaType } from "@/src/props/global/mediaType";
 import { EXPLORE_GENRES } from "@/src/lib/constants/explore";
 import { getDetailsPath } from "@/src/lib/utils/format";
-
-function toSearchProp(item: ExploreProp): SearchProp & { id: number } {
-  return {
-    id: item.tmdbId,
-    tmdbId: item.tmdbId,
-    title: item.title,
-    description: item.description,
-    media_type: item.mediaType as MediaType,
-    original_language: item.originalLanguage,
-    poster_path: item.posterPath,
-    release_year: item.releaseYear,
-  };
-}
 
 export function useExploreData() {
   const router = useRouter();
@@ -28,13 +14,13 @@ export function useExploreData() {
   ]);
   const [mediaType, setMediaType] = useState("all");
   const [language, setLanguage] = useState("");
-  const [items, setItems] = useState<ExploreProp[]>([]);
+  const [items, setItems] = useState<MediaCardProp[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [showTopBtn, setShowTopBtn] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<ExploreProp[]>([]);
+  const itemsRef = useRef<MediaCardProp[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -64,14 +50,19 @@ export function useExploreData() {
           throw new Error(message);
         }
         const data = await res.json();
-        const rawResults = (data.results ?? []) as ExploreProp[];
+        const rawResults = (data.results ?? []) as MediaCardProp[];
 
-        const existingIds = new Set(itemsRef.current.map((i) => i.tmdbId));
+        const existingKeys = new Set(
+          itemsRef.current.map((i) => `${i.tmdbId}-${i.media_type}`),
+        );
         const newItems =
           page === 1
             ? rawResults
-            : rawResults.filter((i) => !existingIds.has(i.tmdbId));
-        const nextItems = page === 1 ? rawResults : [...itemsRef.current, ...newItems];
+            : rawResults.filter(
+                (i) => !existingKeys.has(`${i.tmdbId}-${i.media_type}`),
+              );
+        const nextItems =
+          page === 1 ? rawResults : [...itemsRef.current, ...newItems];
         itemsRef.current = nextItems;
         setItems(nextItems);
         setHasMore(newItems.length > 0);
@@ -123,20 +114,18 @@ export function useExploreData() {
     setLanguage(lang);
   };
 
-  const filteredItems = useMemo<(SearchProp & { id: number })[]>(
+  const filteredItems = useMemo<MediaCardProp[]>(
     () =>
-      items
-        .filter((item) => {
-          if (mediaType === "all") return true;
-          if (mediaType === "movie") return item.mediaType === MediaType.Movie;
-          if (mediaType === "tv") return item.mediaType === MediaType.TV;
-          return true;
-        })
-        .map(toSearchProp),
+      items.filter((item) => {
+        if (mediaType === "all") return true;
+        if (mediaType === "movie") return item.media_type === MediaType.Movie;
+        if (mediaType === "tv") return item.media_type === MediaType.TV;
+        return true;
+      }),
     [items, mediaType],
   );
 
-  const handleCardClick = (item: SearchProp) => {
+  const handleCardClick = (item: MediaCardProp) => {
     router.push(getDetailsPath(item.tmdbId, item.media_type));
   };
 

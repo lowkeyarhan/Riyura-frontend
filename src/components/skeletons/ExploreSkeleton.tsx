@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
-import { SearchCardSkeleton } from "./SearchCardSkeleton";
+import { MediaCardSkeleton } from "./MediaCardSkeleton";
 
 export default function ExploreSkeleton() {
   return (
@@ -11,7 +9,7 @@ export default function ExploreSkeleton() {
       {/* --- STATIC BACKGROUND LAYER  --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-black" />
-        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
       </div>
@@ -47,9 +45,9 @@ export default function ExploreSkeleton() {
         </div>
 
         {/* Media Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 18 }).map((_, i) => (
-            <SearchCardSkeleton key={`skeleton-${i}`} />
+            <MediaCardSkeleton key={`skeleton-${i}`} />
           ))}
         </div>
       </div>

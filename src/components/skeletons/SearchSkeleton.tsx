@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
-import { SearchCardSkeleton } from "./SearchCardSkeleton";
+import { MediaCardSkeleton } from "./MediaCardSkeleton";
 
 export default function SearchSkeleton() {
   return (
@@ -28,9 +26,9 @@ export default function SearchSkeleton() {
         </div>
 
         {/* Media Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 18 }).map((_, i) => (
-            <SearchCardSkeleton key={`skeleton-${i}`} />
+            <MediaCardSkeleton key={`skeleton-${i}`} />
           ))}
         </div>
       </div>

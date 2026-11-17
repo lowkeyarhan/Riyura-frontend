@@ -126,7 +126,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | Path                                           | Responsibility                                                 |
 | ---------------------------------------------- | -------------------------------------------------------------- |
 | `src/components/layout/AuthGate.tsx`           | Route protection and auth/onboarding redirects.                |
-| `src/components/layout/BackendHealthGate.tsx`  | Backend health UI gate and server-down modal trigger.          |
 | `src/components/layout/ChunkErrorBoundary.tsx` | React error boundary for chunk-load and render failures.       |
 | `src/components/layout/ChunkErrorHandler.tsx`  | Global listener for failed dynamic chunks and reload recovery. |
 | `src/components/layout/Navbar.tsx`             | Desktop navigation bar.                                        |
@@ -154,7 +153,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | `src/components/search/SearchIcons.tsx`          | Search-related icon helpers.                        |
 | `src/components/search/FilterTabs.tsx`           | Search tab/filter controls.                         |
 | `src/components/search/SearchResultsSection.tsx` | Search results list/grid section.                   |
-| `src/components/search/SearchResultCard.tsx`     | Individual search result card.                      |
 | `src/components/search/TrendingSection.tsx`      | Trending fallback or discovery section for search.  |
 | `src/components/search/TrendingCard.tsx`         | Individual trending media card.                     |
 | `src/components/search/EmptyState.tsx`           | Empty search result state.                          |
@@ -206,7 +204,6 @@ Single source of truth for Claude Code, Codex, and other AI coding agents. Read 
 | `src/components/skeletons/MediaCardSkeleton.tsx`        | Media card loading skeleton.         |
 | `src/components/skeletons/TrendingCardSkeleton.tsx`     | Trending card loading skeleton.      |
 | `src/components/skeletons/SearchSkeleton.tsx`           | Search page loading skeleton.        |
-| `src/components/skeletons/SearchCardSkeleton.tsx`       | Search result card loading skeleton. |
 | `src/components/skeletons/ExploreSkeleton.tsx`          | Explore page loading skeleton.       |
 | `src/components/skeletons/DetailsSkeleton.tsx`          | Details page loading skeleton.       |
 | `src/components/skeletons/PlayerSkeleton.tsx`           | Playback page loading skeleton.      |

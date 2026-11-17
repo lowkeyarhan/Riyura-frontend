@@ -6,7 +6,6 @@ import { ChunkErrorBoundary } from "@/src/components/layout/ChunkErrorBoundary";
 import { ChunkErrorHandler } from "@/src/components/layout/ChunkErrorHandler";
 import { NotificationProvider } from "@/src/lib/contexts/NotificationContext";
 import { BackendHealthProvider } from "@/src/lib/contexts/BackendHealthContext";
-import { BackendHealthGate } from "@/src/components/layout/BackendHealthGate";
 import Notification from "@/src/components/ui/Notification";
 import { ServersDownModal } from "@/src/components/ui/ServersDownModal";
 import DevModeBadge from "@/src/components/ui/DevModeBadge";
@@ -41,9 +40,7 @@ export default function RootLayout({
         <ChunkErrorBoundary>
           <NotificationProvider>
             <BackendHealthProvider>
-              <AuthGate>
-                <BackendHealthGate>{children}</BackendHealthGate>
-              </AuthGate>
+              <AuthGate>{children}</AuthGate>
               <ServersDownModal />
             </BackendHealthProvider>
             <Notification />

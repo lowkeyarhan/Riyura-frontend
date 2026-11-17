@@ -1,19 +1,18 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
+import {
+  getAuthHeader,
+  unauthorizedResponse,
+} from "@/src/lib/server/routeUtils";
 
 export const dynamic = "force-dynamic";
-
-function getAuthHeader(request: Request): string | null {
-  const header = request.headers.get("Authorization");
-  return header?.startsWith("Bearer ") ? header : null;
-}
 
 // GET /api/profile/recommendations
 export async function GET(request: Request) {
   const authHeader = getAuthHeader(request);
   if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const { searchParams } = new URL(request.url);

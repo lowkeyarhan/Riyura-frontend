@@ -2,11 +2,12 @@
 
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { Play, X, Star, Share2 } from "lucide-react";
+import { Play, Star, Share2 } from "lucide-react";
 import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import MediaCard from "@/src/components/media/MediaCard";
 import { useMovieDetails } from "@/src/hooks/details/useMovieDetails";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { formatRuntime, formatDate, formatMoney } from "@/src/lib/utils/format";
 import { extractColors } from "@/src/lib/utils/color";
 import { useEffect, useState } from "react";
@@ -16,9 +17,9 @@ export default function MovieDetails() {
   const params = useParams();
   const id = params.id as string;
 
-  const { movie, loading, error, showTrailer, setShowTrailer, similarMovies } =
-    useMovieDetails(id);
+  const { movie, loading, error, similarMovies } = useMovieDetails(id);
 
+  const { addNotification } = useNotification();
   const [gradientColors, setGradientColors] = useState<string[]>([]);
 
   useEffect(() => {
@@ -26,6 +27,20 @@ export default function MovieDetails() {
       extractColors(movie.backdrop_path, 0.15).then(setGradientColors);
     }
   }, [movie?.backdrop_path]);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: movie?.title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        addNotification("Link copied to clipboard", "success");
+      }
+    } catch {
+      // user dismissed the share sheet
+    }
+  };
 
   if (loading) {
     return (
@@ -67,26 +82,6 @@ export default function MovieDetails() {
         backgroundAttachment: "fixed",
       }}
     >
-      {showTrailer && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95">
-          <div className="relative w-[90%] max-w-[1200px] aspect-video">
-            <button
-              className="absolute -top-12 right-0 z-[2001] text-white hover:text-red-500 transition"
-              onClick={() => setShowTrailer(false)}
-            >
-              <X className="w-8 h-8" />
-            </button>
-            <iframe
-              className="w-full h-full rounded-lg"
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
-              title="Movie Trailer"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      )}
-
       {/* Hero Background Image */}
       <div
         className="fixed inset-0 z-0 h-[70vh] w-full overflow-hidden pointer-events-none"
@@ -143,12 +138,12 @@ export default function MovieDetails() {
           {movie.tagline && (
             <span className="text-center text-white/80 text-sm italic">
               {" "}
-              "{movie.tagline}"
+              &ldquo;{movie.tagline}&rdquo;
             </span>
           )}
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => router.push(`/watch/movie/${movie.id}`)}
               className="apple-glass col-span-2 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white font-medium text-sm transition-all hover:brightness-110 active:scale-95"
@@ -157,13 +152,9 @@ export default function MovieDetails() {
               Movie
             </button>
             <button
-              onClick={() => setShowTrailer(true)}
-              className="apple-glass col-span-2 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white/80 hover:text-white font-medium text-sm transition-all hover:bg-white/10 active:scale-95"
+              onClick={handleShare}
+              className="apple-glass col-span-1 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white/80 hover:text-white font-medium text-sm transition-all hover:bg-white/10 active:scale-95"
             >
-              <Play className="w-5 h-5" />
-              Trailer
-            </button>
-            <button className="apple-glass col-span-1 border-none rounded-full py-3 px-4 flex items-center justify-center gap-2 text-white/80 hover:text-white font-medium text-sm transition-all hover:bg-white/10 active:scale-95">
               <Share2 className="w-5 h-5" />
               Share
             </button>

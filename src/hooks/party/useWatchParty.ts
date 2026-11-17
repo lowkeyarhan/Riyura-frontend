@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
+import { useNotification } from "@/src/lib/contexts/NotificationContext";
 import { MediaType } from "@/src/props/global/mediaType";
 import {
   PartyState,
@@ -12,10 +13,14 @@ import {
 } from "@/src/props/party/watchParty";
 
 const BASE = "/api/watchalong/party";
-const PROGRESS_PUSH_INTERVAL_MS = 5 * 60 * 1000;
+const PROGRESS_PUSH_INTERVAL_MS = 5_000;
 const HEARTBEAT_INTERVAL_MS = 2.5 * 60 * 1000;
-const SSE_RECONNECT_DELAY_MS = 3_000;
-const SSE_MAX_RECONNECTS = 5;
+const SSE_RECONNECT_BASE_DELAY_MS = 1_000;
+const SSE_RECONNECT_MAX_DELAY_MS = 30_000;
+const SEND_CHAT_MAX_ATTEMPTS = 3;
+const SEND_CHAT_RETRY_BASE_MS = 1_000;
+const PARTY_DRIFT_THRESHOLD_SEC = 10;
+const PARTY_SYNC_COOLDOWN_MS = 20_000;
 
 interface UseWatchPartyProps {
   partyId?: string | null;
@@ -54,6 +59,7 @@ export function useWatchParty({
   episodeNo = 0,
   providerId: initialProviderId = "ironlink",
 }: UseWatchPartyProps): UseWatchPartyReturn {
+  const { addNotification } = useNotification();
   const [partyId, setPartyId] = useState<string | null>(initialPartyId ?? null);
   const [partyState, setPartyState] = useState<PartyState | null>(null);
   const [participants, setParticipants] = useState<PartyParticipant[]>([]);
@@ -63,19 +69,17 @@ export function useWatchParty({
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log("[useWatchParty] streamUrl state updated to:", streamUrl);
-  }, [streamUrl]);
-
   const isHostRef = useRef(false);
   const currentUserIdRef = useRef<string | undefined>(undefined);
   const partyIdRef = useRef<string | null>(initialPartyId ?? null);
   const sseAbortControllerRef = useRef<AbortController | null>(null);
   const heartbeatTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectCountRef = useRef(0);
+  const reconnectBackoffRef = useRef(0);
+  const renderedIdsRef = useRef<Set<string>>(new Set());
   const isMountedRef = useRef(true);
   const isLeavingRef = useRef(false);
+  const lastDriftSyncRef = useRef(0);
 
   const currentTimeRef = useRef<number>(0);
   const currentProviderRef = useRef<string>(initialProviderId);
@@ -137,6 +141,14 @@ export function useWatchParty({
     }
   }, []);
 
+  // Render a chat bubble once, deduped by message id across the POST response,
+  // NEW_CHAT echo, and CONNECTED replay. One Set covers every source.
+  const addMessage = useCallback((msg: ChatMessage) => {
+    if (!msg?.id || renderedIdsRef.current.has(msg.id)) return;
+    renderedIdsRef.current.add(msg.id);
+    setMessages((prev) => [...prev, msg]);
+  }, []);
+
   const startHeartbeatTimer = useCallback((id: string) => {
     if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
     heartbeatTimerRef.current = setInterval(async () => {
@@ -160,7 +172,6 @@ export function useWatchParty({
       );
       return null;
     }
-    console.log("[WATCH PARTY] syncPlayer initiated for party:", id);
     try {
       const headers = await getHeaders();
       const res = await fetch(`${BASE}/${id}/sync`, { headers });
@@ -169,7 +180,6 @@ export function useWatchParty({
         return null;
       }
       const data: SyncResponse = await res.json();
-      console.log("[WATCH PARTY] syncPlayer received data:", data);
       if (data.streamUrl && isMountedRef.current) {
         // Parse the stream URL and append a unique partySync timestamp.
         // This forces the iframe key/src to change, prompting a reload.
@@ -177,19 +187,11 @@ export function useWatchParty({
           const u = new URL(data.streamUrl);
           u.searchParams.set("partySync", Date.now().toString());
           const finalUrl = u.toString();
-          console.log(
-            "[WATCH PARTY] syncPlayer setting streamUrl state to:",
-            finalUrl,
-          );
           setStreamUrl(finalUrl);
         } catch {
           // If URL parsing fails, fallback to appending query param manually
           const separator = data.streamUrl.includes("?") ? "&" : "?";
           const finalUrl = `${data.streamUrl}${separator}partySync=${Date.now()}`;
-          console.log(
-            "[WATCH PARTY] syncPlayer setting streamUrl state (fallback) to:",
-            finalUrl,
-          );
           setStreamUrl(finalUrl);
         }
       } else {
@@ -225,9 +227,6 @@ export function useWatchParty({
 
       const progress = currentTimeRef.current;
       const provider = currentProviderRef.current;
-      console.log(
-        `[WATCH PARTY] Manual progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
-      );
       try {
         const headers = await getHeaders();
         const res = await fetch(`${BASE}/progress`, {
@@ -255,9 +254,6 @@ export function useWatchParty({
         if (!isHostRef.current || !id) return;
         const progress = currentTimeRef.current;
         const provider = currentProviderRef.current;
-        console.log(
-          `[WATCH PARTY] Auto progress push → progress=${progress.toFixed(2)}s  provider=${provider}  partyId=${id}`,
-        );
         try {
           const headers = await getHeaders();
           await fetch(`${BASE}/progress`, {
@@ -311,7 +307,8 @@ export function useWatchParty({
     }
     isHostRef.current = false;
     partyIdRef.current = null;
-    reconnectCountRef.current = 0;
+    reconnectBackoffRef.current = 0;
+    renderedIdsRef.current = new Set();
   }, [clearTimers]);
 
   const handleSSEEventRef = useRef<(name: string, data: string) => void>(
@@ -329,12 +326,16 @@ export function useWatchParty({
     const { payload, eventType } = envelope;
     const typeToSwitch = eventType || eventName;
 
-    console.log(`[WATCH PARTY] SSE Event received: ${typeToSwitch}`, payload);
-
     switch (typeToSwitch) {
       case "CONNECTED":
         if (isMountedRef.current) setIsConnected(true);
-        reconnectCountRef.current = 0;
+        reconnectBackoffRef.current = 0;
+        if (isMountedRef.current) {
+          const recent = payload?.recentMessages;
+          if (Array.isArray(recent)) {
+            recent.forEach((msg) => addMessage(msg as ChatMessage));
+          }
+        }
         break;
 
       case "USER_JOINED": {
@@ -442,9 +443,15 @@ export function useWatchParty({
           if (newStreamUrl) {
             setStreamUrl(newStreamUrl);
           } else if (providerChanged && !isHostRef.current) {
-            console.log(
-              `[WATCH PARTY] Provider changed to ${updatedProvider}. Syncing player...`,
-            );
+            syncPlayer();
+          } else if (
+            !isHostRef.current &&
+            Math.abs(progress - currentTimeRef.current) >
+              PARTY_DRIFT_THRESHOLD_SEC &&
+            Date.now() - lastDriftSyncRef.current > PARTY_SYNC_COOLDOWN_MS
+          ) {
+            lastDriftSyncRef.current = Date.now();
+            currentTimeRef.current = progress;
             syncPlayer();
           }
         }
@@ -452,14 +459,8 @@ export function useWatchParty({
       }
 
       case "NEW_CHAT": {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const msg = payload as any;
-        if (isMountedRef.current && msg?.id) {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg as ChatMessage];
-          });
-        }
+        const msg = payload as ChatMessage;
+        if (isMountedRef.current && msg?.id) addMessage(msg);
         break;
       }
 
@@ -472,12 +473,6 @@ export function useWatchParty({
           if (typeof window !== "undefined") window.location.href = "/";
         }, 2000);
         break;
-
-      default:
-        console.log(
-          `[WATCH PARTY] Unrecognised SSE event: ${typeToSwitch}`,
-          payload,
-        );
     }
   };
 
@@ -532,22 +527,34 @@ export function useWatchParty({
           }
         }
 
-        if (!signal.aborted && isMountedRef.current) {
-          if (reconnectCountRef.current < SSE_MAX_RECONNECTS) {
-            reconnectCountRef.current++;
-            setTimeout(() => connectSSE(id), SSE_RECONNECT_DELAY_MS);
-          } else {
-            if (isMountedRef.current) setIsConnected(false);
-          }
+        if (
+          !signal.aborted &&
+          isMountedRef.current &&
+          !isLeavingRef.current
+        ) {
+          const delay = Math.min(
+            SSE_RECONNECT_BASE_DELAY_MS * 2 ** reconnectBackoffRef.current,
+            SSE_RECONNECT_MAX_DELAY_MS,
+          );
+          reconnectBackoffRef.current++;
+          setTimeout(() => connectSSE(id), delay);
+        } else {
+          if (isMountedRef.current) setIsConnected(false);
         }
       } catch (err: unknown) {
         if ((err as Error)?.name === "AbortError") return;
         if (isMountedRef.current) setIsConnected(false);
-        if (!signal.aborted && isMountedRef.current) {
-          if (reconnectCountRef.current < SSE_MAX_RECONNECTS) {
-            reconnectCountRef.current++;
-            setTimeout(() => connectSSE(id), SSE_RECONNECT_DELAY_MS);
-          }
+        if (
+          !signal.aborted &&
+          isMountedRef.current &&
+          !isLeavingRef.current
+        ) {
+          const delay = Math.min(
+            SSE_RECONNECT_BASE_DELAY_MS * 2 ** reconnectBackoffRef.current,
+            SSE_RECONNECT_MAX_DELAY_MS,
+          );
+          reconnectBackoffRef.current++;
+          setTimeout(() => connectSSE(id), delay);
         }
       }
     },
@@ -570,6 +577,19 @@ export function useWatchParty({
         Authorization: `Bearer ${token}`,
       };
 
+      const handleInitFailure = async (res: Response, fallback: string) => {
+        let message = fallback;
+        try {
+          const body = await res.json();
+          message = body?.error ?? body?.message ?? fallback;
+        } catch {
+          message = fallback;
+        }
+        addNotification(message, "error");
+        cleanupLocalState();
+        window.location.href = "/home";
+      };
+
       try {
         if (!initialPartyId) {
           const res = await fetch(`${BASE}/create`, {
@@ -584,7 +604,10 @@ export function useWatchParty({
             }),
           });
 
-          if (!res.ok) return;
+          if (!res.ok) {
+            await handleInitFailure(res, "Failed to create watch party");
+            return;
+          }
 
           const data: PartyState = await res.json();
           if (!isMountedRef.current) return;
@@ -598,6 +621,9 @@ export function useWatchParty({
           setPartyState(data);
           setParticipants(data.participants ?? []);
           setMessages(data.recentMessages ?? []);
+          renderedIdsRef.current = new Set(
+            (data.recentMessages ?? []).map((m) => m.id).filter(Boolean),
+          );
           setIsHost(true);
           isHostRef.current = true;
           setStreamUrl(data.streamUrl);
@@ -612,7 +638,10 @@ export function useWatchParty({
             body: JSON.stringify({ partyId: initialPartyId.toUpperCase() }),
           });
 
-          if (!res.ok) return;
+          if (!res.ok) {
+            await handleInitFailure(res, "Failed to join watch party");
+            return;
+          }
 
           const data: PartyState = await res.json();
           if (!isMountedRef.current) return;
@@ -623,6 +652,9 @@ export function useWatchParty({
           setPartyState(data);
           setParticipants(data.participants ?? []);
           setMessages(data.recentMessages ?? []);
+          renderedIdsRef.current = new Set(
+            (data.recentMessages ?? []).map((m) => m.id).filter(Boolean),
+          );
           setIsHost(meIsHost);
           isHostRef.current = meIsHost;
           setStreamUrl(data.streamUrl);
@@ -645,22 +677,52 @@ export function useWatchParty({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sendChat = useCallback(async (content: string) => {
-    const id = partyIdRef.current;
-    if (!id || !content.trim()) return;
-    const capped = content.trim().slice(0, 500);
-    try {
-      const headers = await getHeaders();
-      const res = await fetch(`${BASE}/chat`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ partyId: id, content: capped }),
-      });
-      if (!res.ok) console.warn("[WATCH PARTY] Chat send failed");
-    } catch (err) {
-      console.error("[WATCH PARTY] sendChat error:", err);
-    }
-  }, []);
+  const sendChat = useCallback(
+    async (content: string) => {
+      const id = partyIdRef.current;
+      if (!id || !content.trim()) return;
+      const capped = content.trim().slice(0, 500);
+      // One idempotency key per message, reused on every retry so the server
+      // stores the message at most once.
+      const clientMessageId = crypto.randomUUID();
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < SEND_CHAT_MAX_ATTEMPTS; attempt++) {
+        try {
+          const headers = await getHeaders();
+          const res = await fetch(`${BASE}/chat`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              partyId: id,
+              content: capped,
+              clientMessageId,
+            }),
+          });
+          if (res.ok) {
+            const msg = (await res.json()) as ChatMessage;
+            if (isMountedRef.current) addMessage(msg);
+            return;
+          }
+          // Don't retry client errors (4xx); the idempotency key makes a retry
+          // a server-side no-op anyway, but 400/403/404 won't change on retry.
+          if (res.status >= 400 && res.status < 500) {
+            console.warn(`[WATCH PARTY] Chat send failed (${res.status})`);
+            return;
+          }
+          lastErr = new Error(`HTTP ${res.status}`);
+        } catch (err) {
+          lastErr = err;
+        }
+        if (attempt < SEND_CHAT_MAX_ATTEMPTS - 1) {
+          await new Promise((r) =>
+            setTimeout(r, SEND_CHAT_RETRY_BASE_MS * (attempt + 1)),
+          );
+        }
+      }
+      console.error("[WATCH PARTY] sendChat failed after retries", lastErr);
+    },
+    [addMessage],
+  );
 
   const leaveParty = useCallback(async () => {
     const id = partyIdRef.current;

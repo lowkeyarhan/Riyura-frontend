@@ -29,9 +29,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           .eq("id", user.id)
           .single();
         if (error) {
-          setOnboarded(null);
+          setOnboarded(false);
         } else {
-          setOnboarded(data?.onboarded ?? null);
+          setOnboarded(data?.onboarded ?? false);
         }
       } else {
         setOnboarded(null);
@@ -49,23 +49,26 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, [loading, user, isPublic, router]);
 
   useEffect(() => {
-    if (!loading && user && onboarded !== null) {
-      if (isPublic) {
-        const targetRoute = !onboarded ? "/onboarding" : "/home";
+    if (loading || !user || onboarded === null) return;
 
-        // Prefetch the target route first
-        router.prefetch(targetRoute);
+    const targetRoute = !onboarded
+      ? pathname === "/onboarding"
+        ? null
+        : "/onboarding"
+      : isPublic || pathname === "/onboarding"
+        ? "/home"
+        : null;
 
-        // Use startTransition to avoid race conditions during navigation
-        startTransition(() => {
-          // Add a small delay to ensure chunks are loaded
-          setTimeout(() => {
-            router.replace(targetRoute);
-          }, 100);
-        });
-      }
-    }
-  }, [loading, user, onboarded, isPublic, router]);
+    if (!targetRoute) return;
+
+    router.prefetch(targetRoute);
+
+    startTransition(() => {
+      setTimeout(() => {
+        router.replace(targetRoute);
+      }, 100);
+    });
+  }, [loading, user, onboarded, isPublic, pathname, router]);
 
   const shouldShowNavbar = !isPublic && pathname !== "/onboarding";
 

@@ -38,8 +38,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({
 
   // Clear all pending timeouts when the provider unmounts
   useEffect(() => {
+    const timeouts = timeoutsRef.current;
     return () => {
-      timeoutsRef.current.forEach((t) => clearTimeout(t));
+      timeouts.forEach((t) => clearTimeout(t));
     };
   }, []);
 
@@ -53,7 +54,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const addNotification = (message: string, type: NotificationType) => {
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     setNotifications((prev) => [...prev, { id, message, type }]);
     const t = setTimeout(() => removeNotification(id), 5000);
     timeoutsRef.current.set(id, t);

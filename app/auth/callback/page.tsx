@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/src/lib/auth/supabase";
 
 export default function AuthCallbackPage() {
@@ -9,14 +10,35 @@ export default function AuthCallbackPage() {
   const [status, setStatus] = useState("Authenticating...");
   const processedRef = useRef(false);
 
+  const handleSession = useCallback(
+    async (session: Session) => {
+      setStatus("Finalizing your profile...");
+
+      try {
+        const res = await fetch("/api/profile/onboard", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (!res.ok) {
+          router.replace("/home");
+          return;
+        }
+
+        const { onboarded } = await res.json();
+        router.replace(onboarded ? "/home" : "/onboarding");
+      } catch {
+        router.replace("/home");
+      }
+    },
+    [router],
+  );
+
   useEffect(() => {
     if (processedRef.current) return;
     processedRef.current = true;
 
     const finalizeAuth = async () => {
       try {
-        console.log("🔍 Checking for existing session...");
-
         const {
           data: { session },
           error,
@@ -25,19 +47,13 @@ export default function AuthCallbackPage() {
         if (error) throw error;
 
         if (session) {
-          console.log("✅ Session found immediately.");
           await handleSession(session);
           return;
         }
 
-        console.log(
-          "⏳ No session found yet, waiting for auth state change...",
-        );
-
         const {
           data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log(`📣 Auth Event Received: ${event}`);
           if (event === "SIGNED_IN" && session) {
             subscription.unsubscribe();
             await handleSession(session);
@@ -52,51 +68,20 @@ export default function AuthCallbackPage() {
             data: { session: currentSession },
           } = await supabase.auth.getSession();
           if (!currentSession) {
-            console.warn(
-              "⚠️ Auth timeout: No session detected after 5 seconds.",
-            );
             setStatus("Session not found. Please try again.");
             setTimeout(() => router.replace("/auth"), 1500);
           }
         }, 5000);
-      } catch (error: any) {
-        console.error("❌ Auth Callback Critical Error:", error);
-        setStatus(`Error: ${error.message || "Something went wrong"}`);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Something went wrong";
+        setStatus(`Error: ${message}`);
         setTimeout(() => router.replace("/auth"), 3000);
       }
     };
 
     finalizeAuth();
-  }, [router]);
-
-  const handleSession = async (session: any) => {
-    setStatus("Finalizing your profile...");
-    console.log("👤 User ID:", session.user.id);
-
-    try {
-      const res = await fetch("/api/profile/onboard", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (!res.ok) {
-        console.warn("⚠️ Could not fetch onboarding status, sending to home.");
-        router.replace("/home");
-        return;
-      }
-
-      const { onboarded } = await res.json();
-
-      if (!onboarded) {
-        router.replace("/onboarding");
-      } else {
-        console.log("🚀 Profile ready, heading home.");
-        router.replace("/home");
-      }
-    } catch (e) {
-      console.error("⚠️ Profile verification warning:", e);
-      router.replace("/home");
-    }
-  };
+  }, [router, handleSession]);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">

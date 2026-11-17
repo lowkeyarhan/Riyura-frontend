@@ -55,7 +55,13 @@ export function useWatchlist(userId: string | undefined) {
       if (!userId) return { success: false };
 
       const previousItems = [...items];
-      setItems(items.filter((i) => i.tmdbId !== tmdbId));
+      const dbMediaType =
+        mediaType === "movie" ? MediaType.Movie : MediaType.TV;
+      setItems((current) =>
+        current.filter(
+          (i) => !(i.tmdbId === tmdbId && i.media_type === dbMediaType),
+        ),
+      );
 
       try {
         const session = await getSupabaseSession();
@@ -63,9 +69,6 @@ export function useWatchlist(userId: string | undefined) {
           setItems(previousItems);
           return { success: false };
         }
-
-        const dbMediaType =
-          mediaType === "movie" ? MediaType.Movie : MediaType.TV;
 
         const res = await fetch("/api/profile/watchlist", {
           method: "DELETE",

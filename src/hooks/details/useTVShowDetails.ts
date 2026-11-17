@@ -14,7 +14,6 @@ export function useTVShowDetails(id: string) {
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [showTrailer, setShowTrailer] = useState(false);
   const [tvShow, setTVShow] = useState<TvDetailProp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +119,9 @@ export function useTVShowDetails(id: string) {
           }),
         });
         if (!res.ok) throw new Error("Failed to remove from watchlist");
+
+        setIsWatchlisted(false);
+        addNotification(`${tvShow.name} removed from watchlist`, "success");
       } else {
         const res = await fetch("/api/profile/watchlist", {
           method: "POST",
@@ -149,8 +151,6 @@ export function useTVShowDetails(id: string) {
     loading,
     error,
     isWatchlisted,
-    showTrailer,
-    setShowTrailer,
     toggleWatchlist,
     similarShows,
   };

@@ -14,7 +14,6 @@ export function useMovieDetails(id: string) {
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [showTrailer, setShowTrailer] = useState(false);
   const [movie, setMovie] = useState<MovieDetailProp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,8 +149,6 @@ export function useMovieDetails(id: string) {
     loading,
     error,
     isWatchlisted,
-    showTrailer,
-    setShowTrailer,
     toggleWatchlist,
     similarMovies,
   };

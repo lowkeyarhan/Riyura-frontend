@@ -3,21 +3,23 @@
 import Image from "next/image";
 import { Play } from "lucide-react";
 
-interface ContinueWatchingCardProps {
-  item: {
-    image: string;
-    title: string;
-    progress: number;
-    meta: string;
-    remaining: string;
-  };
-  onClick: (item: ContinueWatchingCardProps["item"]) => void;
+interface ContinueWatchingCardItem {
+  image: string;
+  title: string;
+  progress: number;
+  meta: string;
+  remaining: string;
 }
 
-export default function ContinueWatchingCard({
+interface ContinueWatchingCardProps<T extends ContinueWatchingCardItem> {
+  item: T;
+  onClick: (item: T) => void;
+}
+
+export default function ContinueWatchingCard<T extends ContinueWatchingCardItem>({
   item,
   onClick,
-}: ContinueWatchingCardProps) {
+}: ContinueWatchingCardProps<T>) {
   return (
     <button
       type="button"

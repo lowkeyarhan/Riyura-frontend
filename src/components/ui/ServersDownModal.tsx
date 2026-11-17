@@ -35,8 +35,8 @@ export function ServersDownModal() {
 
           {/* Atmosphere blobs — same palette as the rest of the site */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-24 top-8 h-[70vw] w-[80vw] rounded-full bg-cyan-500/15 blur-[120px] sm:-left-32 sm:top-16 sm:h-[55vh] sm:w-[55vw] sm:bg-cyan-500/10 sm:blur-[140px]" />
-            <div className="absolute -right-20 bottom-0 h-[80vw] w-[75vw] rounded-full bg-orange-500/15 blur-[130px] sm:-right-24 sm:h-[60vh] sm:w-[50vw] sm:bg-orange-500/10 sm:blur-[160px]" />
+            <div className="absolute -left-24 top-8 h-[70vw] w-[80vw] rounded-full bg-cyan-500/25 blur-[120px] sm:-left-32 sm:top-16 sm:h-[55vh] sm:w-[55vw] sm:bg-cyan-500/20 sm:blur-[140px]" />
+            <div className="absolute -right-20 bottom-0 h-[80vw] w-[75vw] rounded-full bg-orange-500/25 blur-[130px] sm:-right-24 sm:h-[60vh] sm:w-[50vw] sm:bg-orange-500/20 sm:blur-[160px]" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]"></div>
           </div>
 

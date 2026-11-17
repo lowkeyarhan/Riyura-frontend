@@ -7,6 +7,7 @@ import MoviesTvMediaGrid from "@/src/components/media/MoviesTvMediaGrid";
 import AnimeMediaGrid from "@/src/components/media/AnimeMediaGrid";
 import { HomeMediaGridSkeleton } from "@/src/components/skeletons/HomeMediaGridSkeleton";
 import { useHomeData, type MediaSelector } from "@/src/hooks/home/useHomeData";
+import PageBackdrop from "@/src/components/layout/PageBackdrop";
 
 const SELECTOR_TABS: Array<{ id: MediaSelector; label: string }> = [
   { id: "movie", label: "Movies" },
@@ -32,14 +33,10 @@ export default function HomePage() {
   } = useHomeData();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      <PageBackdrop />
       <Banner />
       <div className="px-6 pb-16 pt-6 md:px-20 md:pt-8 relative z-10">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-32 top-16 h-[55vh] w-[55vw] rounded-full bg-cyan-500/10 blur-[140px]" />
-          <div className="absolute -right-24 bottom-0 h-[60vh] w-[50vw] rounded-full bg-orange-500/10 blur-[160px]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]" />
-        </div>
         <div className="border-t border-white/15 pt-5">
           <div className="flex items-center gap-6 md:gap-8 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {SELECTOR_TABS.map((tab) => {

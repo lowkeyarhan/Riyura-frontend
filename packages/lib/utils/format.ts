@@ -14,10 +14,3 @@ export const formatDate = (dateString: string): string =>
 
 export const formatMoney = (value: number): string =>
   `$${(value / 1000000).toFixed(1)}M`;
-
-import { MediaType } from "@/src/props/global/mediaType";
-
-export const getDetailsPath = (tmdbId: number, mediaType: MediaType): string =>
-  mediaType === MediaType.Movie
-    ? `/details/movie/${tmdbId}`
-    : `/details/tvshow/${tmdbId}`;

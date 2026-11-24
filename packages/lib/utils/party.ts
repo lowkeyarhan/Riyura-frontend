@@ -1,4 +1,4 @@
-import { PartyParticipant } from "@/src/props/party/watchParty";
+import { PartyParticipant } from "@riyura/props/party/watchParty";
 
 const AVATAR_COLORS = [
   "#F97316",

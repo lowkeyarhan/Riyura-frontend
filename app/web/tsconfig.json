@@ -15,12 +15,19 @@
     "incremental": true,
     "plugins": [
       {
-        "name": "next"
-      }
+        "name": "next",
+      },
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./*"],
+      "@riyura/props": ["../../packages/props/index.ts"],
+      "@riyura/props/*": ["../../packages/props/*"],
+      "@riyura/api": ["../../packages/api/index.ts"],
+      "@riyura/api/*": ["../../packages/api/*"],
+      "@riyura/lib/*": ["../../packages/lib/*"],
+      "@riyura/hooks/*": ["../../packages/hooks/*"],
+      "@riyura/ui-web/*": ["../../packages/ui-web/*"],
+    },
   },
   "include": [
     "next-env.d.ts",
@@ -28,7 +35,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
 }

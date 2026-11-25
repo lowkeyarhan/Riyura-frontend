@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ErrorScreen from "@/src/components/ui/ErrorScreen";
+import ErrorScreen from "@riyura/ui-web/ErrorScreen";
 import { shouldRedirectErrorPage } from "@/src/lib/error-page-behavior";
 
 export default function NotFound() {

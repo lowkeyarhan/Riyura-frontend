@@ -46,10 +46,11 @@ export function WatchlistHeader({
         <div className="flex gap-4 md:gap-8 overflow-x-auto pb-px scrollbar-hide">
           <button
             onClick={() => onFilterChange("all")}
-            className={`md:pb-2.5 text-sm md:text-lg font-medium transition-all relative whitespace-nowrap ${filter === "all"
-              ? "text-white"
-              : "text-gray-400 hover:text-gray-300"
-              }`}
+            className={`md:pb-2.5 text-sm md:text-lg font-medium transition-all relative whitespace-nowrap ${
+              filter === "all"
+                ? "text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
           >
             All
             {filter === "all" && (
@@ -58,10 +59,11 @@ export function WatchlistHeader({
           </button>
           <button
             onClick={() => onFilterChange("movie")}
-            className={`md:pb-2.5 text-sm md:text-lg font-medium transition-all relative whitespace-nowrap ${filter === "movie"
-              ? "text-white"
-              : "text-gray-400 hover:text-gray-300"
-              }`}
+            className={`md:pb-2.5 text-sm md:text-lg font-medium transition-all relative whitespace-nowrap ${
+              filter === "movie"
+                ? "text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
           >
             Movies ({movieCount})
             {filter === "movie" && (
@@ -70,10 +72,11 @@ export function WatchlistHeader({
           </button>
           <button
             onClick={() => onFilterChange("tv")}
-            className={`md:pb-2.5 text-sm md:text-lg font-medium transition-all relative ${filter === "tv"
-              ? "text-white"
-              : "text-gray-400 hover:text-gray-300"
-              }`}
+            className={`md:pb-2.5 text-sm md:text-lg font-medium transition-all relative ${
+              filter === "tv"
+                ? "text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
           >
             TV Shows ({tvCount})
             {filter === "tv" && (
@@ -84,7 +87,9 @@ export function WatchlistHeader({
 
         {/* Sort Dropdown */}
         <div className="flex items-center gap-2 md:pb-2.5">
-          <span className="text-gray-400 text-sm hidden md:block">Sort By:</span>
+          <span className="text-gray-400 text-sm hidden md:block">
+            Sort By:
+          </span>
           <select
             value={sortBy}
             onChange={(e) =>

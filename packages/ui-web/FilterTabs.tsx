@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { SearchSortBy, SEARCH_SORT_LABELS } from "@/src/props/search/search";
+import { SearchSortBy, SEARCH_SORT_LABELS } from "@riyura/props/search/search";
 
 const TABS = [
   { key: "all", label: "ALL" },

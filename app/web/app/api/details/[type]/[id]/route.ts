@@ -1,9 +1,9 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
-import type { MovieDetailProp } from "@/src/props/movie/movieDetail";
-import type { TvDetailProp } from "@/src/props/tv/tvDetail";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
+import type { MovieDetailProp } from "@riyura/props/movie/movieDetail";
+import type { TvDetailProp } from "@riyura/props/tv/tvDetail";
 
 export const dynamic = "force-dynamic";
 

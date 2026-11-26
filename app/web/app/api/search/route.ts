@@ -1,7 +1,7 @@
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
 
 export async function GET(request: NextRequest) {
   try {

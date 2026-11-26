@@ -1,7 +1,7 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
-import { normalizeMediaCardPoster } from "@/src/lib/tmdb-images";
+import { normalizeMediaCardPoster } from "@riyura/lib/tmdb-images";
 
 export const dynamic = "force-dynamic";
 

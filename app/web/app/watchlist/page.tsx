@@ -4,12 +4,12 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useWatchlist } from "@/src/hooks/profile/useWatchlist";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
 import { useWatchlistFilters } from "@/src/hooks/useWatchlistFilters";
-import { WatchlistHeader } from "@/src/components/watchlist/WatchlistHeader";
+import { WatchlistHeader } from "@riyura/ui-web/WatchlistHeader";
 import { WatchlistGrid } from "@/src/components/watchlist/WatchlistGrid";
 import WatchlistSkeleton from "@/src/components/skeletons/WatchlistSkeleton";
-import PageBackdrop from "@/src/components/layout/PageBackdrop";
+import PageBackdrop from "@riyura/ui-web/PageBackdrop";
 
 export default function WatchlistPage() {
   const router = useRouter();

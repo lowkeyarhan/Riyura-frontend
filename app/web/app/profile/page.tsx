@@ -11,12 +11,12 @@ import { ApiKeyProvider, useApiKey } from "@/src/lib/contexts/ApiKeyContext";
 import { useRecommendations } from "@/src/hooks/profile/useRecommendations";
 import { useWatchHistory } from "@/src/hooks/profile/useWatchHistory";
 import { supabase } from "@/src/lib/auth/supabase";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
 import ProfileSkeleton from "@/src/components/skeletons/ProfileSkeleton";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { ContinueWatchingItem } from "@/src/props/profile/continueWatching";
-import type { RecommendationProp } from "@/src/props/profile/recommendation";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { ContinueWatchingItem } from "@riyura/props/profile/continueWatching";
+import type { RecommendationProp } from "@riyura/props/profile/recommendation";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 import { ProfileHeader } from "@/src/components/profile/ProfileHeader";
 import { SettingsSection } from "@/src/components/profile/SettingsSection";

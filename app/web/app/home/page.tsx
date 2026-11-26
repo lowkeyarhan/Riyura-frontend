@@ -7,7 +7,7 @@ import MoviesTvMediaGrid from "@/src/components/media/MoviesTvMediaGrid";
 import AnimeMediaGrid from "@/src/components/media/AnimeMediaGrid";
 import { HomeMediaGridSkeleton } from "@/src/components/skeletons/HomeMediaGridSkeleton";
 import { useHomeData, type MediaSelector } from "@/src/hooks/home/useHomeData";
-import PageBackdrop from "@/src/components/layout/PageBackdrop";
+import PageBackdrop from "@riyura/ui-web/PageBackdrop";
 
 const SELECTOR_TABS: Array<{ id: MediaSelector; label: string }> = [
   { id: "movie", label: "Movies" },

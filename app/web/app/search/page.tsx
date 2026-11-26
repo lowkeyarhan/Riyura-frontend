@@ -2,21 +2,21 @@
 
 import { Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { SearchProp } from "@/src/props/search/search";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { SearchProp } from "@riyura/props/search/search";
 
 import { useSearchData } from "@/src/hooks/useSearchData";
-import PageBackdrop from "@/src/components/layout/PageBackdrop";
+import PageBackdrop from "@riyura/ui-web/PageBackdrop";
 import { useTrendingData } from "@/src/hooks/home/useTrendingData";
-import { usePlaceholderAnimation } from "@/src/hooks/usePlaceholderAnimation";
+import { usePlaceholderAnimation } from "@riyura/hooks/usePlaceholderAnimation";
 
-import { SearchHero } from "@/src/components/search/SearchHero";
+import { SearchHero } from "@riyura/ui-web/SearchHero";
 import { SearchBar } from "@/src/components/search/SearchBar";
-import { FilterTabs } from "@/src/components/search/FilterTabs";
+import { FilterTabs } from "@riyura/ui-web/FilterTabs";
 import { TrendingSection } from "@/src/components/search/TrendingSection";
 import { SearchResultsSection } from "@/src/components/search/SearchResultsSection";
-import { EmptyState } from "@/src/components/search/EmptyState";
-import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import { EmptyState } from "@riyura/ui-web/EmptyState";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
 
 function SearchPageContent() {
   const router = useRouter();

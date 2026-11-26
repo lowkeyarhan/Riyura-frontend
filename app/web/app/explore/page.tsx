@@ -3,14 +3,14 @@
 import { ArrowUp, Globe } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
 import {
   EXPLORE_GENRES,
   EXPLORE_LANGUAGES,
   EXPLORE_MEDIA_TYPES,
 } from "@/src/lib/constants/explore";
 import { useExploreData } from "@/src/hooks/useExploreData";
-import PageBackdrop from "@/src/components/layout/PageBackdrop";
+import PageBackdrop from "@riyura/ui-web/PageBackdrop";
 
 const cardVariants = {
   initial: {

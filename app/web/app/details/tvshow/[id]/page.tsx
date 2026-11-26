@@ -7,8 +7,8 @@ import Footer from "@/src/components/layout/Footer";
 import DetailsSkeleton from "@/src/components/skeletons/DetailsSkeleton";
 import MediaCard from "@/src/components/media/MediaCard";
 import { useTVShowDetails } from "@/src/hooks/details/useTVShowDetails";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import { formatDate } from "@/src/lib/utils/format";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
+import { formatDate } from "@riyura/lib/utils/format";
 import { extractColors } from "@/src/lib/utils/color";
 import { useEffect, useState } from "react";
 

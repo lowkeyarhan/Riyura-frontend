@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { PlayerLayout } from "@/src/components/player/PlayerLayout";
+import { PlayerLayout } from "@riyura/ui-web/PlayerLayout";
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -10,7 +10,7 @@ import { useWatchParty } from "@/src/hooks/party/useWatchParty";
 import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
 import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import { EpisodeBrowser } from "@/src/components/player/EpisodeBrowser";
-import { MediaType } from "@/src/props/global/mediaType";
+import { MediaType } from "@riyura/props/global/mediaType";
 import { extractColors } from "@/src/lib/utils/color";
 import { PartyChatPanel } from "@/src/components/party/PartyChatPanel";
 import { PartyHostControls } from "@/src/components/party/PartyHostControls";

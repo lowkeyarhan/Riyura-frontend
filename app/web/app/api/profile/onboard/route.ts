@@ -7,7 +7,7 @@ import {
   parseJsonBody,
   unauthorizedResponse,
 } from "@/src/lib/server/routeUtils";
-import type { OnboardingProp } from "@/src/props/profile/onboarding";
+import type { OnboardingProp } from "@riyura/props/profile/onboarding";
 
 export const dynamic = "force-dynamic";
 

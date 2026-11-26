@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 import {
   getAuthHeader,
   handleBackendError,
@@ -13,7 +13,7 @@ import {
 import type {
   WatchlistAddRequest,
   WatchlistRemoveRequest,
-} from "@/src/props/request-body";
+} from "@riyura/props/request-body";
 
 export const dynamic = "force-dynamic";
 

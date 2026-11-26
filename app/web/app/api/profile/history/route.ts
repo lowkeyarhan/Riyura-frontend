@@ -7,11 +7,11 @@ import {
   parseJsonBody,
   unauthorizedResponse,
 } from "@/src/lib/server/routeUtils";
-import type { HistoryProp } from "@/src/props/profile/history";
+import type { HistoryProp } from "@riyura/props/profile/history";
 import type {
   HistorySaveRequest,
   HistoryDeleteRequest,
-} from "@/src/props/request-body";
+} from "@riyura/props/request-body";
 
 export const dynamic = "force-dynamic";
 

@@ -6,7 +6,7 @@ import {
   handleNonSuccessStatus,
   unauthorizedResponse,
 } from "@/src/lib/server/routeUtils";
-import type { ProfileProp } from "@/src/props/profile/profile";
+import type { ProfileProp } from "@riyura/props/profile/profile";
 
 export const dynamic = "force-dynamic";
 

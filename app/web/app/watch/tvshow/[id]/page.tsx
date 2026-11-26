@@ -7,10 +7,10 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useTVShowPlayer } from "@/src/hooks/player/useTVShowPlayer";
 import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
-import { PlayerLayout } from "@/src/components/player/PlayerLayout";
+import { PlayerLayout } from "@riyura/ui-web/PlayerLayout";
 import { TVShowPlayerSidebar } from "@/src/components/player/TVShowPlayerSidebar";
 import { EpisodeBrowser } from "@/src/components/player/EpisodeBrowser";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
 import { extractColors } from "@/src/lib/utils/color";
 
 

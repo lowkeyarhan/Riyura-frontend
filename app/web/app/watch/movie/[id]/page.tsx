@@ -7,9 +7,9 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useMoviePlayer } from "@/src/hooks/player/useMoviePlayer";
 import { useWatchProgress } from "@/src/hooks/player/useWatchProgress";
 import PlayerSkeleton from "@/src/components/skeletons/PlayerSkeleton";
-import { PlayerLayout } from "@/src/components/player/PlayerLayout";
+import { PlayerLayout } from "@riyura/ui-web/PlayerLayout";
 import { MoviePlayerSidebar } from "@/src/components/player/MoviePlayerSidebar";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
 import { extractColors } from "@/src/lib/utils/color";
 
 export default function MoviePlayer() {

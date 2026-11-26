@@ -1,13 +1,13 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
-import type { TvPlayerProp } from "@/src/props/tv/tvPlayer";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import type { MoviePlayerProp } from "@riyura/props/movie/moviePlayer";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/player/tv/[id]
-// Fetches the TV player data for a TV show
+// GET /api/player/movie/[id]
+// Fetches the movie player data for a movie
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -15,16 +15,16 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const response = await backendClient.get(`/tv/player/${id}`, {
+    const response = await backendClient.get(`/movies/player/${id}`, {
       timeout: 15000,
     });
 
-    const data = response.data as TvPlayerProp;
-
+    const data = response.data as MoviePlayerProp;
+    
     if (data && data.backdrop_path) {
       data.backdrop_path = normalizeTmdbImageUrl(data.backdrop_path);
     }
-
+    
     return NextResponse.json(data);
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -32,13 +32,13 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            error.response?.data?.error ?? "Failed to fetch TV player data",
+            error.response?.data?.error ?? "Failed to fetch movie player data",
         },
         { status },
       );
     }
     return NextResponse.json(
-      { error: "Failed to fetch TV player data" },
+      { error: "Failed to fetch movie player data" },
       { status: 500 },
     );
   }

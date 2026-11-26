@@ -1,12 +1,12 @@
 import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 import { backendClient } from "@/src/lib/axios";
-import type { ProviderProp } from "@/src/props/global/provider";
+import type { ProviderProp } from "@riyura/props/global/provider";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/stream/tv
-// Fetches the stream URLs for a TV show
+// POST /api/stream/movie
+// Fetches the stream URLs for a movie
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const response = await backendClient.post(`/tv/stream`, body, {
+    const response = await backendClient.post(`/movies/stream`, body, {
       timeout: 15000,
       headers: { Authorization: authHeader },
     });
@@ -29,13 +29,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            error.response?.data?.error ?? "Failed to fetch TV stream URLs",
+            error.response?.data?.error ?? "Failed to fetch movie stream URLs",
         },
         { status },
       );
     }
     return NextResponse.json(
-      { error: "Failed to fetch TV stream URLs" },
+      { error: "Failed to fetch movie stream URLs" },
       { status: 500 },
     );
   }

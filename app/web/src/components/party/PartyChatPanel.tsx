@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Link as LinkIcon, Smile, RefreshCcw } from "lucide-react";
-import { ChatMessage, PartyParticipant } from "@/src/props/party/watchParty";
-import { colorForId, fmtTime, initials } from "@/src/lib/utils/party";
+import { ChatMessage, PartyParticipant } from "@riyura/props/party/watchParty";
+import { colorForId, fmtTime, initials } from "@riyura/lib/utils/party";
 
 interface PartyChatPanelProps {
   participants: PartyParticipant[];

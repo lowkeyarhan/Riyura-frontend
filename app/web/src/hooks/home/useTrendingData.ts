@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import { api } from "@/src/lib/api";
 
 interface TrendingData {
   trendingHighlights: MediaCardProp[];
@@ -16,7 +17,7 @@ export function useTrendingData(): TrendingData {
   const fetchTrending = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/home/trending/movies?limit=6");
+      const res = await api.request("/api/home/trending/movies?limit=6");
       const data = await res.json();
       const movies = data.results || [];
       setTrendingHighlights(movies);

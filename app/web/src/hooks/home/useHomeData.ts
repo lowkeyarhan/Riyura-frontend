@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import { getDetailsPath } from "@/src/lib/utils/format";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import { getDetailsPath } from "@/src/lib/routes";
+import { api } from "@/src/lib/api";
 
 export type MediaSelector = "movie" | "tv" | "anime";
 
@@ -64,7 +65,7 @@ async function fetchMedia(
   signal: AbortSignal,
 ): Promise<{ results: MediaCardProp[] }> {
   try {
-    const response = await fetch(path, { signal, cache: "no-store" });
+    const response = await api.request(path, { signal, cache: "no-store" });
     if (!response.ok) return EMPTY_MEDIA_RESULTS;
     return await response.json();
   } catch {

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import { MediaType } from "@/src/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
 import { EXPLORE_GENRES } from "@/src/lib/constants/explore";
-import { getDetailsPath } from "@/src/lib/utils/format";
+import { getDetailsPath } from "@/src/lib/routes";
+import { api } from "@/src/lib/api";
 
 export function useExploreData() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function useExploreData() {
           genres: genreParams,
         });
         if (language) params.set("language", language);
-        const res = await fetch(`/api/explore?${params.toString()}`, {
+        const res = await api.request(`/api/explore?${params.toString()}`, {
           signal,
         });
         if (!res.ok) {

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MediaType } from "@/src/props/global/mediaType";
-import { type SearchProp, SearchSortBy } from "@/src/props/search/search";
+import { MediaType } from "@riyura/props/global/mediaType";
+import { type SearchProp, SearchSortBy } from "@riyura/props/search/search";
+import { api } from "@/src/lib/api";
 
 const RESULTS_PER_PAGE = 15;
 
@@ -110,11 +111,14 @@ export function useSearchData(): SearchData {
       sort: SearchSortBy,
       signal?: AbortSignal,
     ) => {
-      const url = new URL("/api/search", window.location.origin);
-      url.searchParams.set("q", query);
-      url.searchParams.set("page", String(pageNum));
-      url.searchParams.set("sort_by", sort);
-      const res = await fetch(url.toString(), { signal });
+      const params = new URLSearchParams({
+        q: query,
+        page: String(pageNum),
+        sort_by: sort,
+      });
+      const res = await api.request(`/api/search?${params.toString()}`, {
+        signal,
+      });
       const data = await res.json();
       return (data?.results || []) as SearchProp[];
     },

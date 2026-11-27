@@ -2,7 +2,7 @@ import React from "react";
 import { SkeletonTheme } from "react-loading-skeleton";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
 
 function NowPlayingCardSkeleton() {
   return (

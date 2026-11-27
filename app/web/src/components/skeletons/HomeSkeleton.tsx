@@ -4,7 +4,7 @@ import React from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import BannerSkeleton from "./BannerSkeleton";
-import { MediaCardSkeleton } from "./MediaCardSkeleton";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
 import { ContinueWatchingSkeleton } from "./ContinueWatchingSkeleton";
 
 function NowPlayingCardSkeleton() {

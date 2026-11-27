@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MediaCardSkeleton } from "./MediaCardSkeleton";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
 
 export default function SearchSkeleton() {
   return (

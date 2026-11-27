@@ -1,7 +1,7 @@
-import { TrendingCardSkeleton } from "../skeletons/TrendingCardSkeleton";
+import { TrendingCardSkeleton } from "@riyura/ui-web/TrendingCardSkeleton";
 import { TrendingCard } from "./TrendingCard";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import { MediaType } from "@/src/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
 
 interface TrendingSectionProps {
   items: MediaCardProp[];

@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { CalendarIcon, PlayIcon } from "./SearchIcons";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import { MediaType } from "@/src/props/global/mediaType";
+import { CalendarIcon, PlayIcon } from "@riyura/ui-web/SearchIcons";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
 
 interface TrendingCardProps {
   item: MediaCardProp;

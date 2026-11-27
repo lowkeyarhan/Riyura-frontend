@@ -1,6 +1,6 @@
-import type { SearchProp } from "@/src/props/search/search";
+import type { SearchProp } from "@riyura/props/search/search";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 interface SearchResultsSectionProps {

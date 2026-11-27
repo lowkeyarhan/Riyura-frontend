@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import type { MouseEvent } from "react";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 type MediaCardProps = {
   item: MediaCardProp;

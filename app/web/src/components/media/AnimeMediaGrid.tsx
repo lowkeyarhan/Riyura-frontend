@@ -2,7 +2,7 @@
 
 import React from "react";
 import MediaCard from "@/src/components/media/MediaCard";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 interface AnimeMediaGridProps {
   trending: MediaCardProp[];

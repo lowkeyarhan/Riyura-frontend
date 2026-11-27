@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation";
 import { Check, Play, Plus } from "lucide-react";
 import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
 import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
-import { MediaType } from "@/src/props/global/mediaType";
-import { BannerProp } from "@/src/props/banner/banner";
+import { MediaType } from "@riyura/props/global/mediaType";
+import { BannerProp } from "@riyura/props/banner/banner";
 import { apiClient } from "@/src/lib/axios";
-import { HistoryProp } from "@/src/props/profile/history";
+import { HistoryProp } from "@riyura/props/profile/history";
 import { useAuth } from "@/src/hooks/useAuth";
 import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
 import { SkeletonTheme } from "react-loading-skeleton";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
 import { imageConfig } from "@/src/lib/config";
 

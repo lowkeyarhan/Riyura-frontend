@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import type { MouseEvent } from "react";
-import { MediaType } from "@/src/props/global/mediaType";
+import { MediaType } from "@riyura/props/global/mediaType";
 
 type RecommendationCardProps = {
   title: string;

@@ -3,8 +3,8 @@
 import React from "react";
 import Image from "next/image";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 interface MoviesTvMediaGridProps {
   mediaType: "movie" | "tv";

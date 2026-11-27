@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecommendationCard from "@/src/components/media/RecommendationCard";
-import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
-import type { RecommendationProp } from "@/src/props/profile/recommendation";
-import { normalizeTmdbImageUrl } from "@/src/lib/tmdb-images";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
+import type { RecommendationProp } from "@riyura/props/profile/recommendation";
+import { normalizeTmdbImageUrl } from "@riyura/lib/tmdb-images";
 
 interface RecommendationsSectionProps {
   recommendations: RecommendationProp[];

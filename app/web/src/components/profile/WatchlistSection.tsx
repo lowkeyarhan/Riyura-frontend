@@ -1,7 +1,7 @@
 import { ChevronRight, Film } from "lucide-react";
 import MediaCard from "@/src/components/media/MediaCard";
-import { MediaCardSkeleton } from "@/src/components/skeletons/MediaCardSkeleton";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaCardSkeleton } from "@riyura/ui-web/MediaCardSkeleton";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 interface WatchlistSectionProps {
   items: MediaCardProp[];

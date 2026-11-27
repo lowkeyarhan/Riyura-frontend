@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Play, Trash2 } from "lucide-react";
-import { MediaType } from "@/src/props/global/mediaType";
+import { MediaType } from "@riyura/props/global/mediaType";
 
 interface ContinueWatchingCardProps {
   item: any;

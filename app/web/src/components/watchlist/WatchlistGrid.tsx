@@ -2,8 +2,8 @@ import { LayoutGrid } from "lucide-react";
 import { useState } from "react";
 import MediaCard from "@/src/components/media/MediaCard";
 import { ContextMenu } from "@/src/components/media/ContextMenu";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import { MediaType } from "@/src/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
 
 const FONT_FAMILY = "Be Vietnam Pro, sans-serif";
 

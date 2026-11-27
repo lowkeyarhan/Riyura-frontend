@@ -1,8 +1,8 @@
 "use client";
 
 import { Wifi, Info } from "lucide-react";
-import type { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
-import type { ProviderProp } from "@/src/props/global/provider";
+import type { MoviePlayerProp } from "@riyura/props/movie/moviePlayer";
+import type { ProviderProp } from "@riyura/props/global/provider";
 import { CreatePartyCard } from "@/src/components/party/CreatePartyCard";
 
 const ServerRow = ({

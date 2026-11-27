@@ -1,8 +1,8 @@
 "use client";
 
 import { Wifi, Info } from "lucide-react";
-import { TvPlayerProp } from "@/src/props/tv/tvPlayer";
-import { ProviderProp } from "@/src/props/global/provider";
+import { TvPlayerProp } from "@riyura/props/tv/tvPlayer";
+import { ProviderProp } from "@riyura/props/global/provider";
 import { CreatePartyCard } from "@/src/components/party/CreatePartyCard";
 
 const ServerRow = ({

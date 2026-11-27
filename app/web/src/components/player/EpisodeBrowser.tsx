@@ -8,7 +8,7 @@ import {
   LayoutGrid,
   List,
 } from "lucide-react";
-import { TvPlayerEpisode, TvPlayerSeason } from "@/src/props/tv/tvPlayer";
+import { TvPlayerEpisode, TvPlayerSeason } from "@riyura/props/tv/tvPlayer";
 
 interface EpisodeBrowserProps {
   validSeasons: TvPlayerSeason[];

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
-import { MediaType } from "@/src/props/global/mediaType";
-import { MoviePlayerProp } from "@/src/props/movie/moviePlayer";
-import { ProviderProp } from "@/src/props/global/provider";
-import { HistoryProp } from "@/src/props/profile/history";
+import { api } from "@/src/lib/api";
+import { MediaType } from "@riyura/props/global/mediaType";
+import { MoviePlayerProp } from "@riyura/props/movie/moviePlayer";
+import { ProviderProp } from "@riyura/props/global/provider";
+import { HistoryProp } from "@riyura/props/profile/history";
 
 interface UseMoviePlayerProps {
   movieId: string;
@@ -44,22 +45,12 @@ export function useMoviePlayer({
           tmdbId: parseInt(movieId),
         };
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const authHeader = session?.access_token
-          ? `Bearer ${session.access_token}`
-          : null;
-
         const [movieRes, streamRes] = await Promise.all([
-          fetch(`/api/player/movie/${movieId}`),
-          fetch(`/api/stream/movie`, {
+          api.request(`/api/player/movie/${movieId}`),
+          api.request(`/api/stream/movie`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(authHeader ? { Authorization: authHeader } : {}),
-            },
-            body: JSON.stringify(streamBody),
+            auth: true,
+            body: streamBody,
           }),
         ]);
 
@@ -108,13 +99,10 @@ export function useMoviePlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        fetch("/api/profile/history", {
+        api.request("/api/profile/history", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify(watchData),
+          auth: true,
+          body: watchData,
           keepalive: true,
         })
           .then(async (res) => {

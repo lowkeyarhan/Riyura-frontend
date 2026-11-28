@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
-import { MediaType } from "@/src/props/global/mediaType";
+import { api } from "@/src/lib/api";
+import { MediaType } from "@riyura/props/global/mediaType";
 import {
   TvPlayerProp,
   TvPlayerEpisode,
   TvPlayerSeason,
-} from "@/src/props/tv/tvPlayer";
-import { ProviderProp } from "@/src/props/global/provider";
-import { HistoryProp } from "@/src/props/profile/history";
+} from "@riyura/props/tv/tvPlayer";
+import { ProviderProp } from "@riyura/props/global/provider";
+import { HistoryProp } from "@riyura/props/profile/history";
 
 interface UseTVShowPlayerProps {
   tvShowId: string;
@@ -53,7 +54,7 @@ export function useTVShowPlayer({
     const fetchShow = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/player/tv/${tvShowId}`);
+        const res = await api.request(`/api/player/tv/${tvShowId}`);
         if (res.ok) {
           const data = await res.json();
           setTvShow(data);
@@ -78,20 +79,10 @@ export function useTVShowPlayer({
           episodeNo: selectedEpisode,
         };
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const authHeader = session?.access_token
-          ? `Bearer ${session.access_token}`
-          : null;
-
-        const res = await fetch(`/api/stream/tv`, {
+        const res = await api.request(`/api/stream/tv`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(authHeader ? { Authorization: authHeader } : {}),
-          },
-          body: JSON.stringify(body),
+          auth: true,
+          body,
         });
 
         if (res.ok) {
@@ -142,13 +133,10 @@ export function useTVShowPlayer({
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        fetch("/api/profile/history", {
+        api.request("/api/profile/history", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify(watchData),
+          auth: true,
+          body: watchData,
           keepalive: true,
         })
           .then(async (res) => {

@@ -6,8 +6,9 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on package-lock.json
+# Install dependencies based on package-lock.json (npm workspaces)
 COPY package.json package-lock.json* ./
+COPY app/web/package.json ./app/web/package.json
 RUN npm ci
 
 # 2. Development image
@@ -39,16 +40,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/public ./app/web/public
 
 # Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+RUN mkdir -p app/web/.next
+RUN chown nextjs:nodejs app/web/.next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/app/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/app/web/.next/static ./app/web/.next/static
 
 USER nextjs
 
@@ -57,4 +58,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # server.js is created by next build from the standalone output
-CMD ["node", "server.js"]
+CMD ["node", "app/web/server.js"]

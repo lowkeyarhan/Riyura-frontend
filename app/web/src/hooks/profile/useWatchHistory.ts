@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
-import { MediaType } from "@/src/props/global/mediaType";
+import { api } from "@/src/lib/api";
+import { MediaType } from "@riyura/props/global/mediaType";
 
 interface WatchHistoryData {
   deleteHistoryItem: (tmdbId: number, mediaType: MediaType) => Promise<boolean>;
@@ -23,13 +24,10 @@ export function useWatchHistory(): WatchHistoryData {
         return false;
       }
 
-      const res = await fetch("/api/profile/history", {
+      const res = await api.request("/api/profile/history", {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tmdb_id: tmdbId, media_type: mediaType }),
+        auth: true,
+        body: { tmdb_id: tmdbId, media_type: mediaType },
       });
 
       const payload = await res.json().catch(() => null);

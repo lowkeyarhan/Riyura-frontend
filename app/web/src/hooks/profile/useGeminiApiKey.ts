@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { api } from "@/src/lib/api";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
 export interface ApiKeyProp {
   apiKeyInput: string;
   apiKeyPreview: string | null;
@@ -34,9 +35,7 @@ export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
         const session = await getSupabaseSession();
         if (!session) return;
 
-        const res = await fetch("/api/profile/key", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const res = await api.request("/api/profile/key", { auth: true });
 
         if (res.ok) {
           const data = await res.json();
@@ -64,13 +63,10 @@ export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
       const session = await getSupabaseSession();
       if (!session) return;
 
-      const res = await fetch("/api/profile/key", {
+      const res = await api.request("/api/profile/key", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ apiKey: key }),
+        auth: true,
+        body: { apiKey: key },
       });
 
       if (res.ok) {
@@ -98,9 +94,9 @@ export function useGeminiApiKey(userId: string | undefined): ApiKeyProp {
       const session = await getSupabaseSession();
       if (!session) return;
 
-      const res = await fetch("/api/profile/key", {
+      const res = await api.request("/api/profile/key", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        auth: true,
       });
 
       if (res.ok) {

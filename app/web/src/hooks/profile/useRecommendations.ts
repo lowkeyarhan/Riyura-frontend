@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
-import type { RecommendationProp } from "@/src/props/profile/recommendation";
+import { api } from "@/src/lib/api";
+import type { RecommendationProp } from "@riyura/props/profile/recommendation";
 
 interface RecommendationsData {
   recommendations: RecommendationProp[];
@@ -36,9 +37,7 @@ export function useRecommendations(
           ? "/api/profile/recommendations?refresh=true"
           : "/api/profile/recommendations";
 
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const res = await api.request(url, { auth: true });
 
         if (res.ok) {
           const data = await res.json();

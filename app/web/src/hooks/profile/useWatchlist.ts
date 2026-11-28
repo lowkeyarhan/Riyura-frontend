@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { api } from "@/src/lib/api";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 export function useWatchlist(userId: string | undefined) {
   const [items, setItems] = useState<MediaCardProp[]>([]);
@@ -27,8 +28,8 @@ export function useWatchlist(userId: string | undefined) {
           return;
         }
 
-        const res = await fetch("/api/profile/watchlist", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+        const res = await api.request("/api/profile/watchlist", {
+          auth: true,
         });
 
         const json = await res.json();
@@ -70,13 +71,10 @@ export function useWatchlist(userId: string | undefined) {
           return { success: false };
         }
 
-        const res = await fetch("/api/profile/watchlist", {
+        const res = await api.request("/api/profile/watchlist", {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ tmdb_id: tmdbId, media_type: dbMediaType }),
+          auth: true,
+          body: { tmdb_id: tmdbId, media_type: dbMediaType },
         });
 
         if (!res.ok) {

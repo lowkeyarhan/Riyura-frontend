@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getSupabaseSession } from "@/src/lib/auth/getSession";
+import { api } from "@/src/lib/api";
 import { Film, Tv, Clock } from "lucide-react";
 import { Stat } from "@/src/components/profile/StatBadge";
-import { HistoryProp } from "@/src/props/profile/history";
-import { MediaType } from "@/src/props/global/mediaType";
+import { HistoryProp } from "@riyura/props/profile/history";
+import { MediaType } from "@riyura/props/global/mediaType";
 import { imageConfig } from "@/src/lib/config";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
-import type { ContinueWatchingItem } from "@/src/props/profile/continueWatching";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
+import type { ContinueWatchingItem } from "@riyura/props/profile/continueWatching";
 
 const INITIAL_STATS: Stat[] = [
   { label: "Movies", value: "0", icon: Film, color: "text-cyan-400" },
@@ -105,15 +106,9 @@ export function useProfileData(userId: string | undefined): ProfileData {
       const session = await getSupabaseSession();
       if (!session) return;
 
-      const authHeader = `Bearer ${session.access_token}`;
-
       const [historyRes, watchlistRes] = await Promise.all([
-        fetch("/api/profile/history?page=0", {
-          headers: { Authorization: authHeader },
-        }),
-        fetch("/api/profile/watchlist", {
-          headers: { Authorization: authHeader },
-        }),
+        api.request("/api/profile/history?page=0", { auth: true }),
+        api.request("/api/profile/watchlist", { auth: true }),
       ]);
 
       if (historyRes.ok) {

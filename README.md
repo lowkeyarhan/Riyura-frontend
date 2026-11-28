@@ -8,11 +8,11 @@ Next.js (App Router) frontend for **Riyura** — a streaming discovery + playbac
 - [Tech stack](#tech-stack)
 - [Repository structure](#repository-structure)
 - [Architecture (layers)](#architecture-layers)
-  - [UI + routing layer (`app/`)](#ui--routing-layer-app)
-  - [BFF/API layer (`app/api/`)](#bffapi-layer-appapi)
-  - [Hooks layer (`src/hooks/`)](#hooks-layer-srchooks)
-  - [Lib layer (`src/lib/`)](#lib-layer-srclib)
-  - [DTOs + “props” types (`src/dto/`, `src/props/`)](#dtos--props-types-srcdto-srcprops)
+  - [UI + routing layer (`app/web/app/`)](#ui--routing-layer-appwebapp)
+  - [BFF/API layer (`app/web/app/api/`)](#bffapi-layer-appwebappapi)
+  - [Hooks layer (`app/web/src/hooks/`)](#hooks-layer-appwebsrchooks)
+  - [Lib layer (`app/web/src/lib/`)](#lib-layer-appwebsrclib)
+  - [DTOs + “props” types (`packages/props/`)](#dtos--props-types-packagesprops)
 - [Data flow (end-to-end)](#data-flow-end-to-end)
 - [SSR / SSG / CSR behavior](#ssr--ssg--csr-behavior)
 - [Performance optimizations](#performance-optimizations)
@@ -32,7 +32,7 @@ This project is structured around a simple idea:
   - **TMDB** directly for certain detail endpoints (e.g. movie details),
   - **Supabase** for user-scoped data (profile, watchlist, watch history, Gemini key storage).
 
-Global app concerns (auth gating, notifications, backend health detection, chunk-load error handling) are mounted once in `app/layout.tsx`.
+Global app concerns (auth gating, notifications, backend health detection, chunk-load error handling) are mounted once in `app/web/app/layout.tsx`.
 
 ## Tech stack
 
@@ -50,35 +50,42 @@ High-level:
 
 ```text
 app/
-  layout.tsx               # global providers + gates
-  page.tsx                 # redirects to /landing
-  home/                    # main authenticated home experience
-  explore/                 # explore catalog
-  search/                  # search UI (URL-driven)
-  details/                 # details pages (movie, tv show)
-  watch/                   # watch pages (movie, tv show)
-  profile/                 # profile page (stats, watchlist, continue watching)
-  onboarding/              # onboarding flow
-  auth/                    # auth + callback
-  api/                     # BFF routes (backend/TMDB/Supabase)
+  web/                     # Next.js app (deployed)
+    app/                   # App Router: pages + BFF routes
+      layout.tsx           # global providers + gates
+      page.tsx             # redirects to /landing
+      home/ explore/ search/ details/ watch/ profile/ onboarding/ auth/
+      api/                 # BFF routes (backend/TMDB/Supabase)
+    src/
+      components/          # web UI components, layouts, skeletons
+      hooks/               # web data + behavior hooks
+      lib/                 # web clients, config, contexts, utilities
+    public -> ../../public  # symlink so Next serves the shared assets
+  mobile/                  # React Native app (reserved)
 
-src/
-  components/              # UI components, layouts, skeletons
-  hooks/                   # composable data + behavior hooks
-  lib/                     # clients, config, contexts, utilities
-  dto/                     # API/DB response DTOs shared across layers
-  props/                   # UI-focused prop types (cards, explore, search)
+packages/                  # platform-free code shared by web + mobile
+  props/                   # DTO + UI prop types
+  lib/                     # formatting, party, TMDB images, notifications
+  hooks/                   # platform-free hooks
+  api/                     # fetch client (base URL + bearer token)
+  ui-web/                  # web-only React DOM/Tailwind components
+
+public/                    # shared static assets (images, landing media, logo)
 ```
+
+### Mobile (planned)
+
+`app/mobile` will hold a React Native app distributed as a signed Android APK via GitHub Releases — no Play Store or App Store. It calls the Spring backend directly (not the Next BFF), reuses `packages/*` and the root `public/` assets, and sends `X-Client-Version` on every request so the backend can reason about old builds.
 
 ## Architecture (layers)
 
-### UI + routing layer (`app/`)
+### UI + routing layer (`app/web/app/`)
 
-- **App Router pages** live under `app/**/page.tsx`.
+- **App Router pages** live under `app/web/app/**/page.tsx`.
 - Pages can be **Server Components by default**, but many in this codebase explicitly opt into client rendering via `"use client"` (for router usage, client-side fetching, animations, etc.).
-- **Loading states** are implemented via `app/**/loading.tsx` for route-level skeletons.
+- **Loading states** are implemented via `app/web/app/**/loading.tsx` for route-level skeletons.
 
-Global composition happens in `app/layout.tsx`:
+Global composition happens in `app/web/app/layout.tsx`:
 
 - **`ChunkErrorHandler` + `ChunkErrorBoundary`**: handle and surface chunk-load errors.
 - **`NotificationProvider`**: global toasts/notifications.
@@ -88,13 +95,13 @@ Global composition happens in `app/layout.tsx`:
   - authenticated but not onboarded → `/onboarding`
   - authenticated + onboarded landing/public visits → `/home`
 
-### BFF/API layer (`app/api/`)
+### BFF/API layer (`app/web/app/api/`)
 
 Internal route handlers provide a stable contract to the UI and keep secrets server-side.
 
 Patterns used:
 
-- **Proxying to the backend** using `backendClient` (Axios) from `src/lib/axios.ts`
+- **Proxying to the backend** using `backendClient` (Axios) from `app/web/src/lib/axios.ts`
   - Example: `/api/home/trending/movies` → `backendClient.get("/movies/trending")`
 - **Calling TMDB directly** when needed (e.g. `/api/movie/[id]` uses `TMDB_API_KEY`)
 - **Supabase-authenticated routes** for user data
@@ -107,7 +114,7 @@ Security notes reflected in code:
 - **Gemini API key storage** uses AES-256-GCM encryption (`ENCRYPTION_KEY`) before storing in Supabase.
 - **Stream URL retrieval** uses `SUPABASE_SERVICE_ROLE_KEY` so the `stream_urls` table can remain private (bypassing RLS in a controlled server-only route).
 
-### Hooks layer (`src/hooks/`)
+### Hooks layer (`app/web/src/hooks/`)
 
 Hooks centralize reusable behavior and provide a stable interface for components.
 
@@ -126,28 +133,23 @@ Key hooks:
 - **`usePlaceholderAnimation`**: lightweight animated placeholder cycling.
 - **`useVideasyPlayerMessages`**: listens to `postMessage` events from the Videasy player origin for future progress integration.
 
-### Lib layer (`src/lib/`)
+### Lib layer (`app/web/src/lib/`)
 
-- **`src/lib/axios.ts`**
+- **`app/web/src/lib/axios.ts`**
   - `backendClient`: talks to the separate backend at `BACKEND_URL` (defaults to `http://localhost:8080/api`)
   - `apiClient`: generic client for relative/internal calls (baseURL `""`)
-- **`src/lib/auth/supabase.ts`**: browser Supabase client using `NEXT_PUBLIC_*` env vars.
-- **`src/lib/contexts/*`**
+- **`app/web/src/lib/auth/supabase.ts`**: browser Supabase client using `NEXT_PUBLIC_*` env vars.
+- **`app/web/src/lib/contexts/*`**
   - `NotificationContext`: global notification queue with auto-dismiss
   - `BackendHealthContext`: checks backend health when the user is authenticated and not on public routes
-- **`src/lib/config.ts`**: image base URL configuration (TMDB by default).
-- **`src/lib/tmdb-images.ts`**: normalizes poster/backdrop paths to avoid malformed TMDB URLs.
-- **`src/lib/utils/encryption.ts`**: AES-256-GCM encryption utilities for server-side key handling.
-- **`src/lib/db/database.ts`**: Supabase table helpers for profiles/watchlist/watch history (used by UI/services where appropriate).
+- **`app/web/src/lib/config.ts`**: image base URL configuration (TMDB by default).
+- **`@riyura/lib/tmdb-images`**: normalizes poster/backdrop paths to avoid malformed TMDB URLs.
+- **`app/web/src/lib/utils/encryption.ts`**: AES-256-GCM encryption utilities for server-side key handling.
+- **`app/web/src/lib/db/database.ts`**: Supabase table helpers for profiles/watchlist/watch history (used by UI/services where appropriate).
 
-### DTOs + “props” types (`src/dto/`, `src/props/`)
+### DTOs + “props” types (`packages/props/`)
 
-This repo intentionally separates:
-
-- **DTOs (`src/dto/`)**: shapes used across APIs/DB responses and internal route handlers (e.g. `WatchHistoryItem`, `ApiResponse<T>`).
-- **UI props (`src/props/`)**: component/page-level props with UI-friendly naming (e.g. `MediaCardProp`, search/explore prop models).
-
-This helps keep the BFF and UI layers typed without over-coupling UI components to raw backend payloads.
+Shared DTO and UI prop models live in `packages/props/**` and are imported as `@riyura/props/*` (or the `@riyura/props` barrel). Keeping them in a package means the web app and the future React Native app validate the same payloads and pass the same UI-facing shapes, without either app importing the other.
 
 ## Data flow (end-to-end)
 
@@ -182,7 +184,7 @@ This codebase uses **Next.js App Router**, so “SSR” behavior is a combinatio
 
 - **Server Components** (default in `app/`) where no `"use client"` is present
 - **Client Components** where `"use client"` is declared (common here for interactive pages)
-- **Route handlers** in `app/api/**/route.ts` (server-only execution)
+- **Route handlers** in `app/web/app/api/**/route.ts` (server-only execution)
 
 What you’ll see in practice:
 
@@ -202,13 +204,13 @@ Optimizations already present in the repo:
 - **Image optimization**
   - `next.config.ts` configures `images.remotePatterns` for TMDB, Google avatars, Unsplash.
   - WebP is preferred and `minimumCacheTTL` is set.
-  - `src/lib/tmdb-images.ts` normalizes malformed poster/backdrop paths to reduce 404s and wasted retries.
+  - `@riyura/lib/tmdb-images` normalizes malformed poster/backdrop paths to reduce 404s and wasted retries.
 
 - **Package import optimization**
   - `experimental.optimizePackageImports` enabled for `lucide-react` and `framer-motion`.
 
 - **Skeleton-first UX**
-  - Route-level `loading.tsx` plus component skeletons under `src/components/skeletons/` reduce layout shifts and keep perceived performance high.
+  - Route-level `loading.tsx` plus component skeletons under `app/web/src/components/skeletons/` reduce layout shifts and keep perceived performance high.
 
 - **Avoiding duplicate network calls**
   - Hooks like `useRecommendations`, `useProfileData` use “single-flight” locks via refs to prevent concurrent duplicate fetches.
@@ -250,7 +252,7 @@ Create `.env.local` in the project root.
     - Single toggle for app behavior. In `development`, `app/not-found.tsx` and `app/error.tsx` stay visible for inspection and a `DEV` badge is shown.
     - In `production`, those pages redirect to `/home`.
     - Default (unset): inferred from `NODE_ENV`.
-    - Where it is used: `src/lib/app-env.ts`, `src/lib/error-page-behavior.ts`, `src/components/ui/DevModeBadge.tsx`.
+    - Where it is used: `app/web/src/lib/app-env.ts`, `app/web/src/lib/error-page-behavior.ts`, `app/web/src/components/ui/DevModeBadge.tsx`.
 
 ## Running locally
 

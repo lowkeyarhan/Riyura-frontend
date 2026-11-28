@@ -1,0 +1,702 @@
+"use client";
+
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence, Transition, Variants } from "framer-motion";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Check, Play, Plus } from "lucide-react";
+import BannerSkeleton from "@/src/components/skeletons/BannerSkeleton";
+import ContinueWatchingCard from "@/src/components/media/ContinueWatchingCard";
+import { MediaType } from "@riyura/props/global/mediaType";
+import { BannerProp } from "@riyura/props/banner/banner";
+import { apiClient } from "@/src/lib/axios";
+import { HistoryProp } from "@riyura/props/profile/history";
+import { useAuth } from "@/src/hooks/useAuth";
+import { ContinueWatchingSkeleton } from "../skeletons/ContinueWatchingSkeleton";
+import { SkeletonTheme } from "react-loading-skeleton";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
+import { getSupabaseSession } from "@/src/lib/auth/getSession";
+import { imageConfig } from "@/src/lib/config";
+
+const AUTO_SLIDE_INTERVAL = 8000;
+const CONTINUE_NON_DESKTOP_MAX_CARDS = 3;
+const CONTINUE_DESKTOP_MAX_CARDS = 5;
+
+interface BannerProps {
+  initialItems?: BannerProp[];
+}
+
+const EMPTY_BANNER_ITEMS: BannerProp[] = [];
+
+const getImageUrl = (path: string) => {
+  if (!path.startsWith("http")) {
+    return `${imageConfig.original}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+  // Fix malformed TMDB URLs missing size (e.g. .../t/p/xxx.jpg -> .../t/p/original/xxx.jpg)
+  if (
+    path.includes("image.tmdb.org/t/p/") &&
+    !path.includes("/t/p/original/") &&
+    !path.includes("/t/p/w")
+  ) {
+    return path.replace("image.tmdb.org/t/p/", "image.tmdb.org/t/p/original/");
+  }
+  return path;
+};
+const getCardImageUrl = (path?: string | null) =>
+  path
+    ? `${imageConfig.w780}${path.startsWith("/") ? path : `/${path}`}`
+    : "/placeholder-image.jpg";
+
+const truncate = (text: string, maxLength: number) =>
+  text?.length > maxLength ? `${text.slice(0, maxLength)}...` : text || "";
+
+const getDisplayTitle = (item?: BannerProp) => item?.title || "Untitled";
+
+const getMediaTypeLabel = (contentType: BannerProp["contentType"]) =>
+  contentType === MediaType.Movie ? MediaType.Movie : "TV Show";
+
+// Image Transition
+const IMAGE_TRANSITION: Transition = {
+  duration: 2.1,
+  ease: [0.4, 0, 0.2, 1] as const,
+};
+const IMAGE_FADE_EASE: [number, number, number, number] = [0.42, 0, 0.58, 1];
+
+// Content Transition
+const CONTENT_TRANSITION: Transition = {
+  duration: 0.8,
+  ease: "easeOut" as const,
+  delay: 0.2,
+};
+
+// Image Variants
+const imageVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "10%" : "-10%",
+    opacity: 0,
+    zIndex: 2,
+  }),
+  center: {
+    x: "0%",
+    opacity: 1,
+    zIndex: 2,
+    transition: {
+      x: IMAGE_TRANSITION,
+      opacity: {
+        duration: 1.6,
+        delay: 0.2,
+        ease: IMAGE_FADE_EASE,
+      },
+    },
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? "-10%" : "10%",
+    opacity: 0,
+    zIndex: 1,
+    transition: {
+      x: IMAGE_TRANSITION,
+      opacity: {
+        duration: 1.6,
+        ease: IMAGE_FADE_EASE,
+      },
+    },
+  }),
+};
+
+// Content Variants
+const contentVariants: Variants = {
+  enter: { opacity: 0, y: 20 },
+  center: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
+const toMediaType = (contentType: BannerProp["contentType"]): MediaType =>
+  contentType === MediaType.Movie ? MediaType.Movie : MediaType.TV;
+
+type ContinueWatchingOverlayItem = {
+  id: number;
+  tmdbId: number;
+  title: string;
+  image: string;
+  progress: number;
+  meta: string;
+  remaining: string;
+  mediaType: MediaType;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  streamId?: string;
+};
+
+const mapWatchHistoryItem = (
+  item: HistoryProp,
+): ContinueWatchingOverlayItem => {
+  const fallbackLength = item.mediaType === MediaType.Movie ? 7200 : 2700;
+  const totalLength = Math.max(60, item.episodeLength || fallbackLength);
+  const watchedSeconds = Math.max(0, item.durationSec || 0);
+  const remainingSeconds = Math.max(0, totalLength - watchedSeconds);
+
+  return {
+    id: item.tmdbId,
+    tmdbId: item.tmdbId,
+    title: item.title || "Untitled",
+    image: getCardImageUrl(item.backdropPath),
+    progress: Math.min(100, Math.round((watchedSeconds / totalLength) * 100)),
+    meta:
+      item.mediaType === MediaType.Movie
+        ? MediaType.Movie
+        : `S${item.seasonNumber || 1} E${item.episodeNumber || 1}`,
+    remaining:
+      remainingSeconds === 0
+        ? "Completed"
+        : `${Math.ceil(remainingSeconds / 60)}m remaining`,
+    mediaType: item.mediaType,
+    seasonNumber: item.seasonNumber || 1,
+    episodeNumber: item.episodeNumber || 1,
+    streamId: item.providerId ?? undefined,
+  };
+};
+
+export default function Banner({ initialItems }: BannerProps) {
+  const safeInitialItems = initialItems ?? EMPTY_BANNER_ITEMS;
+  const router = useRouter();
+  const { user } = useAuth();
+  const { addNotification } = useNotification();
+
+  const [[currentSlide, direction], setCurrentSlide] = useState([0, 0]);
+
+  const [items, setItems] = useState<BannerProp[]>(safeInitialItems);
+  const [loading, setLoading] = useState(safeInitialItems.length === 0);
+  const [error, setError] = useState<string | null>(null);
+  const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
+  const [continueWatching, setContinueWatching] = useState<
+    ContinueWatchingOverlayItem[]
+  >([]);
+  const [continueWatchingLoading, setContinueWatchingLoading] = useState(true);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+
+  const slideTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchEndXRef = useRef<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const clearAutoSlide = useCallback(() => {
+    if (slideTimerRef.current) {
+      clearInterval(slideTimerRef.current);
+      slideTimerRef.current = null;
+    }
+  }, []);
+
+  // Paginate
+  const paginate = useCallback(
+    (newDirection: number) => {
+      if (items.length === 0) return;
+      setCurrentSlide(([prevIndex]) => {
+        let nextIndex = (prevIndex + newDirection) % items.length;
+        if (nextIndex < 0) nextIndex = items.length - 1;
+        return [nextIndex, newDirection];
+      });
+    },
+    [items.length],
+  );
+
+  const goToSlide = useCallback(
+    (index: number) => {
+      if (items.length === 0) return;
+      const nextIndex = Math.max(0, Math.min(items.length - 1, index));
+      setCurrentSlide(([prevIndex]) => [nextIndex, nextIndex - prevIndex]);
+    },
+    [items.length],
+  );
+
+  // Next Slide
+  const nextSlide = useCallback(() => paginate(1), [paginate]);
+  // Previous Slide
+  const prevSlide = useCallback(() => paginate(-1), [paginate]);
+
+  // Reset the auto slide interval
+  const resetInterval = useCallback(() => {
+    clearAutoSlide();
+    if (items.length <= 1) return;
+    slideTimerRef.current = setInterval(() => {
+      nextSlide();
+    }, AUTO_SLIDE_INTERVAL);
+  }, [clearAutoSlide, items.length, nextSlide]);
+
+  // Fetch the banner content
+  useEffect(() => {
+    if (safeInitialItems.length > 0) {
+      setItems(safeInitialItems);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    const fetchBannerContent = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { data } = await apiClient.get<{ items: BannerProp[] }>(
+          "/api/home/banner",
+        );
+        setItems(data.items || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBannerContent();
+  }, [safeInitialItems]);
+
+  // Reset the auto slide interval when the items change
+  useEffect(() => {
+    if (items.length === 0) return;
+    resetInterval();
+    return clearAutoSlide;
+  }, [items.length, resetInterval, clearAutoSlide]);
+
+  // Get the current item
+  const currentItem = items[currentSlide];
+
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchContinueWatching = async () => {
+      if (!user) {
+        setContinueWatching([]);
+        setContinueWatchingLoading(false);
+        return;
+      }
+
+      try {
+        setContinueWatchingLoading(true);
+
+        const session = await getSupabaseSession();
+
+        if (!session?.access_token) {
+          if (isActive) setContinueWatching([]);
+          return;
+        }
+
+        const response = await fetch("/api/profile/history?page=0", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load watch history");
+        }
+
+        const payload = (await response.json()) as {
+          data?: HistoryProp[];
+        };
+
+        const mappedItems = Array.isArray(payload.data)
+          ? payload.data
+              .map(mapWatchHistoryItem)
+              .filter((item) => item.progress <= 95)
+              .slice(0, CONTINUE_DESKTOP_MAX_CARDS)
+          : [];
+
+        if (isActive) setContinueWatching(mappedItems);
+      } catch {
+        if (isActive) setContinueWatching([]);
+      } finally {
+        if (isActive) setContinueWatchingLoading(false);
+      }
+    };
+
+    fetchContinueWatching();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+
+    const handleViewportChange = () => {
+      setIsDesktopViewport(mediaQuery.matches);
+    };
+
+    handleViewportChange();
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleViewportChange);
+    };
+  }, []);
+
+  const itemGenres = currentItem?.genres?.slice(0, 2) || [];
+
+  const metadataParts = currentItem
+    ? [
+        getMediaTypeLabel(currentItem.contentType),
+        currentItem.year,
+        ...itemGenres,
+      ].filter((part): part is string => Boolean(part))
+    : [];
+
+  // Handle the play button click
+  const handlePlay = () => {
+    if (!currentItem) return;
+    if (currentItem.contentType === MediaType.Movie) {
+      router.push(`/watch/movie/${currentItem.tmdbId}`);
+      return;
+    }
+    router.push(`/watch/tvshow/${currentItem.tmdbId}?season=1&episode=1`);
+  };
+
+  useEffect(() => {
+    let isActive = true;
+
+    const checkWatchlistStatus = async () => {
+      if (!user || !currentItem) {
+        setIsWatchlisted(false);
+        return;
+      }
+
+      try {
+        const session = await getSupabaseSession();
+        if (!session) return;
+
+        const mediaType = toMediaType(currentItem.contentType);
+        const res = await fetch(
+          `/api/profile/watchlist?tmdbId=${currentItem.tmdbId}&mediaType=${mediaType}`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isActive) setIsWatchlisted(Boolean(data.isInWatchlist));
+      } catch {
+        if (isActive) setIsWatchlisted(false);
+      }
+    };
+
+    checkWatchlistStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user, currentItem]);
+
+  // Toggle the watchlist via API
+  const toggleWatchlist = async () => {
+    if (!currentItem) return;
+    if (!user) {
+      router.push("/auth");
+      return;
+    }
+
+    setWatchlistLoading(true);
+    const mediaTitle = getDisplayTitle(currentItem);
+    const mediaType = toMediaType(currentItem.contentType);
+
+    try {
+      const session = await getSupabaseSession();
+      if (!session) {
+        addNotification("Session expired. Please sign in again.", "error");
+        return;
+      }
+
+      const res = await fetch("/api/profile/watchlist", {
+        method: isWatchlisted ? "DELETE" : "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tmdb_id: currentItem.tmdbId,
+          media_type: mediaType,
+        }),
+      });
+
+      if (res.ok) {
+        if (isWatchlisted) {
+          setIsWatchlisted(false);
+          addNotification(`${mediaTitle} removed from watchlist`, "success");
+        } else {
+          const data = await res.json();
+          setIsWatchlisted(true);
+          addNotification(
+            data?.message === "Already exists in watchlist"
+              ? `${mediaTitle} is already in your watchlist`
+              : `${mediaTitle} added to watchlist`,
+            "success",
+          );
+        }
+      } else {
+        addNotification("Failed to update watchlist", "error");
+      }
+    } catch {
+      addNotification("Failed to update watchlist", "error");
+    } finally {
+      setWatchlistLoading(false);
+    }
+  };
+
+  // Handle the touch start event
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchEndXRef.current = null;
+    touchStartXRef.current = event.targetTouches[0]?.clientX ?? null;
+  };
+
+  // Handle the touch move event
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchEndXRef.current = event.targetTouches[0]?.clientX ?? null;
+  };
+
+  // Handle the touch end event
+  const handleTouchEnd = () => {
+    if (touchStartXRef.current === null || touchEndXRef.current === null)
+      return;
+    const distance = touchStartXRef.current - touchEndXRef.current;
+    if (distance > minSwipeDistance) {
+      nextSlide();
+      resetInterval();
+    } else if (distance < -minSwipeDistance) {
+      prevSlide();
+      resetInterval();
+    }
+  };
+
+  const handlePlayClick = useCallback(
+    (item: ContinueWatchingOverlayItem) => {
+      if (item.mediaType === MediaType.Movie) {
+        const url = `/watch/movie/${item.tmdbId}${
+          item.streamId ? `?stream=${item.streamId}` : ""
+        }`;
+        router.push(url);
+      } else {
+        const params = new URLSearchParams();
+        if (item.streamId) params.set("stream", item.streamId);
+        if (item.seasonNumber)
+          params.set("season", item.seasonNumber.toString());
+        if (item.episodeNumber)
+          params.set("episode", item.episodeNumber.toString());
+        router.push(
+          `/watch/tvshow/${item.tmdbId}${
+            params.toString() ? `?${params.toString()}` : ""
+          }`,
+        );
+      }
+    },
+    [router],
+  );
+
+  const continueWatchingVisibleItems = continueWatching.slice(
+    0,
+    isDesktopViewport
+      ? CONTINUE_DESKTOP_MAX_CARDS
+      : CONTINUE_NON_DESKTOP_MAX_CARDS,
+  );
+
+  return (
+    <section className="relative w-full bg-black pb-8 md:pb-10">
+      <div
+        className="relative w-full h-[90vh] min-h-[560px] md:h-screen bg-black overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {loading && <BannerSkeleton />}
+
+        {error && !loading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-red-400">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && items.length === 0 && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center text-xl text-white">
+            No content available
+          </div>
+        )}
+
+        {/* Animate the current item background image */}
+        <AnimatePresence initial={false} custom={direction} mode="sync">
+          {currentItem && (
+            <motion.div
+              key={`${currentItem.contentType}-${currentItem.tmdbId}-${currentSlide}`}
+              custom={direction}
+              variants={imageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="absolute inset-y-0 -left-[18%] h-full w-[136%] will-change-transform"
+            >
+              <Image
+                src={getImageUrl(currentItem.backdrop_path)}
+                alt={getDisplayTitle(currentItem)}
+                fill
+                priority
+                className="object-cover object-center"
+                sizes="136vw"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="pointer-events-none absolute inset-0 z-[5] bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
+
+        {/* Content Container */}
+        <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-16 md:px-20 md:pb-24 pointer-events-none">
+          <div className="w-full max-w-2xl">
+            <AnimatePresence mode="wait">
+              {/* Animate the current item content */}
+              {currentItem && (
+                <motion.div
+                  key={`${currentItem.contentType}-${currentItem.tmdbId}-${currentSlide}`}
+                  variants={contentVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={CONTENT_TRANSITION}
+                >
+                  {/* Title */}
+                  <h1
+                    className="mb-4 text-6xl md:text-7xl lg:text-8xl font-extrabold uppercase leading-[0.95] tracking-tight text-white"
+                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                  >
+                    {getDisplayTitle(currentItem)}
+                  </h1>
+
+                  {/* Metadata */}
+                  <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-white/80">
+                    <span className="inline-flex h-7 items-center justify-center rounded-full border border-white/20 bg-white/10 px-2 text-xs font-semibold">
+                      HD+
+                    </span>
+
+                    {metadataParts.map((part, index) => (
+                      <React.Fragment key={`${part}-${index}`}>
+                        <span className="text-sm md:text-[1.02rem]">
+                          {part}
+                        </span>
+                        {index < metadataParts.length - 1 && (
+                          <span className="text-white/50">•</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-white/70 px-1 text-[10px] font-bold leading-none">
+                      {currentItem.maturityRating}
+                    </span>
+                  </div>
+
+                  {/* Overview */}
+                  <p
+                    className="max-w-3xl text-base leading-relaxed text-white/70 md:text-[1.1rem]"
+                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                  >
+                    {truncate(currentItem.overview, 140)}
+                  </p>
+
+                  {/* Buttons */}
+                  <div className="pointer-events-auto mt-7 flex items-center gap-3">
+                    {/* Play Button */}
+                    <button
+                      onClick={handlePlay}
+                      className="w-fit rounded-full bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90"
+                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Play className="h-5 w-5 fill-black" />
+                        <span className="text-2xl leading-none">Play</span>
+                      </span>
+                    </button>
+
+                    {/* Toggle the watchlist */}
+                    <button
+                      onClick={toggleWatchlist}
+                      disabled={watchlistLoading}
+                      aria-label={
+                        isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
+                      }
+                      className={`flex h-14 w-14 items-center apple-glass justify-center rounded-full border border-white/15 transition ${watchlistLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                    >
+                      {isWatchlisted ? (
+                        <Check className="h-8 w-8" strokeWidth={1.5} />
+                      ) : (
+                        <Plus className="h-8 w-8" strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Slide Dots (kept inside viewport) */}
+        {items.length > 1 && (
+          <div className="pointer-events-auto absolute inset-x-0 bottom-10 z-20 hidden items-center justify-center gap-2 px-6 md:flex md:px-20">
+            {items.map((_, index) => (
+              <motion.button
+                key={index}
+                type="button"
+                onClick={() => {
+                  goToSlide(index);
+                  resetInterval();
+                }}
+                // Use Framer Motion layout prop for smooth width transition
+                layout
+                initial={false}
+                animate={{
+                  width: index === currentSlide ? 32 : 8,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className={`h-2 rounded-full ${
+                  index === currentSlide ? "bg-white" : "bg-white/50"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Continue Watching */}
+      {(continueWatchingLoading || continueWatchingVisibleItems.length > 0) && (
+        <div className="relative z-20 px-6 md:px-20">
+          {/* Continue Watching Title */}
+          <div className="border-t border-white/20 pt-5">
+            <h2
+              className="text-2xl md:text-3xl font-bold text-white tracking-tight"
+              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            >
+              Continue Watching
+            </h2>
+            <p
+              className="mt-2 mb-5 md:mb-6 text-sm md:text-base text-white/60"
+              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            >
+              Pick up where you left off
+            </p>
+
+            {continueWatchingLoading ? (
+              <SkeletonTheme baseColor="#1a1d26" highlightColor="#2a2d36">
+                <div className="grid grid-flow-col auto-cols-[calc((100%_-_0.75rem)/1.5)] gap-3 overflow-x-auto pb-2 md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:gap-5 lg:grid-cols-5">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <ContinueWatchingSkeleton key={i} />
+                  ))}
+                </div>
+              </SkeletonTheme>
+            ) : (
+              <div className="grid grid-flow-col auto-cols-[calc((100%_-_0.75rem)/1.5)] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:overflow-visible md:gap-5 lg:grid-cols-5">
+                {continueWatchingVisibleItems.map((item) => (
+                  <ContinueWatchingCard
+                    key={item.id}
+                    item={item}
+                    onClick={handlePlayClick}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}

@@ -20,7 +20,7 @@ The full file-by-file codebase graph lives in `.claude/claude.md`. This file own
 | Dev          | `npm run dev`                    |
 | Build        | `npm run build`                  |
 | Production   | `npm run start`                  |
-| Types        | `npx tsc --noEmit`               |
+| Types        | `npx tsc --noEmit -p app/web/tsconfig.json` |
 | Lint         | `npm run lint` (currently broken) |
 
 There is no test suite and no CI. Never claim tests pass. Verify with `tsc` + `build` and, for UI changes, a manual run.
@@ -38,24 +38,33 @@ There is no test suite and no CI. Never claim tests pass. Verify with `tsc` + `b
 - Do not edit generated files: `.next/**`, `next-env.d.ts`, `tsconfig.tsbuildinfo`, `node_modules/**`. `package-lock.json` changes only through npm.
 - Never expose server-only env vars to client code or logs.
 - User-data API routes expect `Authorization: Bearer <supabase access token>`.
-- Use `next/image` for images; normalize TMDB paths with `src/lib/tmdb-images.ts`.
-- Keep data fetching in `src/hooks/`; pages and components consume hooks.
+- Use `next/image` for images; normalize TMDB paths with `@riyura/lib/tmdb-images`.
+- Keep web data fetching in `app/web/src/hooks/`; pages and components consume hooks.
+- Shared code lives in `packages/*` and is imported with `@riyura/*`. Packages must never import `@/src` or `@/app`.
 
 ## Architecture
 
-- `app/` — App Router pages and BFF route handlers (`app/api/**/route.ts`).
-- `src/components/` — UI by domain (layout, media, search, player, profile, watchlist, party, skeletons, ui).
-- `src/hooks/` — data and behavior hooks, grouped by domain.
-- `src/lib/` — Axios clients, Supabase client, contexts, server route utils, formatting/color helpers.
-- `src/props/` — UI-facing prop and request-body types.
-- `app/layout.tsx` mounts global providers/gates: `NotificationProvider`, `BackendHealthProvider`, `AuthGate`, chunk-error handling, Vercel Analytics.
+- Monorepo: `app/web` is the Next.js app, `app/mobile` is reserved for the React Native app, `packages/*` is shared code. Root `package.json` is the npm workspace root.
+- `app/web/app/` — App Router pages and BFF route handlers (`app/web/app/api/**/route.ts`).
+- `app/web/src/components/` — UI by domain (layout, media, search, player, profile, watchlist, party, skeletons, ui).
+- `app/web/src/hooks/` — web data and behavior hooks, grouped by domain.
+- `app/web/src/lib/` — Axios clients, Supabase client, web contexts, server route utils, web-only helpers.
+- `packages/props/` — shared UI-facing prop and request-body types.
+- `packages/lib/` — pure shared helpers (formatting, party, TMDB images, notifications).
+- `packages/hooks/` — platform-free hooks.
+- `packages/ui-web/` — web-only React DOM/Tailwind components. React Native needs `packages/ui-native` + shared design tokens, not these.
+- `public/` — single shared static-asset root (web serves it via the `app/web/public` symlink).
+- `packages/api/` — shared fetch client (`createApiClient`); web instance at `app/web/src/lib/api.ts`.
+- `app/mobile/` — reserved for the React Native app. It ships as a signed Android APK via GitHub Releases (no Play Store, no App Store) and calls the Spring backend directly, not the Next BFF.
+- Mobile API rule: installed apps update on their own cadence, so backend changes must stay additive and versioned; every request sends `X-Client-Version`.
+- `app/web/app/layout.tsx` mounts global providers/gates: `NotificationProvider`, `BackendHealthProvider`, `AuthGate`, chunk-error handling, Vercel Analytics.
 - `AuthGate`: unauthenticated -> `/auth`; authenticated but not onboarded -> `/onboarding`; onboarded on a public route -> `/home`.
 - API routes are dynamic (`export const dynamic = "force-dynamic"`) and proxy to the backend or Supabase. Keep secrets server-side.
 - Most pages are `"use client"` and fetch after hydration. The app is effectively CSR with prerendered shells; do not assume server data.
 
 ## Environment variables
 
-Create `.env.local`. Never commit it or print its values.
+Create `app/web/.env.local`. Never commit it or print its values.
 
 | Variable                        | Scope  | Purpose                                              |
 | ------------------------------- | ------ | ---------------------------------------------------- |
@@ -72,8 +81,8 @@ Create `.env.local`. Never commit it or print its values.
 - `npm run lint` fails with `ERR_MODULE_NOT_FOUND` because `eslint-config-next` is pinned to `0.2.4` (wrong package version). Fix the dependency before relying on lint.
 - No tests, no CI, no middleware/proxy. Auth redirects happen client-side after hydration.
 - `next.config.ts` sets `reactStrictMode: false`; do not rely on double-invoked effects.
-- Tailwind v4 ignores `tailwind.config.js` unless `@config` is added to `app/globals.css`.
-- `app/page.tsx` only redirects to `/landing`.
+- Tailwind v4 ignores `tailwind.config.js` unless `@config` is added to `app/web/app/globals.css`.
+- `app/web/app/page.tsx` only redirects to `/landing`.
 - `AUDIT.md` and `UI-CSS-SSR.md` contain an existing audit; treat them as findings, not instructions.
 - Landing assets are large (`public/landing-page` ~26 MB) and the hero uses a 516 KB three.js chunk. Do not add more heavy client libraries without need.
 
@@ -85,7 +94,7 @@ All shell output must go through RTK so context stays small. RTK is installed on
 - Search: `rtk grep <pattern> <path>` or `rtk rg ...` (ripgrep flags work). Use `--include` to narrow.
 - Find/list: `rtk find`, `rtk tree`, `rtk ls`.
 - Git: `rtk git status`, `rtk git diff`, `rtk git log`, `rtk git show`.
-- Scripts/builds: `rtk npm run <script>`, `rtk next build`, `rtk tsc --noEmit`, `rtk lint`, `rtk prettier`.
+- Scripts/builds: `rtk npm run <script>`, `rtk npm run build`, `rtk tsc --noEmit -p app/web/tsconfig.json`, `rtk lint`, `rtk prettier`.
 - Batch related commands into one shell call to save turns.
 - Treat condensed output as complete. If output is elided, recover it with `rtk recall <hash>` (`--full`, `--grep`, `--lines`). Do not blindly re-run the command.
 - Use `rtk bypass <cmd>` only when RTK output is empty when output was expected, contradicts the exit code, or is garbled.
@@ -94,8 +103,8 @@ All shell output must go through RTK so context stays small. RTK is installed on
 
 ## Verification before finishing
 
-1. `rtk tsc --noEmit` (or `npx tsc --noEmit`) passes.
-2. `rtk next build` (or `npm run build`) passes for routing, config, or data-contract changes.
+1. `rtk tsc --noEmit -p app/web/tsconfig.json` (or `npx tsc --noEmit -p app/web/tsconfig.json`) passes.
+2. `rtk npm run build` (or `npm run build`) passes for routing, config, or data-contract changes.
 3. Run `rtk lint` if the ESLint dependency has been fixed; otherwise say lint is unavailable.
 4. For UI changes, run `npm run dev` and check the affected route.
 5. Report what you ran and what you did not check.

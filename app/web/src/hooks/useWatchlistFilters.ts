@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { MediaType } from "@/src/props/global/mediaType";
-import { getDetailsPath } from "@/src/lib/utils/format";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { MediaType } from "@riyura/props/global/mediaType";
+import { getDetailsPath } from "@/src/lib/routes";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
 interface UseWatchlistFiltersParams {
   items: MediaCardProp[];

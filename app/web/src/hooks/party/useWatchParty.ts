@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/src/lib/auth/supabase";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
-import { MediaType } from "@/src/props/global/mediaType";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
+import { MediaType } from "@riyura/props/global/mediaType";
 import {
   PartyState,
   PartyParticipant,
   ChatMessage,
   SyncResponse,
   SSEEnvelope,
-} from "@/src/props/party/watchParty";
+} from "@riyura/props/party/watchParty";
 
 const BASE = "/api/watchalong/party";
 const PROGRESS_PUSH_INTERVAL_MS = 5_000;

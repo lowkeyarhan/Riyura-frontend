@@ -3,78 +3,75 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useNotification } from "@/src/lib/contexts/NotificationContext";
+import { useNotification } from "@riyura/lib/contexts/NotificationContext";
 import { supabase } from "@/src/lib/auth/supabase";
-import { MediaType } from "@/src/props/global/mediaType";
-import type { MovieDetailProp } from "@/src/props/movie/movieDetail";
-import type { MediaCardProp } from "@/src/props/global/mediaCard";
+import { api } from "@/src/lib/api";
+import { MediaType } from "@riyura/props/global/mediaType";
+import type { TvDetailProp } from "@riyura/props/tv/tvDetail";
+import type { MediaCardProp } from "@riyura/props/global/mediaCard";
 
-export function useMovieDetails(id: string) {
+export function useTVShowDetails(id: string) {
   const router = useRouter();
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [movie, setMovie] = useState<MovieDetailProp | null>(null);
+  const [tvShow, setTVShow] = useState<TvDetailProp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [similarMovies, setSimilarMovies] = useState<MediaCardProp[]>([]);
+  const [similarShows, setSimilarShows] = useState<MediaCardProp[]>([]);
 
-  const fetchMovieDetails = useCallback(async () => {
+  const fetchTVShowDetails = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/details/movie/${id}`);
+      const response = await api.request(`/api/details/tv/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error ?? "Failed to fetch movie details");
+        throw new Error(data?.error ?? "Failed to fetch TV show details");
       }
 
-      setMovie(data);
+      setTVShow(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      setMovie(null);
+      setTVShow(null);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  const fetchSimilarMovies = useCallback(async () => {
+  const fetchSimilarShows = useCallback(async () => {
     if (!id) return;
     try {
-      const response = await fetch(`/api/details/movie/${id}/similiar`);
+      const response = await api.request(`/api/details/tv/${id}/similiar`);
       if (!response.ok) return;
       const data = await response.json();
       if (Array.isArray(data)) {
-        setSimilarMovies(data);
+        setSimilarShows(data);
       }
     } catch {
-      // silently fail — similar movies are non-critical
+      // silently fail — similar shows are non-critical
     }
   }, [id]);
 
   useEffect(() => {
-    fetchMovieDetails();
-    fetchSimilarMovies();
-  }, [fetchMovieDetails, fetchSimilarMovies]);
+    fetchTVShowDetails();
+    fetchSimilarShows();
+  }, [fetchTVShowDetails, fetchSimilarShows]);
 
   useEffect(() => {
     const checkWatchlistStatus = async () => {
-      if (user && movie) {
+      if (user && tvShow) {
         try {
           const {
             data: { session },
           } = await supabase.auth.getSession();
 
           if (session) {
-            const res = await fetch(
-              `/api/profile/watchlist?tmdbId=${movie.id}&mediaType=${MediaType.Movie}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              },
+            const res = await api.request(
+              `/api/profile/watchlist?tmdbId=${tvShow.id}&mediaType=${MediaType.TV}`,
+              { auth: true },
             );
             const data = await res.json();
             setIsWatchlisted(data.isInWatchlist);
@@ -86,7 +83,7 @@ export function useMovieDetails(id: string) {
     };
 
     checkWatchlistStatus();
-  }, [user, movie]);
+  }, [user, tvShow]);
 
   const toggleWatchlist = async () => {
     if (!user) {
@@ -94,7 +91,7 @@ export function useMovieDetails(id: string) {
       return;
     }
 
-    if (!movie) return;
+    if (!tvShow) return;
 
     try {
       const {
@@ -107,49 +104,45 @@ export function useMovieDetails(id: string) {
       }
 
       if (isWatchlisted) {
-        const res = await fetch("/api/profile/watchlist", {
+        const res = await api.request("/api/profile/watchlist", {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+          auth: true,
+          body: {
+            tmdb_id: tvShow.id,
+            media_type: MediaType.TV,
           },
-          body: JSON.stringify({
-            tmdb_id: movie.id,
-            media_type: MediaType.Movie,
-          }),
         });
         if (!res.ok) throw new Error("Failed to remove from watchlist");
+
+        setIsWatchlisted(false);
+        addNotification(`${tvShow.name} removed from watchlist`, "success");
       } else {
-        const res = await fetch("/api/profile/watchlist", {
+        const res = await api.request("/api/profile/watchlist", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+          auth: true,
+          body: {
+            tmdb_id: tvShow.id,
+            media_type: MediaType.TV,
           },
-          body: JSON.stringify({
-            tmdb_id: movie.id,
-            media_type: MediaType.Movie,
-          }),
         });
 
         if (!res.ok) throw new Error("Failed to add to watchlist");
 
-        addNotification(`${movie.title} added to watchlist`, "success");
+        setIsWatchlisted(true);
+        addNotification(`${tvShow.name} added to watchlist`, "success");
       }
-
-      setIsWatchlisted(!isWatchlisted);
     } catch (err) {
-      console.error("❌ Error toggling watchlist:", err);
+      console.error("❌ Error:", err);
       addNotification("Failed to update watchlist", "error");
     }
   };
 
   return {
-    movie,
+    tvShow,
     loading,
     error,
     isWatchlisted,
     toggleWatchlist,
-    similarMovies,
+    similarShows,
   };
 }
